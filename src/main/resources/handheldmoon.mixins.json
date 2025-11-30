@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.sighs.handheldmoon.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "handheldmoon.refmap.json",
+  "mixins": [
+    "DirectionalLightMixin"
+  ],
+  "client": [
+    "PostChainMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

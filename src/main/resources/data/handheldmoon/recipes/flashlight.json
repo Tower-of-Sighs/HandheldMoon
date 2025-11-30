@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " B ",
+    "EAE",
+    " C "
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:redstone_lamp"
+    },
+    "B": {
+      "item": "minecraft:observer"
+    },
+    "C": {
+      "item": "minecraft:amethyst_shard"
+    },
+    "E": {
+      "item": "minecraft:redstone"
+    }
+  },
+  "result": {
+    "item": "handheldmoon:moonlight_lamp",
+    "count": 1
+  }
+}
