@@ -10,15 +10,18 @@ public class Utils {
     public static boolean isUsingFlashlight(Player player) {
         boolean result = false;
         if (isFlashlight(player.getMainHandItem())) {
-            result = MoonlightLampItem.getPowered(player.getMainHandItem()) == 1;
+            result = isPoweredFlashlight(player.getMainHandItem());
         }
         if (isFlashlight(player.getOffhandItem())) {
-            result = MoonlightLampItem.getPowered(player.getOffhandItem()) == 1;
+            result = isPoweredFlashlight(player.getOffhandItem());
         }
         return result || CuriosCompat.isUsingCuriosFlashlight(player);
     }
     public static boolean isFlashlight(ItemStack itemStack) {
         return itemStack.is(ModItems.MOONLIGHT_LAMP.get());
+    }
+    public static boolean isPoweredFlashlight(ItemStack itemStack) {
+        return MoonlightLampItem.getPowered(itemStack) == 1;
     }
     public static void toggleFlashlight(Player player) {
         if (isFlashlight(player.getMainHandItem())) {
@@ -28,6 +31,5 @@ public class Utils {
             MoonlightLampItem.togglePowered(player.getOffhandItem());
         }
         CuriosCompat.toggleCuriosFlashlight(player);
-
     }
 }

@@ -2,6 +2,7 @@ package com.sighs.handheldmoon.event;
 
 import com.sighs.handheldmoon.HandheldMoon;
 import com.sighs.handheldmoon.init.Utils;
+import com.sighs.handheldmoon.registry.Config;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -17,43 +18,47 @@ import net.minecraftforge.fml.common.Mod;
 import toni.sodiumdynamiclights.DynamicLightSource;
 import toni.sodiumdynamiclights.SodiumDynamicLights;
 
-import java.lang.reflect.Field;
+import java.util.HashSet;
+import java.util.Set;
 
 @Mod.EventBusSubscriber(modid = HandheldMoon.MODID, value = Dist.CLIENT)
 public class LightEvent {
     @SubscribeEvent
     public static void tick(TickEvent.ClientTickEvent event) {
-        Player player = Minecraft.getInstance().player;
-        LevelRenderer levelRenderer = Minecraft.getInstance().levelRenderer;
-        if (player != null) {
-            for (AbstractClientPlayer clientPlayer : Minecraft.getInstance().level.players()) {
-                if (Utils.isUsingFlashlight(player)) try {
-                    Field field = Player.class.getDeclaredField("sodiumdynamiclights$luminance");
-                    field.setAccessible(true);
-                    field.setInt(clientPlayer, 15);
-                } catch (NoSuchFieldException | IllegalAccessException ignored) { }
-                SodiumDynamicLights.get().addLightSource((DynamicLightSource) clientPlayer);
-            }
-            ChunkPos entityChunkPos = player.chunkPosition();
-            int centerChunkX = entityChunkPos.x;
-            int centerChunkZ = entityChunkPos.z;
-            int centerSectionY = SectionPos.blockToSectionCoord(player.getEyeY());
-            int CHUNK_UPDATE_RADIUS = 2;
+        if (!Config.REAL_LIGHT.get()) return;
 
-            for (int dx = -CHUNK_UPDATE_RADIUS; dx <= CHUNK_UPDATE_RADIUS; dx++) {
-                for (int dz = -CHUNK_UPDATE_RADIUS; dz <= CHUNK_UPDATE_RADIUS; dz++) {
-                    BlockPos.MutableBlockPos chunkPos = new BlockPos.MutableBlockPos(
-                            centerChunkX + dx,
-                            centerSectionY,
-                            centerChunkZ + dz
-                    );
-                    if (shouldUpdateChunk(chunkPos)) {
-                        SodiumDynamicLights.scheduleChunkRebuild(levelRenderer, chunkPos);
+        LevelRenderer levelRenderer = Minecraft.getInstance().levelRenderer;
+        if (Minecraft.getInstance().player != null) {
+            Set<BlockPos.MutableBlockPos> posSet = new HashSet<>();
+
+            for (AbstractClientPlayer clientPlayer : Minecraft.getInstance().level.players()) {
+                ChunkPos entityChunkPos = clientPlayer.chunkPosition();
+                int centerChunkX = entityChunkPos.x;
+                int centerChunkZ = entityChunkPos.z;
+                int centerSectionY = SectionPos.blockToSectionCoord(clientPlayer.getEyeY());
+                int CHUNK_UPDATE_RADIUS = 2;
+
+                for (int dx = -CHUNK_UPDATE_RADIUS; dx <= CHUNK_UPDATE_RADIUS; dx++) {
+                    for (int dz = -CHUNK_UPDATE_RADIUS; dz <= CHUNK_UPDATE_RADIUS; dz++) {
+                        BlockPos.MutableBlockPos chunkPos = new BlockPos.MutableBlockPos(
+                                centerChunkX + dx,
+                                centerSectionY,
+                                centerChunkZ + dz
+                        );
+                        if (shouldUpdateChunk(chunkPos)) {
+                            posSet.add(chunkPos);
+                        }
                     }
                 }
+                if (Utils.isUsingFlashlight(clientPlayer)) {
+                    ((DynamicLightSource) clientPlayer).sodiumdynamiclights$scheduleTrackedChunksRebuild(levelRenderer);
+                    ((DynamicLightSource) clientPlayer).sdl$resetDynamicLight();
+                }
             }
-            ((DynamicLightSource) player).sodiumdynamiclights$scheduleTrackedChunksRebuild(levelRenderer);
-            ((DynamicLightSource) player).sdl$resetDynamicLight();
+
+            for (BlockPos.MutableBlockPos pos : posSet) {
+                SodiumDynamicLights.scheduleChunkRebuild(levelRenderer, pos);
+            }
         }
     }
 
@@ -68,11 +73,6 @@ public class LightEvent {
 
         // 计算从玩家到区块的方向向量
         Vec3 toChunk = new Vec3(chunkCenterX - playerPos.x, chunkCenterY - playerPos.y, chunkCenterZ - playerPos.z);
-
-        double distance = toChunk.length();
-        if (distance > 64.0) { // 64格外的区块不更新
-            return false;
-        }
 
         // 归一化方向向量
         toChunk = toChunk.normalize();

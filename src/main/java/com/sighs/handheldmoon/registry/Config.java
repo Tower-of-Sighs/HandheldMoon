@@ -9,6 +9,7 @@ public class Config {
     public static final ForgeConfigSpec.ConfigValue<Boolean> ENABLE_FIXED_FLASHLIGHT;
     public static final ForgeConfigSpec.ConfigValue<Double> LIGHT_INTENSITY;
     public static final ForgeConfigSpec.ConfigValue<Boolean> PLAYER_RAY;
+    public static final ForgeConfigSpec.ConfigValue<Boolean> REAL_LIGHT;
 
     static {
         BUILDER.push("Client Setting");
@@ -19,6 +20,9 @@ public class Config {
         PLAYER_RAY = BUILDER
                 .comment("是否启用其它玩家光束可见。")
                 .define("enablePlayerRay", true);
+        REAL_LIGHT = BUILDER
+                .comment("是否启用真实照明。")
+                .define("enableRealLight", true);
         LIGHT_INTENSITY = BUILDER
                 .comment("手电筒光强度。")
                 .define("LightIntensity", 0.3);

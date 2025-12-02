@@ -16,6 +16,7 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber(modid = HandheldMoon.MODID, value = Dist.CLIENT)
 public class ActionEvent {
     private static double cacheGama = 0;
+    private static long lastActionTime;
 
     @SubscribeEvent
     public static void onKey(InputEvent.Key event) {
@@ -35,7 +36,27 @@ public class ActionEvent {
     }
 
     @SubscribeEvent
-    public static void wheelAction(net.minecraftforge.client.event.InputEvent.MouseScrollingEvent event) {
+    public static void wheelAction(InputEvent.MouseButton.Pre event) {
+        Player player = Minecraft.getInstance().player;
+        if (player == null) return;
+        if (KeyBindings.FLASHLIGHT_SWITCH.isDown() && event.getAction() == InputConstants.RELEASE) {
+            if (player.tickCount - lastActionTime < 10) return;
+            if (event.getButton() == 0) {
+                Config.REAL_LIGHT.set(!Config.REAL_LIGHT.get());
+                Config.REAL_LIGHT.save();
+                player.displayClientMessage(Component.translatable("message.handheldmoon.real_light", Config.REAL_LIGHT.get().toString()), true);
+            }
+            if (event.getButton() == 1) {
+                Config.PLAYER_RAY.set(!Config.PLAYER_RAY.get());
+                Config.PLAYER_RAY.save();
+                player.displayClientMessage(Component.translatable("message.handheldmoon.player_ray", Config.PLAYER_RAY.get().toString()), true);
+            }
+            lastActionTime = player.tickCount;
+        }
+    }
+
+    @SubscribeEvent
+    public static void wheelAction(InputEvent.MouseScrollingEvent event) {
         Player player = Minecraft.getInstance().player;
         if (player == null || !Utils.isUsingFlashlight(player)) return;
         if (KeyBindings.FLASHLIGHT_SWITCH.isDown()) {
@@ -47,7 +68,7 @@ public class ActionEvent {
     public static void modifyValue(double delta) {
         double value = Config.LIGHT_INTENSITY.get();
         if (delta < 0) {
-            value = Math.max(value - 0.1, 0.1);
+            value = Math.max(value - 0.1, 0);
         } else {
             value = Math.min(value + 0.1, 1);
         }

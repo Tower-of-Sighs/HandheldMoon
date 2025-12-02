@@ -1,22 +1,25 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    " B ",
-    "EAE",
-    " C "
+    "ABA",
+    "ECE",
+    "ADA"
   ],
   "key": {
     "A": {
-      "item": "minecraft:redstone_lamp"
+      "item": "minecraft:lapis_lazuli"
     },
     "B": {
-      "item": "minecraft:observer"
-    },
-    "C": {
       "item": "minecraft:amethyst_shard"
     },
+    "C": {
+      "item": "minecraft:ender_pearl"
+    },
+    "D": {
+      "item": "minecraft:observer"
+    },
     "E": {
-      "item": "minecraft:redstone"
+      "item": "minecraft:gold_ingot"
     }
   },
   "result": {

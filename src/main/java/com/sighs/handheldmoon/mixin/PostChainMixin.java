@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.*;
 import java.util.List;
 
 @Mixin(value = PostChain.class)
-@Implements(@Interface(iface = PostChainAccessor.class, prefix = "lazy$")) // 动态附加接口
+@Implements(@Interface(iface = PostChainAccessor.class, prefix = "lazy$"))
 public class PostChainMixin implements PostChainAccessor {
     @Shadow @Final private List<PostPass> passes;
 
