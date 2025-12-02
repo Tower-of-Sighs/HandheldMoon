@@ -1,7 +1,9 @@
 package com.sighs.handheldmoon;
 
-import com.sighs.handheldmoon.registry.Config;
-import com.sighs.handheldmoon.registry.ModItems;
+import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
+import com.sighs.handheldmoon.registry.*;
+import dev.lambdaurora.lambdynlights.api.DynamicLightHandler;
+import dev.lambdaurora.lambdynlights.api.DynamicLightHandlers;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
@@ -14,8 +16,12 @@ public class HandheldMoon {
 
     public HandheldMoon() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-        ModItems.ITEMS.register(modEventBus);
-        ModItems.CREATIVE_MODE_TABS.register(modEventBus);
+        Items.ITEMS.register(modEventBus);
+        Blocks.BLOCKS.register(modEventBus);
+        BlockEntities.BLOCK_ENTITIES.register(modEventBus);
+        Items.CREATIVE_MODE_TABS.register(modEventBus);
+
+        NetworkHandler.register();
 
         ModLoadingContext.get().registerConfig(
                 ModConfig.Type.CLIENT,

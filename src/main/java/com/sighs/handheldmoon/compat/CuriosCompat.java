@@ -1,6 +1,6 @@
 package com.sighs.handheldmoon.compat;
 
-import com.sighs.handheldmoon.registry.ModItems;
+import com.sighs.handheldmoon.registry.Items;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.fml.ModList;
@@ -31,6 +31,6 @@ public class CuriosCompat {
         if (INSTALLED) {
             return CuriosCompatInner.getFirstFlashlight(player);
         }
-        return ModItems.MOONLIGHT_LAMP.get().getDefaultInstance();
+        return Items.MOONLIGHT_LAMP.get().getDefaultInstance();
     }
 }

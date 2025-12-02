@@ -12,7 +12,7 @@ import net.minecraftforge.registries.RegistryObject;
 
 import static com.sighs.handheldmoon.HandheldMoon.MODID;
 
-public class ModItems {
+public class Items {
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
 
     public static final RegistryObject<Item> MOONLIGHT_LAMP = ITEMS.register("moonlight_lamp", MoonlightLampItem::new);

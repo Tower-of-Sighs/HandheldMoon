@@ -2,7 +2,7 @@ package com.sighs.handheldmoon.compat;
 
 import com.sighs.handheldmoon.Item.MoonlightLampItem;
 import com.sighs.handheldmoon.init.Utils;
-import com.sighs.handheldmoon.registry.ModItems;
+import com.sighs.handheldmoon.registry.Items;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import top.theillusivec4.curios.api.CuriosApi;
@@ -30,7 +30,7 @@ public class CuriosCompatInner {
         });
     }
     public static ItemStack getFirstFlashlight(Player player) {
-        ItemStack[] itemStack = {ModItems.MOONLIGHT_LAMP.get().getDefaultInstance()};
+        ItemStack[] itemStack = {Items.MOONLIGHT_LAMP.get().getDefaultInstance()};
         CuriosApi.getCuriosInventory(player).ifPresent(iCuriosItemHandler -> {
             List<SlotResult> list = iCuriosItemHandler.findCurios(Utils::isFlashlight);
             if (!list.isEmpty()) itemStack[0] = list.get(0).stack();

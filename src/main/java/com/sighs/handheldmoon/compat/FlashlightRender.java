@@ -1,7 +1,7 @@
 package com.sighs.handheldmoon.compat;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.sighs.handheldmoon.registry.ModItems;
+import com.sighs.handheldmoon.registry.Items;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -21,7 +21,7 @@ public class FlashlightRender implements ICurioRenderer {
     private static final Minecraft MC = Minecraft.getInstance();
 
     public static void register() {
-        CuriosRendererRegistry.register(ModItems.MOONLIGHT_LAMP.get(), FlashlightRender::new);
+        CuriosRendererRegistry.register(Items.MOONLIGHT_LAMP.get(), FlashlightRender::new);
     }
 
     @Override

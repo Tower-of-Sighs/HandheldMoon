@@ -80,8 +80,7 @@ public class LightEvent {
         // 计算视线方向与区块方向的点积
         double dotProduct = lookVec.dot(toChunk);
 
-        // 点积大于0.5表示区块在玩家前方约60度锥形范围内
         // 这个阈值可以调整：值越大，视野范围越窄；值越小，视野范围越宽
-        return dotProduct > 0.5;
+        return dotProduct > 0.6;
     }
 }
