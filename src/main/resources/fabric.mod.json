@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "handheldmoon",
+  "version": "${version}",
+  "name": "HandheldMoon",
+  "description": "Loot Bags is a mod which adds bags that drop other items, renewed by src_resources.",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/handheldmoon/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "com.sighs.handheldmoon.client.HandheldmoonClient"
+    ],
+    "main": [
+      "com.sighs.handheldmoon.HandheldMoon"
+    ]
+  },
+  "mixins": [
+    "handheldmoon.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  },
+  "accessWidener": "handheldmoon.accesswidener"
+}
