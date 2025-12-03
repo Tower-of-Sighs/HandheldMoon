@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = DynamicLightHandlers.class, remap = false)
@@ -19,6 +20,10 @@ public abstract class DynamicLightHandlersMixin {
     @Shadow
     public static @Nullable <T extends BlockEntity> DynamicLightHandler<T> getDynamicLightHandler(BlockEntityType<BeaconBlockEntity> type) {
         return null;
+    }
+
+    @Shadow
+    public static <T extends BlockEntity> void registerDynamicLightHandler(BlockEntityType<T> type, DynamicLightHandler<T> handler) {
     }
 
     @Inject(method = "getLuminanceFrom(Lnet/minecraft/world/level/block/entity/BlockEntity;)I", at = @At("HEAD"), cancellable = true)
@@ -35,5 +40,9 @@ public abstract class DynamicLightHandlersMixin {
             System.out.print(type+"111\n");
             cir.setReturnValue(getDynamicLightHandler(BlockEntityType.BEACON));
         }
+    }
+    @Inject(method = "registerDefaultHandlers", at = @At("HEAD"))
+    private static void register(CallbackInfo ci) {
+        registerDynamicLightHandler(BlockEntities.MOONLIGHT_LAMP.get(), (entity) -> 15);
     }
 }

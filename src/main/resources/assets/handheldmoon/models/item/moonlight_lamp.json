@@ -2,7 +2,8 @@
 	"format_version": "1.21.6",
 	"credit": "Made with Blockbench",
 	"textures": {
-		"flashlight": "handheldmoon:item/moonlight_lamp"
+		"flashlight": "handheldmoon:item/moonlight_lamp",
+		"particle": "#flashlight"
 	},
 	"elements": [
 		{

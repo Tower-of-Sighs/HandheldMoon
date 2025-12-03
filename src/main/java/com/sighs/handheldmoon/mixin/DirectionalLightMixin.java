@@ -1,5 +1,6 @@
 package com.sighs.handheldmoon.mixin;
 
+import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
 import com.sighs.handheldmoon.init.Utils;
 import com.sighs.handheldmoon.registry.Config;
 import net.minecraft.core.BlockPos;
@@ -9,6 +10,7 @@ import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import toni.sodiumdynamiclights.DynamicLightSource;
 import toni.sodiumdynamiclights.SodiumDynamicLights;
@@ -85,5 +87,13 @@ public abstract class DirectionalLightMixin {
     @Inject(method = "getLuminanceFromItemStack", at = @At("HEAD"), cancellable = true)
     private static void enforce(ItemStack stack, boolean submergedInWater, CallbackInfoReturnable<Integer> cir) {
         if (Utils.isFlashlight(stack)) cir.setReturnValue(15);
+    }
+
+    @Inject(method = "updateTracking", at = @At("HEAD"), cancellable = true)
+    private static void enforce(DynamicLightSource lightSource, CallbackInfo ci) {
+        if (lightSource instanceof MoonlightLampBlockEntity) {
+            lightSource.sdl$setDynamicLightEnabled(true);
+            ci.cancel();
+        }
     }
 }

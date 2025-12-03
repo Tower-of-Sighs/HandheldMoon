@@ -204,7 +204,7 @@ dependencies {
     compileOnly fg.deobf("mezz.jei:jei-1.20.1-forge-api:15.20.0.104")
     implementation fg.deobf("mezz.jei:jei-1.20.1-forge:15.20.0.104")
 
-    implementation fg.deobf("libs:freecam:2.0.1-forge-1.20.1")
+//    implementation fg.deobf("libs:freecam:2.0.1-forge-1.20.1")
 
     implementation fg.deobf("curse.maven:dynamiclights-reforged-551736:6044481")
 

@@ -14,21 +14,21 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 
 public class MoonlightLampRenderer implements BlockEntityRenderer<MoonlightLampBlockEntity> {
     
-    public MoonlightLampRenderer(BlockEntityRendererProvider.Context context) {
-        // 可以在这里初始化一些渲染相关的资源
-    }
+    public MoonlightLampRenderer(BlockEntityRendererProvider.Context context) { }
     
     @Override
-    public void render(MoonlightLampBlockEntity blockEntity, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, int packedOverlay) {
+    public void render(MoonlightLampBlockEntity lamp, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, int packedOverlay) {
 
-        BakedModel model = Minecraft.getInstance().getModelManager().getModel(new ModelResourceLocation(new ResourceLocation("handheldmoon", "moonlight_lamp"), "inventory"));;
+        var modelManager = Minecraft.getInstance().getModelManager();
+        BakedModel model_on = modelManager.getModel(new ModelResourceLocation(new ResourceLocation("handheldmoon", "moonlight_lamp_on"), "inventory"));
+        BakedModel model = modelManager.getModel(new ModelResourceLocation(new ResourceLocation("handheldmoon", "moonlight_lamp"), "inventory"));;
 
         poseStack.pushPose();
 
         poseStack.translate(0.5, 0.5, 0.5);
 
-        poseStack.mulPose(Axis.YP.rotationDegrees(blockEntity.getYRot()));
-        poseStack.mulPose(Axis.XP.rotationDegrees(blockEntity.getXRot()));
+        poseStack.mulPose(Axis.YP.rotationDegrees(lamp.getYRot()));
+        poseStack.mulPose(Axis.XP.rotationDegrees(lamp.getXRot()));
 
         poseStack.translate(-0.5, -0.5, -0.5);
 
@@ -36,7 +36,7 @@ public class MoonlightLampRenderer implements BlockEntityRenderer<MoonlightLampB
                 poseStack.last(),
                 bufferSource.getBuffer(net.minecraft.client.renderer.RenderType.solid()),
                 null,
-                model,
+                lamp.getPowered() ? model_on : model,
                 1.0f, 1.0f, 1.0f,
                 packedLight,
                 packedOverlay

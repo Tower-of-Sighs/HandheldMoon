@@ -26,7 +26,6 @@ public record ServerMoonLightLampSyncPacket(BlockPos blockPos, float xRot, float
                 lamp.setXRot(msg.xRot());
                 lamp.setYRot(msg.yRot());
                 lamp.setPowered(msg.powered);
-                System.out.print("sync\n");
                 lamp.setChanged();
             }
         });
