@@ -5,6 +5,7 @@ import com.sighs.handheldmoon.util.Utils;
 import dev.lambdaurora.lambdynlights.api.DynamicLightsContext;
 import dev.lambdaurora.lambdynlights.api.DynamicLightsInitializer;
 import dev.lambdaurora.lambdynlights.api.behavior.DynamicLightBehaviorManager;
+import dev.lambdaurora.lambdynlights.api.item.ItemLightSourceManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
@@ -23,12 +24,11 @@ public class HandheldMoonDynamicLightsInitializer implements DynamicLightsInitia
         MANAGER = context.dynamicLightBehaviorManager();
     }
 
-    @SuppressWarnings({"UnstableApiUsage", "removal"})
+    @SuppressWarnings({"removal", "UnstableApiUsage"})
     @Override
-    public void onInitializeDynamicLights() {
+    public void onInitializeDynamicLights(ItemLightSourceManager itemLightSourceManager) {
 
     }
-
 
     public static void syncLampBehavior(MoonlightLampBlockEntity lamp) {
         if (MANAGER == null) return;

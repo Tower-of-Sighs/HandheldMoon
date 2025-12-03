@@ -19,7 +19,7 @@
     "main": [
       "com.sighs.handheldmoon.HandheldMoon"
     ],
-    "lambdynlights:initializer": [
+    "dynamiclights": [
       "com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer"
     ]
   },

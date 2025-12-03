@@ -12,7 +12,7 @@ public class ModItems {
     public static void init() {
         MOONLIGHT_LAMP = Registry.register(
                 BuiltInRegistries.ITEM,
-                new ResourceLocation(HandheldMoon.MOD_ID, "moonlight_lamp"),
+                ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "moonlight_lamp"),
                 new MoonlightLampItem()
         );
     }

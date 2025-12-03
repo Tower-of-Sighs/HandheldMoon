@@ -1,18 +1,18 @@
 package com.sighs.handheldmoon.registry;
 
-import net.minecraftforge.common.ForgeConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec;
 
 public class Config {
-    public static final ForgeConfigSpec SPEC;
-    private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
+    public static final ModConfigSpec SPEC;
+    private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
     private static volatile double ENGINE_FALLOFF_SCALE = 0.25;
     private static volatile double LAST_INTENSITY = Double.NaN;
     private static volatile long LAST_REFRESH_MS = 0L;
 
-    public static final ForgeConfigSpec.ConfigValue<Boolean> ENABLE_FIXED_FLASHLIGHT;
-    public static final ForgeConfigSpec.ConfigValue<Double> LIGHT_INTENSITY;
-    public static final ForgeConfigSpec.ConfigValue<Boolean> PLAYER_RAY;
-    public static final ForgeConfigSpec.ConfigValue<Boolean> REAL_LIGHT;
+    public static final ModConfigSpec.ConfigValue<Boolean> ENABLE_FIXED_FLASHLIGHT;
+    public static final ModConfigSpec.ConfigValue<Double> LIGHT_INTENSITY;
+    public static final ModConfigSpec.ConfigValue<Boolean> PLAYER_RAY;
+    public static final ModConfigSpec.ConfigValue<Boolean> REAL_LIGHT;
 
     static {
         BUILDER.push("Client Setting");

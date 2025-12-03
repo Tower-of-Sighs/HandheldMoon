@@ -1,6 +1,7 @@
 package com.sighs.handheldmoon.item;
 
 import com.sighs.handheldmoon.registry.ModBlocks;
+import com.sighs.handheldmoon.registry.ModDataComponent;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
@@ -22,13 +23,13 @@ public class MoonlightLampItem extends BlockItem {
     }
 
     public static void togglePowered(ItemStack stack) {
-        CompoundTag nbt = stack.getOrCreateTag();
-        int powered = nbt.getInt("powered");
-        nbt.putInt("powered", powered ^ 1);
+        int powered = stack.getOrDefault(ModDataComponent.POWERED, 0);
+        int newValue = powered ^ 1;
+        stack.set(ModDataComponent.POWERED, newValue);
     }
 
-    public static int getPowered(ItemStack itemStack) {
-        CompoundTag nbt = itemStack.getTag();
-        return nbt != null ? nbt.getInt("powered") : 0;
+
+    public static int getPowered(ItemStack stack) {
+        return stack.getOrDefault(ModDataComponent.POWERED, 0);
     }
 }

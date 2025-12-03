@@ -3,9 +3,9 @@ package com.sighs.handheldmoon;
 import com.mojang.logging.LogUtils;
 import com.sighs.handheldmoon.network.NetworkHandler;
 import com.sighs.handheldmoon.registry.*;
-import fuzs.forgeconfigapiport.api.config.v2.ForgeConfigRegistry;
+import fuzs.forgeconfigapiport.fabric.api.neoforge.v4.NeoForgeConfigRegistry;
 import net.fabricmc.api.ModInitializer;
-import net.minecraftforge.fml.config.ModConfig;
+import net.neoforged.fml.config.ModConfig;
 import org.slf4j.Logger;
 
 public class HandheldMoon implements ModInitializer {
@@ -16,8 +16,9 @@ public class HandheldMoon implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        ForgeConfigRegistry.INSTANCE.register(MOD_ID, ModConfig.Type.CLIENT, Config.SPEC);
+        NeoForgeConfigRegistry.INSTANCE.register(MOD_ID, ModConfig.Type.CLIENT, Config.SPEC);
         NetworkHandler.init();
+        ModDataComponent.init();
         ModBlocks.init();
         ModItems.init();
         ModCreativeModeTab.init();

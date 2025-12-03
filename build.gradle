@@ -74,19 +74,21 @@ dependencies {
 
     modApi "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:${project.fcap_version}"
 
-    modImplementation "curse.maven:sodium-394468:6260639"
-    modImplementation "curse.maven:irisshaders-455508:6258195"
+    modImplementation "curse.maven:sodium-394468:6382649"
+    modImplementation "curse.maven:irisshaders-455508:6213635"
 
-    modCompileOnly ("mezz.jei:jei-1.20.1-fabric-api:${jei_verison}")
-    modImplementation ("mezz.jei:jei-1.20.1-fabric:${jei_verison}")
+    implementation files("libs/antlr4-runtime-4.13.1.jar")
+    implementation files("libs/glsl-transformer-3.0.0-pre3.jar")
+    implementation files("libs/jcpp-1.4.14.jar")
 
-    modImplementation files("libs/trinkets-3.7.2.jar")
-    modImplementation "dev.onyxstudios.cardinal-components-api:cardinal-components-base:${project.cca_version}"
-    modImplementation "dev.onyxstudios.cardinal-components-api:cardinal-components-entity:${project.cca_version}"
+    modCompileOnly ("mezz.jei:jei-${minecraft_version}-fabric-api:${jei_verison}")
+    modImplementation ("mezz.jei:jei-${minecraft_version}-fabric:${jei_verison}")
+
+    modImplementation "dev.emi:trinkets:${trinkets_version}"
 
     modImplementation("com.terraformersmc:modmenu:${project.modmenu_version}")
 
-    modImplementation "curse.maven:starlight-521783:4572096"
+    modImplementation "curse.maven:scalablelux-1055925:6952368"
 }
 
 processResources {

@@ -14,20 +14,22 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraft.client.renderer.item.ItemProperties;
-import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.resources.ResourceLocation;
 
 
-public class HandheldMoonClient implements ClientModInitializer, ModelLoadingPlugin {
+public class HandheldMoonClient implements ClientModInitializer{
 
     @Override
     public void onInitializeClient() {
-        ModelLoadingPlugin.register(this);
+        ModelLoadingPlugin.register(out -> {
+            out.addModels(ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "item/moonlight_lamp"));
+            out.addModels(ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "item/moonlight_lamp_on"));
+        });
         ModKeyBindings.register();
         TrinketsCompat.init();
         ItemProperties.register(
                 ModItems.MOONLIGHT_LAMP,
-                new ResourceLocation(HandheldMoon.MOD_ID, "powered"),
+                ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "powered"),
                 (stack, world, entity, seed) -> MoonlightLampItem.getPowered(stack)
         );
 
@@ -44,10 +46,5 @@ public class HandheldMoonClient implements ClientModInitializer, ModelLoadingPlu
 
     private static void registerRenders() {
         BlockEntityRenderers.register(ModBlockEntities.MOONLIGHT_LAMP, MoonlightLampRenderer::new);
-    }
-
-    @Override
-    public void onInitializeModelLoader(Context context) {
-        context.addModels(new ModelResourceLocation(new ResourceLocation(HandheldMoon.MOD_ID, "moonlight_lamp_on"), "inventory"));
     }
 }

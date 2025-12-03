@@ -13,7 +13,7 @@ import net.minecraft.world.item.CreativeModeTab;
 public class ModCreativeModeTab {
     public static final ResourceKey<CreativeModeTab> CATBURGER_TAB_KEY = ResourceKey.create(
             Registries.CREATIVE_MODE_TAB,
-            new ResourceLocation(HandheldMoon.MOD_ID, "catburger_tab")
+            ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "catburger_tab")
     );
     public static CreativeModeTab CATBURGER_TAB;
 

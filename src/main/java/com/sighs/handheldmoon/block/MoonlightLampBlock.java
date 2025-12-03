@@ -1,6 +1,8 @@
 package com.sighs.handheldmoon.block;
 
+import com.mojang.serialization.MapCodec;
 import com.sighs.handheldmoon.item.MoonlightLampItem;
+import com.sighs.handheldmoon.registry.ModDataComponent;
 import com.sighs.handheldmoon.registry.ModItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
@@ -28,9 +30,11 @@ public class MoonlightLampBlock extends BaseEntityBlock {
         super(properties.strength(1f));
     }
 
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
-        return InteractionResult.FAIL;
+    @Override
+    protected MapCodec<? extends BaseEntityBlock> codec() {
+        return simpleCodec(MoonlightLampBlock::new);
     }
+
 
     @Override
     public RenderShape getRenderShape(BlockState state) {
@@ -54,10 +58,13 @@ public class MoonlightLampBlock extends BaseEntityBlock {
     @Override
     public List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
         ItemStack stack = new ItemStack(ModItems.MOONLIGHT_LAMP);
+
         BlockEntity be = params.getParameter(LootContextParams.BLOCK_ENTITY);
         if (be instanceof MoonlightLampBlockEntity lamp) {
-            stack.getOrCreateTag().putBoolean("powered", lamp.getPowered());
+            int poweredInt = lamp.getPowered() ? 1 : 0;
+            stack.set(ModDataComponent.POWERED, poweredInt);
         }
+
         return List.of(stack);
     }
 

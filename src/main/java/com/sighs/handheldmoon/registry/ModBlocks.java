@@ -13,7 +13,7 @@ public class ModBlocks {
     public static void init() {
         MOONLIGHT_LAMP = Registry.register(
                 BuiltInRegistries.BLOCK,
-                new ResourceLocation(HandheldMoon.MOD_ID, "moonlight_lamp"),
+                ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "moonlight_lamp"),
                 new MoonlightLampBlock(BlockBehaviour.Properties.of().noCollission())
         );
     }

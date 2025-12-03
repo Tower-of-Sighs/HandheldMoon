@@ -33,7 +33,7 @@ public class EffectManager {
 
                     @Override
                     public ResourceLocation getFabricId() {
-                        return new ResourceLocation(HandheldMoon.MOD_ID, "effect_manager_reload");
+                        return ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "effect_manager_reload");
                     }
 
                     @Override
@@ -61,13 +61,13 @@ public class EffectManager {
     }
 
     public static void onRenderLevelStage(WorldRenderContext context) {
+        float partialTick = context.tickCounter().getGameTimeDeltaPartialTick(true);
         CHAINS.values().forEach(chain -> {
             chain.resize(mc.getWindow().getWidth(), mc.getWindow().getHeight());
-            chain.process(context.tickDelta());
+            chain.process(partialTick);
         });
         mc.getMainRenderTarget().bindWrite(false);
     }
-
 
     public static void clean(String name) {
         if (CHAINS.containsKey(name)) {
@@ -82,7 +82,7 @@ public class EffectManager {
     }
 
     private static PostChain createPostChain(String name) {
-        ResourceLocation rl = name.indexOf(':') >= 0 ? new ResourceLocation(name) : new ResourceLocation(HandheldMoon.MOD_ID, name);
+        ResourceLocation rl = name.indexOf(':') >= 0 ? ResourceLocation.parse(name) : ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, name);
         try {
             return new PostChain(mc.getTextureManager(), mc.getResourceManager(), mc.getMainRenderTarget(), rl);
         } catch (IOException e) {

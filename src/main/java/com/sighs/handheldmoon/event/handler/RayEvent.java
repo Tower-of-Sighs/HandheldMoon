@@ -35,7 +35,7 @@ public class RayEvent {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
 
-        float partialTick = mc.getFrameTime();
+        float partialTick = mc.getFrameTimeNs();
         PoseStack poseStack = context.matrixStack();
 
         RenderSystem.enableBlend();
@@ -92,19 +92,15 @@ public class RayEvent {
         rightVec = upReference.cross(direction).normalize();
         orthoUp = direction.cross(rightVec).normalize();
 
-        Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder buffer = tesselator.getBuilder();
-
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
-
-        // 使用三角形扇绘制径向渐变
-        buffer.begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION_COLOR);
+        Tesselator tess = Tesselator.getInstance();
+        BufferBuilder buffer = tess.begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION_COLOR);
 
         Matrix4f matrix = poseStack.last().pose();
 
         // 顶点 - 使用最高透明度（中心最亮）
-        buffer.vertex(matrix, (float) apex.x, (float) apex.y, (float) apex.z)
-                .color(CONE_R, CONE_G, CONE_B, centerAlpha).endVertex();
+        buffer.addVertex(matrix, (float) apex.x, (float) apex.y, (float) apex.z)
+                .setColor(CONE_R, CONE_G, CONE_B, centerAlpha);
 
         // 添加底面圆周点 - 使用最低透明度（边缘最暗/透明）
         for (int i = 0; i <= SEGMENTS; i++) {
@@ -116,10 +112,10 @@ public class RayEvent {
                     .add(orthoUp.scale(scaledRadius * sin));
 
             // 圆周点使用边缘透明度
-            buffer.vertex(matrix, (float) basePoint.x, (float) basePoint.y, (float) basePoint.z)
-                    .color(CONE_R, CONE_G, CONE_B, edgeAlpha).endVertex();
+            buffer.addVertex(matrix, (float) basePoint.x, (float) basePoint.y, (float) basePoint.z)
+                    .setColor(CONE_R, CONE_G, CONE_B, edgeAlpha);
         }
 
-        tesselator.end();
+        BufferUploader.drawWithShader(buffer.buildOrThrow());
     }
 }
