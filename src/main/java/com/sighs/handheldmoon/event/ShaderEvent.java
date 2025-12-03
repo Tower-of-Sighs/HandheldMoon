@@ -25,6 +25,7 @@ public class ShaderEvent {
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.START) return;
+        if (Config.LIGHT_INTENSITY.get() < 0.1) return;
 
         Minecraft mc = Minecraft.getInstance();
         Player player = mc.player;

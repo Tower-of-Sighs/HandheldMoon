@@ -27,8 +27,8 @@ public class MoonlightLampRenderer implements BlockEntityRenderer<MoonlightLampB
 
         poseStack.translate(0.5, 0.5, 0.5);
 
-        poseStack.mulPose(Axis.YP.rotationDegrees(lamp.getYRot()));
-        poseStack.mulPose(Axis.XP.rotationDegrees(lamp.getXRot()));
+        poseStack.mulPose(Axis.YP.rotationDegrees(-lamp.getYRot()));
+        poseStack.mulPose(Axis.XP.rotationDegrees(lamp.getXRot() - 90));
 
         poseStack.translate(-0.5, -0.5, -0.5);
 

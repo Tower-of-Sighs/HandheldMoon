@@ -16,6 +16,8 @@ public class HandheldMoon {
 
     public HandheldMoon() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+
+        Entities.ENTITIES.register(modEventBus);
         Items.ITEMS.register(modEventBus);
         Blocks.BLOCKS.register(modEventBus);
         BlockEntities.BLOCK_ENTITIES.register(modEventBus);

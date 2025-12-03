@@ -1,8 +1,11 @@
 package com.sighs.handheldmoon.mixin;
 
+import com.sighs.handheldmoon.block.FullMoonBlockEntity;
 import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
+import com.sighs.handheldmoon.entity.FullMoonEntity;
 import com.sighs.handheldmoon.init.Utils;
 import com.sighs.handheldmoon.registry.Config;
+import com.sighs.handheldmoon.registry.Items;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -10,7 +13,6 @@ import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import toni.sodiumdynamiclights.DynamicLightSource;
 import toni.sodiumdynamiclights.SodiumDynamicLights;
@@ -18,14 +20,34 @@ import toni.sodiumdynamiclights.SodiumDynamicLights;
 @Mixin(value = SodiumDynamicLights.class, remap = false)
 public abstract class DirectionalLightMixin {
     @Inject(method = "maxDynamicLightLevel", at = @At("HEAD"), cancellable = true)
-    private static void onMaxDynamicLightLevel(BlockPos pos, DynamicLightSource lightSource,
-                                               double currentLightLevel, CallbackInfoReturnable<Double> cir) {
+    private static void onMaxDynamicLightLevel(BlockPos pos, DynamicLightSource lightSource, double currentLightLevel, CallbackInfoReturnable<Double> cir) {
+        Vec3 lookVec = Vec3.ZERO;
+        double radius = 32;
+
+        boolean isPoweredMoonlightLampItem = false;
         if (lightSource instanceof Player player) {
-            if (!Config.REAL_LIGHT.get()) return;
-            if (!Utils.isUsingFlashlight(player)) return;
+            if (Utils.isUsingFlashlight(player) && Config.REAL_LIGHT.get()) {
+                isPoweredMoonlightLampItem = true;
+                lookVec = player.getLookAngle();
+            }
+        }
 
-            Vec3 lookVec = player.getLookAngle();
+        boolean isPoweredMoonlightLampBlock = false;
+        boolean isFullMoonBlock = false;
+        if (lightSource instanceof FullMoonEntity entity) {
+            var be = entity.level().getBlockEntity(entity.blockPosition());
+            if (be instanceof MoonlightLampBlockEntity lamp) {
+                if (lamp.getPowered()) {
+                    isPoweredMoonlightLampBlock = true;
+                    lookVec = lamp.getViewVec();
+                }
+            } else if (be instanceof FullMoonBlockEntity) {
+                isFullMoonBlock = true;
+                radius = 18;
+            }
+        }
 
+        if (isPoweredMoonlightLampItem || isPoweredMoonlightLampBlock || isFullMoonBlock) {
             // 方向
             Vec3 toTarget = new Vec3(
                     pos.getX() - lightSource.sdl$getDynamicLightX() + 0.5,
@@ -43,6 +65,7 @@ public abstract class DirectionalLightMixin {
 
             // 衰减
             double angleAttenuation = calculateAngleAttenuation(angle, innerAngle, outerAngle);
+            if (lookVec.equals(Vec3.ZERO)) angleAttenuation = 1;
 
             int luminance = lightSource.sdl$getLuminance();
 
@@ -55,9 +78,15 @@ public abstract class DirectionalLightMixin {
                     double dz = (double) pos.getZ() - lightSource.sdl$getDynamicLightZ() + 0.5;
                     double distanceSquared = dx * dx + dy * dy + dz * dz;
 
-                    if (distanceSquared <= 1024.0) {
+                    if (distanceSquared <= radius * radius) {
                         double distance = Math.sqrt(distanceSquared);
-                        double distanceMultiplier = 1.0 - distance / 32.0;
+                        double distanceMultiplier;
+                        double t = distance / radius; // 标准化距离，t 在 [0,1] 之间
+                        if (isFullMoonBlock) {
+                            distanceMultiplier = 1.0 - t * t * t;
+                        } else {
+                            distanceMultiplier = 1.0 - t * t;
+                        }
 
                         // 计算最终光照强度：基础光照 × 距离衰减 × 角度衰减
                         double lightLevel = distanceMultiplier * luminance * angleAttenuation;
@@ -86,14 +115,6 @@ public abstract class DirectionalLightMixin {
 
     @Inject(method = "getLuminanceFromItemStack", at = @At("HEAD"), cancellable = true)
     private static void enforce(ItemStack stack, boolean submergedInWater, CallbackInfoReturnable<Integer> cir) {
-        if (Utils.isFlashlight(stack)) cir.setReturnValue(15);
-    }
-
-    @Inject(method = "updateTracking", at = @At("HEAD"), cancellable = true)
-    private static void enforce(DynamicLightSource lightSource, CallbackInfo ci) {
-        if (lightSource instanceof MoonlightLampBlockEntity) {
-            lightSource.sdl$setDynamicLightEnabled(true);
-            ci.cancel();
-        }
+        if (Utils.isFlashlight(stack) || stack.is(Items.FULL_MOON.get())) cir.setReturnValue(15);
     }
 }

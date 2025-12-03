@@ -1,5 +1,6 @@
 package com.sighs.handheldmoon.registry;
 
+import com.sighs.handheldmoon.block.FullMoonBlockEntity;
 import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.registries.DeferredRegister;
@@ -15,4 +16,7 @@ public class BlockEntities {
     public static final RegistryObject<BlockEntityType<MoonlightLampBlockEntity>> MOONLIGHT_LAMP =
             BLOCK_ENTITIES.register("moonlight_lamp",
                     () -> BlockEntityType.Builder.of(MoonlightLampBlockEntity::new, Blocks.MOONLIGHT_LAMP.get()).build(null));
+    public static final RegistryObject<BlockEntityType<FullMoonBlockEntity>> FULL_MOON =
+            BLOCK_ENTITIES.register("full_moon",
+                    () -> BlockEntityType.Builder.of(FullMoonBlockEntity::new, Blocks.FULL_MOON.get()).build(null));
 }

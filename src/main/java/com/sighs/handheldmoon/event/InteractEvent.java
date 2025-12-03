@@ -5,6 +5,7 @@ import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
 import com.sighs.handheldmoon.init.ClientUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraftforge.api.distmarker.Dist;
@@ -35,9 +36,9 @@ public class InteractEvent {
     }
 
     @SubscribeEvent
-    public static void interact(PlayerInteractEvent event) {
-        var lamp = ClientUtils.getCursorMoonlightLampBlock();
-        if (event.getSide().isClient() && lamp != null) {
+    public static void interact(PlayerInteractEvent.RightClickBlock event) {
+        MoonlightLampBlockEntity lamp = ClientUtils.getCursorMoonlightLampBlock();
+        if (event.getSide().isClient() && event.getHand() == InteractionHand.MAIN_HAND && lamp != null) {
             lamp.setPowered(!lamp.getPowered());
         }
     }

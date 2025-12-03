@@ -5,8 +5,7 @@
   "compatibilityLevel": "JAVA_8",
   "refmap": "handheldmoon.refmap.json",
   "mixins": [
-    "DirectionalLightMixin",
-    "DynamicLightHandlersMixin"
+    "DirectionalLightMixin"
   ],
   "client": [
     "PostChainMixin"

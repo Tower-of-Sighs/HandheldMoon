@@ -4,20 +4,20 @@ import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.sighs.handheldmoon.HandheldMoon;
+import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
+import com.sighs.handheldmoon.entity.FullMoonEntity;
 import com.sighs.handheldmoon.registry.Config;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix4f;
-
-import java.util.List;
+import toni.sodiumdynamiclights.DynamicLightSource;
 
 @Mod.EventBusSubscriber(modid = HandheldMoon.MODID, value = Dist.CLIENT)
 public class RayEvent {
@@ -48,14 +48,18 @@ public class RayEvent {
         Vec3 cameraPos = camera.getPosition();
         poseStack.translate(-cameraPos.x, -cameraPos.y, -cameraPos.z);
 
-        List<AbstractClientPlayer> players = mc.level.players();
-
-        for (Player player : players) {
-            if (player.getUUID().equals(Minecraft.getInstance().player.getUUID())) continue;
-            Vec3 eyePos = player.getEyePosition(partialTick);
-            Vec3 viewVec = player.getViewVector(partialTick).normalize();
-
-            renderCones(poseStack, eyePos, viewVec);
+        for (DynamicLightSource dynamicLightSource : LightEvent.getLightSourceList()) {
+            if (dynamicLightSource instanceof Entity entity) {
+                if (entity.getUUID().equals(Minecraft.getInstance().player.getUUID())) continue;
+                Vec3 eyePos = entity.getEyePosition(partialTick);
+                Vec3 viewVec = entity.getViewVector(partialTick).normalize();
+                renderCones(poseStack, eyePos, viewVec);
+            }
+            if (dynamicLightSource instanceof MoonlightLampBlockEntity lamp) {
+                Vec3 eyePos = lamp.getBlockPos().getCenter();
+                Vec3 viewVec = lamp.getViewVec().normalize();
+                renderCones(poseStack, eyePos, viewVec);
+            }
         }
 
         poseStack.popPose();
