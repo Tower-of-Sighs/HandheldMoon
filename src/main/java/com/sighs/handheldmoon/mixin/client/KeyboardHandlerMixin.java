@@ -3,7 +3,6 @@ package com.sighs.handheldmoon.mixin.client;
 import com.sighs.handheldmoon.event.InputEvent;
 import net.minecraft.client.KeyboardHandler;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.input.KeyEvent;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -18,9 +17,9 @@ public class KeyboardHandlerMixin {
     private Minecraft minecraft;
 
     @Inject(method = "keyPress", at = @At("HEAD"))
-    private void sophisticatedSorter$onKey(long l, int i, KeyEvent keyEvent, CallbackInfo ci) {
+    private void handheldMoon$onKey(long windowPointer, int key, int scanCode, int action, int modifiers, CallbackInfo ci) {
         var window = this.minecraft.getWindow();
-        if (l != window.handle()) return;
-        InputEvent.KEY.invoker().onKey(keyEvent);
+        if (windowPointer != window.getWindow()) return;
+        InputEvent.KEY.invoker().onKey(key, scanCode, action, modifiers);
     }
 }

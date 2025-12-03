@@ -1,15 +1,11 @@
 package com.sighs.handheldmoon.event.handler;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
 import com.sighs.handheldmoon.event.InputEvent;
-import com.sighs.handheldmoon.registry.Config;
-import com.sighs.handheldmoon.registry.KeyBindings;
+import com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import com.sighs.handheldmoon.util.ClientUtils;
-import com.sighs.handheldmoon.util.Utils;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.input.KeyEvent;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -26,7 +22,7 @@ public class InteractEventHandler {
     }
 
     public static boolean wheel(double scrollDeltaX, double scrollDeltaY, double mouseX, double mouseY,
-                             boolean leftDown, boolean middleDown, boolean rightDown) {
+                                boolean leftDown, boolean middleDown, boolean rightDown) {
         var mc = Minecraft.getInstance();
         var hit = mc.hitResult;
         if (hit instanceof BlockHitResult result) {
@@ -38,7 +34,8 @@ public class InteractEventHandler {
                     } else {
                         lamp.setYRot(lamp.getYRot() + (float) scrollDeltaY * 2);
                     }
-                    return  true;
+                    HandheldMoonDynamicLightsInitializer.syncLampBehavior(lamp);
+                    return true;
                 }
             }
         }
@@ -50,6 +47,7 @@ public class InteractEventHandler {
             var lamp = ClientUtils.getCursorMoonlightLampBlock();
             if (lamp != null) {
                 lamp.setPowered(!lamp.getPowered());
+                HandheldMoonDynamicLightsInitializer.syncLampBehavior(lamp);
                 return InteractionResult.SUCCESS;
             }
         }

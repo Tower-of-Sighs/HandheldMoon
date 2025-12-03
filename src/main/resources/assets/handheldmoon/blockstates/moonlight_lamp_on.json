@@ -1,0 +1,9 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "handheldmoon:block/moonlight_lamp_on"
+      }
+    ]
+  }
+}

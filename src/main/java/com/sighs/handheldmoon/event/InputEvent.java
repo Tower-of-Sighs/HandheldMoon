@@ -2,8 +2,6 @@ package com.sighs.handheldmoon.event;
 
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonInfo;
 
 public interface InputEvent {
 
@@ -13,18 +11,18 @@ public interface InputEvent {
         /**
          * @return true 表示取消
          */
-        boolean onMouseButtonPre(MouseButtonInfo mouseButtonInfo, int action);
+        boolean onMouseButtonPre(int button, int action, int modifiers);
     }
 
     @FunctionalInterface
     interface MouseButtonPost {
-        void onMouseButtonPost(MouseButtonInfo mouseButtonInfo, int action);
+        void onMouseButtonPost(int button, int action, int modifiers);
     }
 
     Event<MouseButtonPre> MOUSE_BUTTON_PRE = EventFactory.createArrayBacked(MouseButtonPre.class,
-            callbacks -> (mouseButtonInfo, action) -> {
+            callbacks -> (button, action, modifiers) -> {
                 for (MouseButtonPre cb : callbacks) {
-                    if (cb.onMouseButtonPre(mouseButtonInfo, action)) {
+                    if (cb.onMouseButtonPre(button, action, modifiers)) {
                         return true; // 任何一个返回 true 视为取消
                     }
                 }
@@ -32,9 +30,9 @@ public interface InputEvent {
             });
 
     Event<MouseButtonPost> MOUSE_BUTTON_POST = EventFactory.createArrayBacked(MouseButtonPost.class,
-            callbacks -> (mouseButtonInfo, action) -> {
+            callbacks -> (button, action, modifiers) -> {
                 for (MouseButtonPost cb : callbacks) {
-                    cb.onMouseButtonPost(mouseButtonInfo, action);
+                    cb.onMouseButtonPost(button, action, modifiers);
                 }
             });
 
@@ -61,13 +59,13 @@ public interface InputEvent {
 
     @FunctionalInterface
     interface Key {
-        void onKey(KeyEvent keyEvent);
+        void onKey(int key, int scancode, int action, int modifiers);
     }
 
     Event<Key> KEY = EventFactory.createArrayBacked(Key.class,
-            callbacks -> (key) -> {
+            callbacks -> (key, scancode, action, modifiers) -> {
                 for (Key cb : callbacks) {
-                    cb.onKey(key);
+                    cb.onKey(key, scancode, action, modifiers);
                 }
             });
 }

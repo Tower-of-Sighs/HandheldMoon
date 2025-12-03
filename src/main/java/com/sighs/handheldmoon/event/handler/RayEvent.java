@@ -1,15 +1,21 @@
 package com.sighs.handheldmoon.event.handler;
 
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldExtractionContext;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
+import com.sighs.handheldmoon.registry.Config;
+import com.sighs.handheldmoon.util.Utils;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.ScreenEffectRenderer;
-import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
-import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
+
+import java.util.List;
 
 public class RayEvent {
     private static final float VIEW_ANGLE_DEG = 56.0f;
@@ -19,9 +25,47 @@ public class RayEvent {
     private static final float CONE_G = 1.0f;
     private static final float CONE_B = 1.0f;
 
-    public static void renderPlayerViewConesWithRadialGradient(WorldExtractionContext context, @Nullable HitResult result) {
-
+    public static void init() {
+        WorldRenderEvents.AFTER_TRANSLUCENT.register(RayEvent::renderPlayerViewConesWithRadialGradient);
     }
+
+    public static void renderPlayerViewConesWithRadialGradient(WorldRenderContext context) {
+        if (!Config.PLAYER_RAY.get()) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+
+        float partialTick = mc.getFrameTime();
+        PoseStack poseStack = context.matrixStack();
+
+        RenderSystem.enableBlend();
+        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
+        RenderSystem.disableCull();
+
+        poseStack.pushPose();
+        Camera camera = mc.gameRenderer.getMainCamera();
+        Vec3 cameraPos = camera.getPosition();
+        poseStack.translate(-cameraPos.x, -cameraPos.y, -cameraPos.z);
+
+        List<AbstractClientPlayer> players = mc.level.players();
+
+        for (Player player : players) {
+            if (player.getUUID().equals(Minecraft.getInstance().player.getUUID())) continue;
+
+            if (!Utils.isUsingFlashlight(player)) continue;
+
+            Vec3 eyePos = player.getEyePosition(partialTick);
+            Vec3 viewVec = player.getViewVector(partialTick).normalize();
+
+            renderCones(poseStack, eyePos, viewVec);
+        }
+
+        poseStack.popPose();
+        RenderSystem.disableBlend();
+        RenderSystem.enableCull();
+        RenderSystem.defaultBlendFunc();
+    }
+
     // 多层径向渐变圆锥
     public static void renderCones(PoseStack poseStack, Vec3 apex, Vec3 direction) {
         renderConeLayer(poseStack, apex, direction, 1.0f, 0.15f, 0.0f);
@@ -48,16 +92,19 @@ public class RayEvent {
         rightVec = upReference.cross(direction).normalize();
         orthoUp = direction.cross(rightVec).normalize();
 
+        Tesselator tesselator = Tesselator.getInstance();
+        BufferBuilder buffer = tesselator.getBuilder();
+
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
+
         // 使用三角形扇绘制径向渐变
-        Tesselator tess = Tesselator.getInstance();
-        BufferBuilder buffer = tess.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        buffer.begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION_COLOR);
 
         Matrix4f matrix = poseStack.last().pose();
 
         // 顶点 - 使用最高透明度（中心最亮）
-        buffer.addVertex(matrix, (float)apex.x, (float)apex.y, (float)apex.z)
-                .setColor(CONE_R, CONE_G, CONE_B, centerAlpha);
+        buffer.vertex(matrix, (float) apex.x, (float) apex.y, (float) apex.z)
+                .color(CONE_R, CONE_G, CONE_B, centerAlpha).endVertex();
 
         // 添加底面圆周点 - 使用最低透明度（边缘最暗/透明）
         for (int i = 0; i <= SEGMENTS; i++) {
@@ -69,9 +116,10 @@ public class RayEvent {
                     .add(orthoUp.scale(scaledRadius * sin));
 
             // 圆周点使用边缘透明度
-            buffer.addVertex((float)basePoint.x, (float)basePoint.y, (float)basePoint.z)
-                    .setColor(CONE_R, CONE_G, CONE_B, edgeAlpha);
+            buffer.vertex(matrix, (float) basePoint.x, (float) basePoint.y, (float) basePoint.z)
+                    .color(CONE_R, CONE_G, CONE_B, edgeAlpha).endVertex();
         }
 
+        tesselator.end();
     }
 }

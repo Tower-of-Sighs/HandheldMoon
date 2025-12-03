@@ -2,8 +2,10 @@ package com.sighs.handheldmoon.util;
 
 import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
 import com.sighs.handheldmoon.network.ServerMoonLightLampSyncPacket;
+import io.netty.buffer.Unpooled;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
@@ -21,6 +23,19 @@ public class ClientUtils {
     }
 
     public static void syncMoonlightLampBlock(MoonlightLampBlockEntity lamp) {
-        ClientPlayNetworking.send(new ServerMoonLightLampSyncPacket(lamp.getBlockPos(), lamp.getXRot(), lamp.getYRot(), lamp.getPowered()));
+        ClientPlayNetworking.send(ServerMoonLightLampSyncPacket.TYPE,
+                encodePacket(new ServerMoonLightLampSyncPacket(
+                        lamp.getBlockPos(),
+                        lamp.getXRot(),
+                        lamp.getYRot(),
+                        lamp.getPowered()
+                ))
+        );
+    }
+
+    private static FriendlyByteBuf encodePacket(ServerMoonLightLampSyncPacket packet) {
+        var buf = new FriendlyByteBuf(Unpooled.buffer());
+        ServerMoonLightLampSyncPacket.encode(packet, buf);
+        return buf;
     }
 }

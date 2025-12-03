@@ -1,0 +1,29 @@
+{
+  "targets": ["swap"],
+  "passes": [
+    {
+      "name": "flashlight",
+      "intarget": "minecraft:main",
+      "outtarget": "swap",
+      "uniforms": [
+        {
+          "name": "IntensityAmount",
+          "values": [ 1.0 ]
+        },
+        {
+          "name": "Offset",
+          "values": [ 0.0, 0.0 ]
+        },
+        {
+          "name": "Radius",
+          "values": [ 1.0 ]
+        }
+      ]
+    },
+    {
+      "name": "blit",
+      "intarget": "swap",
+      "outtarget": "minecraft:main"
+    }
+  ]
+}

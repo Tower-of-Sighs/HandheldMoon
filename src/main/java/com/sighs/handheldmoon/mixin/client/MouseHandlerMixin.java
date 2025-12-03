@@ -4,7 +4,6 @@ import com.llamalad7.mixinextras.sugar.Local;
 import com.sighs.handheldmoon.event.InputEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
-import net.minecraft.client.input.MouseButtonInfo;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -33,7 +32,7 @@ public abstract class MouseHandlerMixin {
     private Minecraft minecraft;
 
     @Inject(
-            method = "onButton",
+            method = "onPress",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/client/Minecraft;getOverlay()Lnet/minecraft/client/gui/screens/Overlay;",
@@ -42,18 +41,18 @@ public abstract class MouseHandlerMixin {
             ),
             cancellable = true
     )
-    private void sophisticatedSorter$onMouseButtonPre(long l, MouseButtonInfo mouseButtonInfo, int action, CallbackInfo ci) {
-        boolean cancel = InputEvent.MOUSE_BUTTON_PRE.invoker().onMouseButtonPre(mouseButtonInfo, action);
+    private void handheldMoon$onMouseButtonPre(long windowPointer, int button, int action, int modifiers, CallbackInfo ci) {
+        boolean cancel = InputEvent.MOUSE_BUTTON_PRE.invoker().onMouseButtonPre(button, action, modifiers);
         if (cancel) {
             ci.cancel();
         }
     }
 
-    @Inject(method = "onButton", at = @At("TAIL"))
-    private void sophisticatedSorter$onMouseButtonPost(long l, MouseButtonInfo mouseButtonInfo, int action, CallbackInfo ci) {
+    @Inject(method = "onPress", at = @At("TAIL"))
+    private void handheldMoon$onMouseButtonPost(long windowPointer, int button, int action, int modifiers, CallbackInfo ci) {
         var window = this.minecraft.getWindow();
-        if (l != window.handle()) return;
-        InputEvent.MOUSE_BUTTON_POST.invoker().onMouseButtonPost(mouseButtonInfo, action);
+        if (windowPointer != window.getWindow()) return;
+        InputEvent.MOUSE_BUTTON_POST.invoker().onMouseButtonPost(button, action, modifiers);
     }
 
     @Inject(
@@ -65,7 +64,7 @@ public abstract class MouseHandlerMixin {
             ),
             cancellable = true
     )
-    private void diligentstalker$onScroll(long window, double xOffset, double yOffset, CallbackInfo ci, @Local(ordinal = 0, argsOnly = true) double g, @Local(ordinal = 1, argsOnly = true) double h) {
+    private void handheldMoonr$onScroll(long window, double xOffset, double yOffset, CallbackInfo ci, @Local(ordinal = 0, argsOnly = true) double g, @Local(ordinal = 1, argsOnly = true) double h) {
         if (InputEvent.MOUSE_SCROLL.invoker().onMouseScroll(
                 g, h, xpos, ypos,
                 isLeftPressed(), isMiddlePressed(), isRightPressed()

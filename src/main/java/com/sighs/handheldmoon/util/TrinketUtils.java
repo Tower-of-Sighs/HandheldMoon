@@ -11,6 +11,7 @@ public final class TrinketUtils {
     public interface StackVisitor {
         void visit(ItemStack stack);
     }
+
     public static void forEachTrinket(Player player, Predicate<ItemStack> predicate, StackVisitor visitor) {
         TrinketsApi.getTrinketComponent(player).ifPresent(component -> {
             component.getInventory().forEach((groupId, group) -> {

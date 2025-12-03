@@ -17,12 +17,15 @@ public class Utils {
         }
         return result || TrinketsCompat.isUsingTrinketsFlashlight(player);
     }
+
     public static boolean isFlashlight(ItemStack itemStack) {
         return itemStack.is(ModItems.MOONLIGHT_LAMP);
     }
+
     public static boolean isPoweredFlashlight(ItemStack itemStack) {
         return MoonlightLampItem.getPowered(itemStack) == 1;
     }
+
     public static void toggleFlashlight(Player player) {
         if (isFlashlight(player.getMainHandItem())) {
             MoonlightLampItem.togglePowered(player.getMainHandItem());

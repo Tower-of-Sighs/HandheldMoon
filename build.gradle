@@ -12,6 +12,16 @@ base {
 
 loom {
     accessWidenerPath = file("src/main/resources/handheldmoon.accesswidener")
+
+    runs {
+        client2 {
+            client()
+            programArgs "--username", "Flechazo"
+        }
+        client {
+            programArgs "--username", "TowerofSighs"
+        }
+    }
 }
 
 repositories {
@@ -41,6 +51,14 @@ repositories {
         name = "Jared's maven"
         url = "https://maven.blamejared.com/"
     }
+    maven {
+        name = "TerraformersMC"
+        url = "https://maven.terraformersmc.com/"
+    }
+    maven {
+        name = "Ladysnake Libs"
+        url = 'https://maven.ladysnake.org/releases'
+    }
 }
 
 dependencies {
@@ -52,15 +70,23 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     modCompileOnly("dev.lambdaurora.lambdynamiclights:lambdynamiclights-api:${ldl_version}")
-    modLocalRuntime("dev.lambdaurora.lambdynamiclights:lambdynamiclights-runtime:${ldl_version}")
+    modImplementation("dev.lambdaurora.lambdynamiclights:lambdynamiclights-runtime:${ldl_version}")
 
     modApi "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:${project.fcap_version}"
-    modImplementation "maven.modrinth:trinkets-canary:${project.trinkets_version}"
 
-    modImplementation "curse.maven:sodium-394468:7207593"
+    modImplementation "curse.maven:sodium-394468:6260639"
+    modImplementation "curse.maven:irisshaders-455508:6258195"
 
-    modCompileOnly ("mezz.jei:jei-1.21.10-fabric-api:26.2.0.27")
-    modImplementation ("mezz.jei:jei-1.21.10-fabric:26.2.0.27")
+    modCompileOnly ("mezz.jei:jei-1.20.1-fabric-api:${jei_verison}")
+    modImplementation ("mezz.jei:jei-1.20.1-fabric:${jei_verison}")
+
+    modImplementation files("libs/trinkets-3.7.2.jar")
+    modImplementation "dev.onyxstudios.cardinal-components-api:cardinal-components-base:${project.cca_version}"
+    modImplementation "dev.onyxstudios.cardinal-components-api:cardinal-components-entity:${project.cca_version}"
+
+    modImplementation("com.terraformersmc:modmenu:${project.modmenu_version}")
+
+    modImplementation "curse.maven:starlight-521783:4572096"
 }
 
 processResources {
