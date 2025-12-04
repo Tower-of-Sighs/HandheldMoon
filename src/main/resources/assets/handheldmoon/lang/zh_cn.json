@@ -11,5 +11,7 @@
 
   "message.handheldmoon.light_tweak": "伽马: %s",
   "message.handheldmoon.real_light": "真实光照: %s",
-  "message.handheldmoon.player_ray": "玩家光束: %s"
+  "message.handheldmoon.player_ray": "玩家光束: %s",
+
+  "handheldmoon.attachment.handheldmoon.name":"月光灯筒"
 }

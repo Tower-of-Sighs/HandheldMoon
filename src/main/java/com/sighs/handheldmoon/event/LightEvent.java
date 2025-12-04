@@ -78,12 +78,6 @@ public class LightEvent {
             int centerChunkZ = lightChunkPos.z;
             int CHUNK_UPDATE_RADIUS = 2;
 
-            System.out.print(new BlockPos(
-                    centerChunkX,
-                    centerSectionY,
-                    centerChunkZ
-            )+"\n");
-
             for (int dx = -CHUNK_UPDATE_RADIUS; dx <= CHUNK_UPDATE_RADIUS; dx++) {
                 for (int dz = -CHUNK_UPDATE_RADIUS; dz <= CHUNK_UPDATE_RADIUS; dz++) {
                     BlockPos blockPos = new BlockPos(
@@ -91,7 +85,7 @@ public class LightEvent {
                             centerSectionY,
                             centerChunkZ + dz
                     );
-                    posSet.add(blockPos);
+                    if (shouldUpdateChunk(blockPos)) posSet.add(blockPos);
                 }
             }
             dynamicLightSource.sdl$resetDynamicLight();
@@ -102,7 +96,7 @@ public class LightEvent {
         }
     }
 
-    private static boolean shouldUpdateChunk(BlockPos.MutableBlockPos chunkPos) {
+    private static boolean shouldUpdateChunk(BlockPos chunkPos) {
         Player player = Minecraft.getInstance().player;
         Vec3 lookVec = player.getLookAngle();
         Vec3 playerPos = player.getEyePosition(1.0F);

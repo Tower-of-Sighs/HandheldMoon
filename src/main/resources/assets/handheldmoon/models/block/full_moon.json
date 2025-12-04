@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "layer0": "handheldmoon:item/full_moon",
+    "particle": "#layer0"
+  }
+}
