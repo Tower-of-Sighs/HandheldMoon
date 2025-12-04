@@ -1,20 +1,26 @@
-## 掌中明月
+![Handheld Moon](https://cdn.modrinth.com/data/cached_images/88b45c7fc8d9f8aad082353d4813f20f833a0604.png)
+
+# 掌中明月
 
 本模组添加了一些大范围照明相关的道具，如手电筒、迷你月亮等。
 
-### 主要内容
+## 主要内容
 
 目前模组中有两个核心道具，盈月、月光灯筒。
 
 照明相关的内容非常好懂，只需要看几张图就明白了：
 
-(第一人称使用月光灯筒)
+![First-person using the MoonlightLamp](https://cdn.modrinth.com/data/cached_images/a8a63163a6cce7e096cb23b7051c7bb018ee7244.jpeg)
+> (第一人称使用月光灯筒)
 
-(使用月光灯筒的其它玩家)
+![Other players using the MoonlightLamp](https://cdn.modrinth.com/data/cached_images/7d02728e58b8609dae8acce41e9b522a716ca3e3.jpeg)
+> (使用月光灯筒的其它玩家)
 
-(放置后的月光灯筒)
+![Placed MoonlightLamp](https://cdn.modrinth.com/data/cached_images/ea8a166a6ec62f3dc824adf48d58bb5d6079741d.jpeg)
+> (放置后的月光灯筒)
 
-(盈月、月光灯筒、火把对比)
+![Comparison: FullMoon, MoonlightLamp, torch](https://cdn.modrinth.com/data/cached_images/0bd1bd6d861a4995ef92bb8d2d60b00c1f0aea3c.jpeg)
+> (盈月、月光灯筒、火把对比)
 
 第四张图玩家手中的物品就是盈月，它提供了半径为18的照明范围，并且光照衰减经过特别处理，在很靠近边缘的部分才会明显变暗。把它当作迷你月亮就好了！
 
@@ -30,9 +36,10 @@
 
 而如果将月光灯筒放在地上，它也将发射出光束，化身为“探照灯”，此时，你可以右键切换开关，或潜行使用鼠标滚轮来调整月光灯筒的照射方向，准星对准侧面是横向旋转，对准上下面是纵向旋转。
 
-(有鬼啊)
+![Spooky!](https://cdn.modrinth.com/data/cached_images/f08e001f699784595a514e4aca78d82f3f248b3f.jpeg)
+> (有鬼啊)
 
-### 联动
+## 联动
 
 目前，本模组已和多个模组订好合作计划，如TaCZ、卓越前线、唢呐生存指南等，争取成为照明领域的龙头模组。
 
@@ -44,17 +51,18 @@
 
 值得一提的是瓦尔基里和机械动力，虽然也在计划内，但“运动方块”妙意无穷，相当长一段时间内无需期待。
 
-### 兼容性
+## 兼容性
 
 最重要的是当然和光影的兼容性，本模组修改的原版光照和着色器与光影完全兼容，但第三人称光束在部分光影下会出现不渲染或发射激光的情况，请自行开关。
 
-(恋符「Master Spark」)
+![「Master Spark」](https://cdn.modrinth.com/data/cached_images/66d162631524fbd4601db9aa029d6244638841f4.jpeg)
+> (恋符「Master Spark」)
 
 优化方面，得益于1.20以后Mojang对原版光照的优化，本模组的性能开销并不大，其中着色器部分对FPS影响最为显著，如果追求极致性能，可以考虑关闭(调成0)。
 
 如存在其它兼容性问题，请反馈。
 
-### 未来计划
+## 未来计划
 
 - 可配置的照明范围、照明角度
 - 彩色光照
