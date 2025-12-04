@@ -1,0 +1,23 @@
+{
+  "itemGroup.tab.handheldmoon": "Handheld Moon",
+
+  "handheldmoon.configuration.config": "HandHeldMoon Config",
+  "handheldmoon.configuration.enableFixedFlashlight": "Enable Fixed Flash light",
+  "handheldmoon.configuration.enablePlayerRay": "Enable Player Ray",
+  "handheldmoon.configuration.enableRealLight": "Enable Real Light",
+  "handheldmoon.configuration.lightIntensity": "Light Intensity",
+
+  "block.handheldmoon.moonlight_lamp": "Moonlight Lamp",
+  "block.handheldmoon.full_moon": "Full Moon",
+
+  "entity.handheldmoon.full_moon": "Full Moon",
+
+  "key.categories.handheldmoon": "Handheld Moon",
+  "key.handheldmoon.lamp_switch.desc": "Lamp Switch",
+
+  "message.handheldmoon.light_tweak": "Gama: %s",
+  "message.handheldmoon.real_light": "Real light: %s",
+  "message.handheldmoon.player_ray": "Player ray: %s",
+
+  "handheldmoon.attachment.handheldmoon.name":"Moonlight Lamp"
+}

@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.sighs.handheldmoon.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "lamb.DynamicLightingEngineMixin",
+    "lamb.SpatialLookupDeferredEntryMixin"
+  ],
+  "client": [
+    "PostChainMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

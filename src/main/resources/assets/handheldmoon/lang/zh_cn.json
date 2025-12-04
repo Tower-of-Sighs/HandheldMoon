@@ -1,0 +1,23 @@
+{
+  "itemGroup.tab.handheldmoon": "掌中明月",
+
+  "handheldmoon.configuration.config": "HandHeldMoon配置",
+  "handheldmoon.configuration.enableFixedFlashlight": "是否固定手电筒光的位置",
+  "handheldmoon.configuration.enablePlayerRay": "是否启用其它玩家光束可见",
+  "handheldmoon.configuration.enableRealLight": "是否启用真实照明",
+  "handheldmoon.configuration.lightIntensity": "手电筒光强度",
+
+  "block.handheldmoon.moonlight_lamp": "月光灯筒",
+  "block.handheldmoon.full_moon": "盈月",
+
+  "entity.handheldmoon.full_moon": "盈月",
+
+  "key.categories.handheldmoon": "掌中明月",
+  "key.handheldmoon.lamp_switch.desc": "开关",
+
+  "message.handheldmoon.light_tweak": "伽马: %s",
+  "message.handheldmoon.real_light": "真实光照: %s",
+  "message.handheldmoon.player_ray": "玩家光束: %s",
+
+  "handheldmoon.attachment.handheldmoon.name":"月光灯筒"
+}
