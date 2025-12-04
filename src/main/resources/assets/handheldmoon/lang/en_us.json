@@ -2,13 +2,14 @@
   "itemGroup.tab.handheldmoon": "Handheld Moon",
 
   "block.handheldmoon.moonlight_lamp": "Moonlight Lamp",
+  "block.handheldmoon.full_moon": "Full Moon",
+
+  "entity.handheldmoon.full_moon": "Full Moon",
 
   "key.categories.handheldmoon": "Handheld Moon",
   "key.handheldmoon.lamp_switch.desc": "Lamp Switch",
 
   "message.handheldmoon.light_tweak": "Gama: %s",
   "message.handheldmoon.real_light": "Real light: %s",
-  "message.handheldmoon.player_ray": "Player ray: %s",
-
-  "trinkets.slot.shoulder.shoulder": "Shoulder"
+  "message.handheldmoon.player_ray": "Player ray: %s"
 }

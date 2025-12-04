@@ -2,13 +2,14 @@
   "itemGroup.tab.handheldmoon": "掌中明月",
 
   "block.handheldmoon.moonlight_lamp": "月光灯筒",
+  "block.handheldmoon.full_moon": "盈月",
+
+  "entity.handheldmoon.full_moon": "盈月",
 
   "key.categories.handheldmoon": "掌中明月",
   "key.handheldmoon.lamp_switch.desc": "开关",
 
   "message.handheldmoon.light_tweak": "伽马: %s",
   "message.handheldmoon.real_light": "真实光照: %s",
-  "message.handheldmoon.player_ray": "玩家光束: %s",
-
-  "trinkets.slot.shoulder.shoulder": "肩膀"
+  "message.handheldmoon.player_ray": "玩家光束: %s"
 }

@@ -87,6 +87,9 @@ dependencies {
     modImplementation("com.terraformersmc:modmenu:${project.modmenu_version}")
 
     modImplementation "curse.maven:starlight-521783:4572096"
+
+    modImplementation "curse.maven:tweakeroo-297344:4623488"
+    modImplementation "curse.maven:malilib-303119:4780782"
 }
 
 processResources {

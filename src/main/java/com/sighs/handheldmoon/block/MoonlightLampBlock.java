@@ -24,8 +24,8 @@ import java.util.List;
 
 public class MoonlightLampBlock extends BaseEntityBlock {
 
-    public MoonlightLampBlock(Properties properties) {
-        super(properties.strength(1f));
+    public MoonlightLampBlock() {
+        super(Properties.of().noCollission().strength(1f));
     }
 
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {

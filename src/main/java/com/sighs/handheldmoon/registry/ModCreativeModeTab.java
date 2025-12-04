@@ -26,6 +26,7 @@ public class ModCreativeModeTab {
                         .icon(() -> ModItems.MOONLIGHT_LAMP.getDefaultInstance())
                         .displayItems((ctx, entries) -> {
                             entries.accept(ModItems.MOONLIGHT_LAMP);
+                            entries.accept(ModItems.FULL_MOON);
                         })
                         .build()
         );

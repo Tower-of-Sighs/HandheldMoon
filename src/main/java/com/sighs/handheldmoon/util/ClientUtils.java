@@ -1,6 +1,7 @@
 package com.sighs.handheldmoon.util;
 
 import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
+import com.sighs.handheldmoon.entity.FullMoonEntity;
 import com.sighs.handheldmoon.network.ServerMoonLightLampSyncPacket;
 import io.netty.buffer.Unpooled;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -10,6 +11,16 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
 public class ClientUtils {
+
+    public static MoonlightLampBlockEntity getPoweredMoonlightLampBlock(FullMoonEntity entity) {
+        if (entity.level().getBlockEntity(entity.blockPosition()) instanceof MoonlightLampBlockEntity lamp) {
+            if (lamp.getPowered()) {
+                return lamp;
+            }
+        }
+        return null;
+    }
+
     public static MoonlightLampBlockEntity getCursorMoonlightLampBlock() {
         Minecraft mc = Minecraft.getInstance();
         HitResult hit = mc.hitResult;

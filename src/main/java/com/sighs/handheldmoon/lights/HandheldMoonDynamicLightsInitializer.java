@@ -1,5 +1,6 @@
 package com.sighs.handheldmoon.lights;
 
+import com.sighs.handheldmoon.block.FullMoonBlockEntity;
 import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
 import com.sighs.handheldmoon.util.Utils;
 import dev.lambdaurora.lambdynlights.api.DynamicLightsContext;
@@ -18,6 +19,8 @@ public class HandheldMoonDynamicLightsInitializer implements DynamicLightsInitia
     private static final Map<BlockPos, MoonLampLineLightBehavior> LAMP_BEHAVIORS = new HashMap<>();
     private static final Map<UUID, PlayerFlashlightLineLightBehavior> PLAYER_BEHAVIORS = new HashMap<>();
 
+    private static final Map<BlockPos, FullMoonBlockBehavior> FULL_MOON_BEHAVIORS = new HashMap<>();
+
     @Override
     public void onInitializeDynamicLights(DynamicLightsContext context) {
         MANAGER = context.dynamicLightBehaviorManager();
@@ -32,8 +35,8 @@ public class HandheldMoonDynamicLightsInitializer implements DynamicLightsInitia
 
     public static void syncLampBehavior(MoonlightLampBlockEntity lamp) {
         if (MANAGER == null) return;
-        BlockPos pos = lamp.getBlockPos();
-        MoonLampLineLightBehavior existing = LAMP_BEHAVIORS.get(pos);
+        var pos = lamp.getBlockPos();
+        var existing = LAMP_BEHAVIORS.get(pos);
         if (lamp.getPowered()) {
             if (existing == null) {
                 MoonLampLineLightBehavior behavior = new MoonLampLineLightBehavior(pos);
@@ -51,11 +54,11 @@ public class HandheldMoonDynamicLightsInitializer implements DynamicLightsInitia
 
     public static void updatePlayerBehaviors() {
         if (MANAGER == null) return;
-        Minecraft mc = Minecraft.getInstance();
+        var mc = Minecraft.getInstance();
         if (mc.level == null) return;
         for (Player p : mc.level.players()) {
-            UUID id = p.getUUID();
-            PlayerFlashlightLineLightBehavior existing = PLAYER_BEHAVIORS.get(id);
+            var id = p.getUUID();
+            var existing = PLAYER_BEHAVIORS.get(id);
             boolean on = Utils.isUsingFlashlight(p);
             if (on) {
                 if (existing == null) {
@@ -69,6 +72,29 @@ public class HandheldMoonDynamicLightsInitializer implements DynamicLightsInitia
                     PLAYER_BEHAVIORS.remove(id);
                 }
             }
+        }
+    }
+
+    public static void addFullMoonBehavior(FullMoonBlockEntity moon) {
+        if (MANAGER == null) return;
+        var pos = moon.getBlockPos();
+        var existing = FULL_MOON_BEHAVIORS.get(pos);
+
+        if (existing == null) {
+            FullMoonBlockBehavior b = new FullMoonBlockBehavior(pos);
+            FULL_MOON_BEHAVIORS.put(pos, b);
+            MANAGER.add(b);
+        }
+    }
+
+    public static void removeFullMoonBehavior(FullMoonBlockEntity moon) {
+        if (MANAGER == null) return;
+        var pos = moon.getBlockPos();
+        var existing = FULL_MOON_BEHAVIORS.get(pos);
+
+        if (existing != null) {
+            MANAGER.remove(existing);
+            FULL_MOON_BEHAVIORS.remove(pos);
         }
     }
 }

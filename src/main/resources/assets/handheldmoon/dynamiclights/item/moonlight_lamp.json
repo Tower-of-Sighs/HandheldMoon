@@ -1,4 +1,9 @@
 {
-  "item": "handheldmoon:moonlight_lamp",
+  "match": {
+    "items": [
+      "handheldmoon:moonlight_lamp"
+    ],
+    "nbt": "{powered:0}"
+  },
   "luminance": 15
 }
