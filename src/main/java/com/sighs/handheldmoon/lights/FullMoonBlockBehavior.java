@@ -1,5 +1,6 @@
 package com.sighs.handheldmoon.lights;
 
+import com.sighs.handheldmoon.block.FullMoonBlock;
 import com.sighs.handheldmoon.block.FullMoonBlockEntity;
 import dev.lambdaurora.lambdynlights.api.behavior.DynamicLightBehavior;
 import net.minecraft.client.Minecraft;
@@ -48,14 +49,21 @@ public class FullMoonBlockBehavior implements DynamicLightBehavior {
         Level level = Minecraft.getInstance().level;
         if (level == null) return true;
         var be = level.getBlockEntity(pos);
-        return !(be instanceof FullMoonBlockEntity);
+        if (!(be instanceof FullMoonBlockEntity)) return true;
+        return !(level.getBlockState(pos).getBlock() instanceof FullMoonBlock);
     }
 
     @Override
     public boolean isRemoved() {
         Level level = Minecraft.getInstance().level;
         if (level == null) return true;
+
+        if (!level.hasChunkAt(pos)) {
+            return true;
+        }
+
         BlockEntity be = level.getBlockEntity(pos);
-        return !(be instanceof FullMoonBlockEntity);
+        if (!(be instanceof FullMoonBlockEntity)) return true;
+        return !(level.getBlockState(pos).getBlock() instanceof FullMoonBlock);
     }
 }

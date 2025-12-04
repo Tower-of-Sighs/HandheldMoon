@@ -1,6 +1,7 @@
 package com.sighs.handheldmoon.block;
 
 import com.sighs.handheldmoon.entity.FullMoonEntity;
+import com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
@@ -32,6 +33,8 @@ public class FullMoonBlock extends BaseEntityBlock {
             if (level.getBlockEntity(pos) instanceof FullMoonBlockEntity be) {
                 be.setUuid(entity.getUUID());
                 be.setChanged();
+            } else {
+                HandheldMoonDynamicLightsInitializer.ensureFullMoonBehaviorAt(pos);
             }
         }
     }
@@ -44,6 +47,8 @@ public class FullMoonBlock extends BaseEntityBlock {
                 Entity entity = ((ServerLevel) level).getEntity(entityId);
                 if (entity != null) entity.discard();
             }
+        } else {
+            HandheldMoonDynamicLightsInitializer.removeFullMoonBehaviorAt(pos);
         }
         super.onRemove(state, level, pos, newState, isMoving);
     }

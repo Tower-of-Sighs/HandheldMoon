@@ -11,5 +11,7 @@
 
   "message.handheldmoon.light_tweak": "Gama: %s",
   "message.handheldmoon.real_light": "Real light: %s",
-  "message.handheldmoon.player_ray": "Player ray: %s"
+  "message.handheldmoon.player_ray": "Player ray: %s",
+
+  "trinkets.slot.shoulder.shoulder": "Shoulder"
 }

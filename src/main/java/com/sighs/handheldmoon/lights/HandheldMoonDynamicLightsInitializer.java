@@ -87,11 +87,30 @@ public class HandheldMoonDynamicLightsInitializer implements DynamicLightsInitia
         }
     }
 
+    public static void ensureFullMoonBehaviorAt(BlockPos pos) {
+        if (MANAGER == null) return;
+        var existing = FULL_MOON_BEHAVIORS.get(pos);
+        if (existing == null) {
+            FullMoonBlockBehavior b = new FullMoonBlockBehavior(pos);
+            FULL_MOON_BEHAVIORS.put(pos, b);
+            MANAGER.add(b);
+        }
+    }
+
     public static void removeFullMoonBehavior(FullMoonBlockEntity moon) {
         if (MANAGER == null) return;
         var pos = moon.getBlockPos();
         var existing = FULL_MOON_BEHAVIORS.get(pos);
 
+        if (existing != null) {
+            MANAGER.remove(existing);
+            FULL_MOON_BEHAVIORS.remove(pos);
+        }
+    }
+
+    public static void removeFullMoonBehaviorAt(BlockPos pos) {
+        if (MANAGER == null) return;
+        var existing = FULL_MOON_BEHAVIORS.get(pos);
         if (existing != null) {
             MANAGER.remove(existing);
             FULL_MOON_BEHAVIORS.remove(pos);
