@@ -21,7 +21,7 @@ public class ShaderEventHandler {
     }
 
     public static void onClientTick(Minecraft client) {
-
+        if (Config.LIGHT_INTENSITY.get() < 0.1) return;
         Minecraft mc = Minecraft.getInstance();
         Player player = mc.player;
         if (player == null) return;

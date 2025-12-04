@@ -2,6 +2,9 @@
   "itemGroup.tab.handheldmoon": "掌中明月",
 
   "block.handheldmoon.moonlight_lamp": "月光灯筒",
+  "block.handheldmoon.full_moon": "盈月",
+
+  "entity.handheldmoon.full_moon": "盈月",
 
   "key.categories.handheldmoon": "掌中明月",
   "key.handheldmoon.lamp_switch.desc": "开关",

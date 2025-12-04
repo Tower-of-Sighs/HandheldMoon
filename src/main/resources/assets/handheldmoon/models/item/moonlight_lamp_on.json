@@ -3,7 +3,7 @@
   "credit": "Made with Blockbench",
   "textures": {
     "0": "handheldmoon:item/moonlight_lamp_on",
-    "particle": "handheldmoon:item/moonlight_lamp"
+    "particle": "#0"
   },
   "elements": [
     {

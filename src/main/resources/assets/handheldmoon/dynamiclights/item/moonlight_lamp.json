@@ -1,6 +1,9 @@
 {
   "match": {
-    "items": "handheldmoon:moonlight_lamp"
+    "items": [
+      "handheldmoon:moonlight_lamp"
+    ],
+    "component": "{powered:0}"
   },
   "luminance": 15
 }

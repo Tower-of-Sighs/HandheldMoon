@@ -19,22 +19,20 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
-import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 public class MoonlightLampBlock extends BaseEntityBlock {
 
-    public MoonlightLampBlock(Properties properties) {
-        super(properties.strength(1f));
+    public MoonlightLampBlock() {
+        super(Properties.of().noCollission().strength(1f));
     }
 
     @Override
     protected MapCodec<? extends BaseEntityBlock> codec() {
-        return simpleCodec(MoonlightLampBlock::new);
+        return simpleCodec(props -> new MoonlightLampBlock());
     }
-
 
     @Override
     public RenderShape getRenderShape(BlockState state) {

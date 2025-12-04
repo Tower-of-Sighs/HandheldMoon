@@ -22,6 +22,7 @@ public class HandheldMoon implements ModInitializer {
         ModBlocks.init();
         ModItems.init();
         ModCreativeModeTab.init();
+        ModEntities.init();
         ModBlockEntities.init();
     }
 }

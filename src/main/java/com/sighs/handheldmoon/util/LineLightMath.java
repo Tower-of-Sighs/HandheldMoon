@@ -1,5 +1,6 @@
 package com.sighs.handheldmoon.util;
 
+import dev.lambdaurora.lambdynlights.api.behavior.DynamicLightBehavior;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
@@ -17,26 +18,27 @@ public final class LineLightMath {
                                       double luminance,
                                       BlockPos query,
                                       double range,
-                                      double cosInner,
-                                      double cosOuter) {
+                                      double innerAngleRad,
+                                      double outerAngleRad) {
         double cx = query.getX() + 0.5;
         double cy = query.getY() + 0.5;
         double cz = query.getZ() + 0.5;
-        double dx0 = cx - sx;
-        double dy0 = cy - sy;
-        double dz0 = cz - sz;
-        double dist2 = dx0 * dx0 + dy0 * dy0 + dz0 * dz0;
+        double vx = cx - sx;
+        double vy = cy - sy;
+        double vz = cz - sz;
+        double dist2 = vx * vx + vy * vy + vz * vz;
         double range2 = range * range;
         if (dist2 > range2) return 0.0;
-        double dot = dx * dx0 + dy * dy0 + dz * dz0;
+        double dot = dx * vx + dy * vy + dz * vz;
         if (dot <= 0.0) return 0.0;
+        double cosInner = Math.cos(innerAngleRad);
+        double cosOuter = Math.cos(outerAngleRad);
         double cosOuterSq = cosOuter * cosOuter;
         if (dot * dot < cosOuterSq * dist2) return 0.0;
-        double invDistF = Mth.fastInvSqrt(dist2);
+        double invDistF = Mth.fastInvSqrt((float) dist2);
         double dotNorm = dot * invDistF;
         double angleAtt = dotNorm >= cosInner ? 1.0 : (dotNorm - cosOuter) / (cosInner - cosOuter);
-        double dist = 1.0 / invDistF;
-        double distMul = 1.0 - (dist / range);
+        double distMul = 1.0 - (dist2 / range2);
         double res = luminance * angleAtt * distMul;
         return Math.max(res, 0.0);
     }
@@ -62,5 +64,12 @@ public final class LineLightMath {
                     Math.cos(yaw) * Math.cos(pitch)
             );
         }
+    }
+
+    public static long getBlockVolume(DynamicLightBehavior.BoundingBox box) {
+        long dx = (long) box.endX() - box.startX() + 1;
+        long dy = (long) box.endY() - box.startY() + 1;
+        long dz = (long) box.endZ() - box.startZ() + 1;
+        return dx * dy * dz;
     }
 }
