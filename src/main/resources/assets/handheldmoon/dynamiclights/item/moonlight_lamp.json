@@ -3,7 +3,7 @@
     "items": [
       "handheldmoon:moonlight_lamp"
     ],
-    "component": "{powered:0}"
+    "component": "{\"handheldmoon:powered\": 0}"
   },
   "luminance": 15
 }
