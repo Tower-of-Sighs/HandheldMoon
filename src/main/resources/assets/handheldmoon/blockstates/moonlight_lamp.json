@@ -1,6 +1,7 @@
 {
-	"textures": {
-		"layer0": "handheldmoon:item/moonlight_lamp",
-		"particle": "#layer0"
+	"variants": {
+		"": {
+			"model": "handheldmoon:block/moonlight_lamp"
+		}
 	}
 }

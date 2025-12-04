@@ -11,7 +11,7 @@ public class KeyBindings {
             KeyConflictContext.IN_GAME,
             KeyModifier.NONE,
             InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_R,
+            GLFW.GLFW_KEY_V,
             "key.categories.handheldmoon"
     );
 }

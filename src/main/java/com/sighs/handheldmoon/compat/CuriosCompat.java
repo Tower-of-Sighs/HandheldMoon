@@ -21,6 +21,13 @@ public class CuriosCompat {
         return false;
     }
 
+    public static boolean hasCuriosFlashlight(Player player) {
+        if (INSTALLED) {
+            return CuriosCompatInner.hasCuriosFlashlight(player);
+        }
+        return false;
+    }
+
     public static void toggleCuriosFlashlight(Player player) {
         if (INSTALLED) {
             CuriosCompatInner.toggleCuriosFlashlight(player);

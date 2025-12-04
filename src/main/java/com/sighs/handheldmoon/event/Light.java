@@ -1,12 +1,6 @@
 package com.sighs.handheldmoon.event;
 
 import com.sighs.handheldmoon.HandheldMoon;
-import com.sighs.handheldmoon.block.FullMoonBlockEntity;
-import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
-import com.sighs.handheldmoon.entity.FullMoonEntity;
-import com.sighs.handheldmoon.init.ClientUtils;
-import com.sighs.handheldmoon.init.Utils;
-import com.sighs.handheldmoon.registry.Config;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.core.BlockPos;
@@ -27,41 +21,25 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Mod.EventBusSubscriber(modid = HandheldMoon.MODID, value = Dist.CLIENT)
-public class LightEvent {
-    private static final Set<DynamicLightSource> lightSourceList = new HashSet<>();
-
-    public static Set<DynamicLightSource> getLightSourceList() {
-        return lightSourceList;
-    }
+public class Light {
+    private static Set<DynamicLightSource> lastCache = new HashSet<>();
 
     @SubscribeEvent
     public static void tick(TickEvent.ClientTickEvent event) {
-        if (!Config.REAL_LIGHT.get()) return;
-        if (event.phase == TickEvent.Phase.END) return;
+        if (event.phase == TickEvent.Phase.START) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
 
-        lightSourceList.clear();
-        for (Entity entity : mc.level.entitiesForRendering()) {
-            if (entity instanceof Player player) {
-                if (Utils.isUsingFlashlight(player)) {
-                    lightSourceList.add((DynamicLightSource) player);
-                }
-            }
-            if (entity instanceof FullMoonEntity) {
-                var be = entity.level().getBlockEntity(entity.blockPosition());
-                if (be instanceof MoonlightLampBlockEntity lamp) {
-                    if (lamp.getPowered()) lightSourceList.add((DynamicLightSource) lamp);
-                } else if (be instanceof FullMoonBlockEntity) {
-                    lightSourceList.add((DynamicLightSource) be);
-                }
-            }
-        }
+        refresh(lastCache);
+        var list = Set.copyOf(Cache.getRealLightSourceList());
+        refresh(list);
+        lastCache = list;
+    }
 
-        LevelRenderer levelRenderer = mc.levelRenderer;
+    private static void refresh(Set<DynamicLightSource> lightSourceSet) {
         Set<BlockPos> posSet = new HashSet<>();
 
-        for (DynamicLightSource dynamicLightSource : lightSourceList) {
+        for (DynamicLightSource dynamicLightSource : lightSourceSet) {
             ChunkPos lightChunkPos = null;
             int centerSectionY = 0;
 
@@ -85,14 +63,14 @@ public class LightEvent {
                             centerSectionY,
                             centerChunkZ + dz
                     );
-                    if (shouldUpdateChunk(blockPos)) posSet.add(blockPos);
+                    posSet.add(blockPos);
                 }
             }
             dynamicLightSource.sdl$resetDynamicLight();
         }
 
         for (BlockPos pos : posSet) {
-            SodiumDynamicLights.scheduleChunkRebuild(levelRenderer, pos);
+            SodiumDynamicLights.scheduleChunkRebuild(Minecraft.getInstance().levelRenderer, pos);
         }
     }
 

@@ -2,6 +2,7 @@ package com.sighs.handheldmoon.init;
 
 import com.sighs.handheldmoon.Item.MoonlightLampItem;
 import com.sighs.handheldmoon.compat.CuriosCompat;
+import com.sighs.handheldmoon.compat.TaczCompat;
 import com.sighs.handheldmoon.registry.Items;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
@@ -9,6 +10,16 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
 public class Utils {
+    public static boolean takeFlashlight(Player player) {
+        boolean result = false;
+        if (isFlashlight(player.getMainHandItem())) {
+            result = true;
+        }
+        if (isFlashlight(player.getOffhandItem())) {
+            result = true;
+        }
+        return result || CuriosCompat.hasCuriosFlashlight(player) || TaczCompat.isUsingAttachmentFlashlight(player);
+    }
     public static boolean isUsingFlashlight(Player player) {
         boolean result = false;
         if (isFlashlight(player.getMainHandItem())) {
@@ -17,9 +28,10 @@ public class Utils {
         if (isFlashlight(player.getOffhandItem())) {
             result = isPoweredFlashlight(player.getOffhandItem());
         }
-        return result || CuriosCompat.isUsingCuriosFlashlight(player);
+        return result || CuriosCompat.isUsingCuriosFlashlight(player) || TaczCompat.isUsingAttachmentFlashlight(player);
     }
     public static boolean isFlashlight(ItemStack itemStack) {
+        boolean isLampItem = itemStack.is(Items.MOONLIGHT_LAMP.get());
         return itemStack.is(Items.MOONLIGHT_LAMP.get());
     }
     public static boolean isPoweredFlashlight(ItemStack itemStack) {
@@ -33,6 +45,7 @@ public class Utils {
             MoonlightLampItem.togglePowered(player.getOffhandItem());
         }
         CuriosCompat.toggleCuriosFlashlight(player);
+        TaczCompat.toggleAttachmentFlashlight(player);
     }
 
     public static Vec3 calculateViewVector(float xRot, float yRot) {

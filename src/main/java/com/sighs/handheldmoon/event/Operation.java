@@ -14,7 +14,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = HandheldMoon.MODID, value = Dist.CLIENT)
-public class OperationEvent {
+public class Operation {
     private static double cacheGama = 0;
     private static long lastActionTime;
 

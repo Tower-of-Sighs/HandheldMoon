@@ -2,6 +2,7 @@ package com.sighs.handheldmoon.event;
 
 import com.sighs.handheldmoon.Item.MoonlightLampItem;
 import com.sighs.handheldmoon.compat.CuriosCompat;
+import com.sighs.handheldmoon.compat.TaczCompat;
 import com.sighs.handheldmoon.registry.BlockEntities;
 import com.sighs.handheldmoon.registry.Entities;
 import com.sighs.handheldmoon.registry.KeyBindings;
@@ -23,7 +24,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import static com.sighs.handheldmoon.HandheldMoon.MODID;
 
 @Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
-public class SetupEvent {
+public class Setup {
     @SubscribeEvent
     public static void registerItemProperties(FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
@@ -35,6 +36,7 @@ public class SetupEvent {
             DynamicLightHandlers.registerDynamicLightHandler(Entities.MOONLIGHT.get(), entity -> 15);
         });
         event.enqueueWork(CuriosCompat::init);
+        event.enqueueWork(TaczCompat::init);
     }
 
     @SubscribeEvent

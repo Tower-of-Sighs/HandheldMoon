@@ -15,7 +15,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = HandheldMoon.MODID, value = Dist.CLIENT)
-public class InteractEvent {
+public class Interact {
     @SubscribeEvent
     public static void wheel(InputEvent.MouseScrollingEvent event) {
         Minecraft mc = Minecraft.getInstance();

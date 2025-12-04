@@ -5,7 +5,6 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.sighs.handheldmoon.HandheldMoon;
 import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
-import com.sighs.handheldmoon.entity.FullMoonEntity;
 import com.sighs.handheldmoon.registry.Config;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -20,7 +19,7 @@ import org.joml.Matrix4f;
 import toni.sodiumdynamiclights.DynamicLightSource;
 
 @Mod.EventBusSubscriber(modid = HandheldMoon.MODID, value = Dist.CLIENT)
-public class RayEvent {
+public class Ray {
     private static final float VIEW_ANGLE_DEG = 56.0f;
     private static final float VIEW_RANGE = 14.0f;
     private static final int SEGMENTS = 32; // 段数
@@ -48,9 +47,8 @@ public class RayEvent {
         Vec3 cameraPos = camera.getPosition();
         poseStack.translate(-cameraPos.x, -cameraPos.y, -cameraPos.z);
 
-        for (DynamicLightSource dynamicLightSource : LightEvent.getLightSourceList()) {
+        for (DynamicLightSource dynamicLightSource : Cache.getRayLightSourceList()) {
             if (dynamicLightSource instanceof Entity entity) {
-                if (entity.getUUID().equals(Minecraft.getInstance().player.getUUID())) continue;
                 Vec3 eyePos = entity.getEyePosition(partialTick);
                 Vec3 viewVec = entity.getViewVector(partialTick).normalize();
                 renderCones(poseStack, eyePos, viewVec);

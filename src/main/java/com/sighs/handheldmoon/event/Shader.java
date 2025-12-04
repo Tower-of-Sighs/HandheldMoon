@@ -15,7 +15,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = HandheldMoon.MODID, value = Dist.CLIENT)
-public class ShaderEvent {
+public class Shader {
     private static float previousYaw = 0.0f;
     private static float previousPitch = 0.0f;
     private static float currentOffsetX = 0.0f;
@@ -28,6 +28,7 @@ public class ShaderEvent {
         if (Config.LIGHT_INTENSITY.get() < 0.1) return;
 
         Minecraft mc = Minecraft.getInstance();
+        if (mc.options.getCameraType() == CameraType.THIRD_PERSON_FRONT) return;
         Player player = mc.player;
         if (player == null) return;
 

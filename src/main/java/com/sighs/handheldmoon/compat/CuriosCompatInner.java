@@ -22,6 +22,15 @@ public class CuriosCompatInner {
         });
         return result[0];
     }
+    public static boolean hasCuriosFlashlight(Player player) {
+        boolean[] result = {false};
+        CuriosApi.getCuriosInventory(player).ifPresent(iCuriosItemHandler -> {
+            iCuriosItemHandler.findCurios(Utils::isFlashlight).forEach(slotResult -> {
+                if (Utils.isFlashlight(slotResult.stack())) result[0] = true;
+            });
+        });
+        return result[0];
+    }
     public static void toggleCuriosFlashlight(Player player) {
         CuriosApi.getCuriosInventory(player).ifPresent(iCuriosItemHandler -> {
             iCuriosItemHandler.findCurios(Utils::isFlashlight).forEach(slotResult -> {
