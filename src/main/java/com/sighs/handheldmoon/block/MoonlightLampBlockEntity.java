@@ -3,13 +3,11 @@ package com.sighs.handheldmoon.block;
 import com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import com.sighs.handheldmoon.registry.ModBlockEntities;
 import com.sighs.handheldmoon.util.ClientUtils;
-import com.sighs.handheldmoon.util.Utils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.Vec3;
 
 import java.util.UUID;
 
@@ -29,10 +27,6 @@ public class MoonlightLampBlockEntity extends BlockEntity {
             clientInited = true;
             HandheldMoonDynamicLightsInitializer.syncLampBehavior(this);
         }
-    }
-
-    public Vec3 getViewVec() {
-        return Utils.calculateViewVector(xRot, yRot);
     }
 
     public float getXRot() {

@@ -43,11 +43,13 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
             sY = pos.getY() + 0.5;
             sZ = pos.getZ() + 0.5;
 
-            float adjustedPitch = l.getXRot() + 90.0f;
-            var d = LineLightMath.computeDirection(l.getYRot(), adjustedPitch, true);
-            dX = d.x;
-            dY = d.y;
-            dZ = d.z;
+            float yaw = l.getYRot();
+            float pitch = l.getXRot() - 90.0f;
+
+            var d = LineLightMath.computeDirection(yaw, pitch, true);
+            dX = -d.x;
+            dY = -d.y;
+            dZ = -d.z;
 
             luminance = 15.0;
             lastXRot = l.getXRot();
@@ -94,12 +96,11 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
             sX = pos.getX() + 0.5;
             sY = pos.getY() + 0.5;
             sZ = pos.getZ() + 0.5;
-            float adjustedPitch = xr + 90.0f;
-            double yawRad = yr * Mth.DEG_TO_RAD;
-            double pitchRad = adjustedPitch * Mth.DEG_TO_RAD;
-            dX = Math.sin(yawRad) * Math.cos(pitchRad);
-            dY = -Math.sin(pitchRad);
-            dZ = Math.cos(yawRad) * Math.cos(pitchRad);
+            float adjustedPitch = xr - 90.0f;
+            var d = LineLightMath.computeDirection(yr, adjustedPitch, true);
+            dX = -d.x;
+            dY = -d.y;
+            dZ = -d.z;
             luminance = 15.0;
         }
         lastXRot = xr;
