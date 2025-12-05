@@ -34,19 +34,11 @@ public class ClientUtils {
     }
 
     public static void syncMoonlightLampBlock(MoonlightLampBlockEntity lamp) {
-        ClientPlayNetworking.send(ServerMoonLightLampSyncPacket.TYPE,
-                encodePacket(new ServerMoonLightLampSyncPacket(
+        ClientPlayNetworking.send(new ServerMoonLightLampSyncPacket(
                         lamp.getBlockPos(),
                         lamp.getXRot(),
                         lamp.getYRot(),
                         lamp.getPowered()
-                ))
-        );
-    }
-
-    private static FriendlyByteBuf encodePacket(ServerMoonLightLampSyncPacket packet) {
-        var buf = new FriendlyByteBuf(Unpooled.buffer());
-        ServerMoonLightLampSyncPacket.encode(packet, buf);
-        return buf;
+                ));
     }
 }

@@ -1,4 +1,4 @@
-package com.sighs.handheldmoon.util;
+package com.sighs.handheldmoon.compat.trinkets;
 
 import dev.emi.trinkets.api.TrinketsApi;
 import net.minecraft.world.entity.player.Player;

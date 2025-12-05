@@ -11,6 +11,8 @@ public class Config {
     public static final ForgeConfigSpec.ConfigValue<Boolean> PLAYER_RAY;
     public static final ForgeConfigSpec.ConfigValue<Boolean> REAL_LIGHT;
 
+    public static final ForgeConfigSpec.ConfigValue<Boolean> LIGHT_OCCLUSION;
+
     static {
         BUILDER.push("Client Setting");
 
@@ -26,6 +28,9 @@ public class Config {
         LIGHT_INTENSITY = BUILDER
                 .comment("手电筒光强度。")
                 .define("LightIntensity", 0.3);
+        LIGHT_OCCLUSION = BUILDER
+                .comment("启用光照遮挡，极吃性能，仅供观赏")
+                .define("enableLightOcclusion", false);
         BUILDER.pop();
 
         SPEC = BUILDER.build();

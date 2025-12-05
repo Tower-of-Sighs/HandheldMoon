@@ -4,6 +4,10 @@ import dev.lambdaurora.lambdynlights.api.behavior.DynamicLightBehavior;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.BlockHitResult;
 
 public final class LineLightMath {
 
@@ -41,6 +45,60 @@ public final class LineLightMath {
         double distMul = 1.0 - (dist2 / range2);
         double res = luminance * angleAtt * distMul;
         return Math.max(res, 0.0);
+    }
+
+    public static double computeLightOccluded(Level level,
+                                              double sx, double sy, double sz,
+                                              double dx, double dy, double dz,
+                                              double luminance,
+                                              BlockPos query,
+                                              double range,
+                                              double innerAngleRad,
+                                              double outerAngleRad) {
+        double res = computeLight(sx, sy, sz, dx, dy, dz, luminance, query, range, innerAngleRad, outerAngleRad);
+        if (res <= 0.0) return 0.0;
+        if (level == null) return res;
+        Vec3 start = new Vec3(sx, sy, sz);
+        Vec3 end = new Vec3(query.getX() + 0.5, query.getY() + 0.5, query.getZ() + 0.5);
+        var hit = level.clip(new ClipContext(start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null));
+        if (hit.getType() == HitResult.Type.BLOCK && !hit.getBlockPos().equals(query)) return 0.0;
+        return res;
+    }
+
+    public static double computePointLightOccluded(Level level,
+                                                   double sx, double sy, double sz,
+                                                   double luminance,
+                                                   BlockPos query,
+                                                   double range) {
+        double cx = query.getX() + 0.5;
+        double cy = query.getY() + 0.5;
+        double cz = query.getZ() + 0.5;
+        double dx = cx - sx;
+        double dy = cy - sy;
+        double dz = cz - sz;
+        double distSq = dx * dx + dy * dy + dz * dz;
+        double rangeSq = range * range;
+        if (distSq > rangeSq) return 0.0;
+        double invDist = Mth.fastInvSqrt((float) distSq);
+        double dist = 1.0 / invDist;
+        double t3 = (distSq * dist) / (range * range * range);
+        double distanceMultiplier = 1.0 - t3;
+        double res = luminance * distanceMultiplier;
+        if (res <= 0.0) return 0.0;
+        if (level == null) return res;
+        Vec3 start = new Vec3(sx, sy, sz);
+        Vec3 endCenter = new Vec3(cx, cy, cz);
+        Vec3 endUp = new Vec3(cx, cy + 0.25, cz);
+        Vec3 endDown = new Vec3(cx, cy - 0.25, cz);
+        var hitCenter = level.clip(new ClipContext(start, endCenter, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null));
+        boolean passCenter = !(hitCenter.getType() == HitResult.Type.BLOCK && !hitCenter.getBlockPos().equals(query));
+        if (passCenter) return res;
+        var hitUp = level.clip(new ClipContext(start, endUp, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null));
+        boolean passUp = !(hitUp.getType() == HitResult.Type.BLOCK && !hitUp.getBlockPos().equals(query));
+        var hitDown = level.clip(new ClipContext(start, endDown, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null));
+        boolean passDown = !(hitDown.getType() == HitResult.Type.BLOCK && !hitDown.getBlockPos().equals(query));
+        if (passUp || passDown) return res * 0.6;
+        return 0.0;
     }
 
     /**

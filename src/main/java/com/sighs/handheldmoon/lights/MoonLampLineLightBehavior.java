@@ -1,6 +1,7 @@
 package com.sighs.handheldmoon.lights;
 
 import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
+import com.sighs.handheldmoon.registry.Config;
 import com.sighs.handheldmoon.util.LineLightMath;
 import dev.lambdaurora.lambdynlights.api.behavior.DynamicLightBehavior;
 import net.minecraft.client.Minecraft;
@@ -56,6 +57,14 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
             lastYRot = l.getYRot();
         }
 
+        if (Config.LIGHT_OCCLUSION.get()) return LineLightMath.computeLightOccluded(
+                Minecraft.getInstance().level,
+                sX, sY, sZ,
+                dX, dY, dZ,
+                luminance,
+                query,
+                RANGE, INNER, OUTER
+        );
         return LineLightMath.computeLight(
                 sX, sY, sZ,
                 dX, dY, dZ,

@@ -80,6 +80,7 @@ dependencies {
     modCompileOnly ("mezz.jei:jei-1.20.1-fabric-api:${jei_verison}")
     modImplementation ("mezz.jei:jei-1.20.1-fabric:${jei_verison}")
 
+    // maven 的 trinkets mixin 会报错
     modImplementation files("libs/trinkets-3.7.2.jar")
     modImplementation "dev.onyxstudios.cardinal-components-api:cardinal-components-base:${project.cca_version}"
     modImplementation "dev.onyxstudios.cardinal-components-api:cardinal-components-entity:${project.cca_version}"
@@ -90,6 +91,15 @@ dependencies {
 
     modImplementation "curse.maven:tweakeroo-297344:4623488"
     modImplementation "curse.maven:malilib-303119:4780782"
+
+    // fuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuck loom
+    modImplementation "curse.maven:tacz-refabricated-1334246:7281251"
+    modImplementation files("libs/bcel-6.6.1.jar")
+    modImplementation files("libs/commons-math3-3.6.1.jar")
+    modImplementation files("libs/luaj-core-3.0.8-figura.jar")
+    modImplementation files("libs/luaj-jse-3.0.8-figura.jar")
+    modImplementation files("libs/modernkeybinding-1.20.X-1.2.0.jar")
+
 }
 
 processResources {

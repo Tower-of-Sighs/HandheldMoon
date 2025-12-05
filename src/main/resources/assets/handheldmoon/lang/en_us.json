@@ -13,5 +13,7 @@
   "message.handheldmoon.real_light": "Real light: %s",
   "message.handheldmoon.player_ray": "Player ray: %s",
 
-  "trinkets.slot.shoulder.shoulder": "Shoulder"
+  "trinkets.slot.shoulder.shoulder": "Shoulder",
+
+  "handheldmoon.attachment.handheldmoon.name":"Moonlight Lamp"
 }

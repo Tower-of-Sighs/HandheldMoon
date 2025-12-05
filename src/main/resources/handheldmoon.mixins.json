@@ -4,6 +4,7 @@
   "package": "com.sighs.handheldmoon.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "lamb.LambDynLightsMixin",
     "lamb.DynamicLightingEngineMixin",
     "lamb.SpatialLookupDeferredEntryMixin"
   ],

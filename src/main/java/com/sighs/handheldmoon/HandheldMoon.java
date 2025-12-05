@@ -1,6 +1,7 @@
 package com.sighs.handheldmoon;
 
 import com.mojang.logging.LogUtils;
+import com.sighs.handheldmoon.compat.tacz.TaczCompat;
 import com.sighs.handheldmoon.network.NetworkHandler;
 import com.sighs.handheldmoon.registry.*;
 import fuzs.forgeconfigapiport.api.config.v2.ForgeConfigRegistry;
@@ -16,6 +17,7 @@ public class HandheldMoon implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        TaczCompat.init();
         ForgeConfigRegistry.INSTANCE.register(MOD_ID, ModConfig.Type.CLIENT, Config.SPEC);
         NetworkHandler.init();
         ModBlocks.init();

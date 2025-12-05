@@ -21,8 +21,12 @@ public class ShaderEventHandler {
     }
 
     public static void onClientTick(Minecraft client) {
-        if (Config.LIGHT_INTENSITY.get() < 0.1) return;
+        if (Config.LIGHT_INTENSITY.get() < 0.1) {
+            EffectManager.clean("flashlight");
+            return;
+        }
         Minecraft mc = Minecraft.getInstance();
+        if (mc.options.getCameraType() == CameraType.THIRD_PERSON_FRONT) return;
         Player player = mc.player;
         if (player == null) return;
 

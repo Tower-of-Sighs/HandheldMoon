@@ -2,6 +2,8 @@ package com.sighs.handheldmoon.lights;
 
 import com.sighs.handheldmoon.block.FullMoonBlock;
 import com.sighs.handheldmoon.block.FullMoonBlockEntity;
+import com.sighs.handheldmoon.registry.Config;
+import com.sighs.handheldmoon.util.LineLightMath;
 import dev.lambdaurora.lambdynlights.api.behavior.DynamicLightBehavior;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -19,6 +21,13 @@ public class FullMoonBlockBehavior implements DynamicLightBehavior {
 
     @Override
     public double lightAtPos(BlockPos query, double falloffRatio) {
+        if (Config.LIGHT_OCCLUSION.get()) {
+            var level = Minecraft.getInstance().level;
+            double sx = pos.getX() + 0.5;
+            double sy = pos.getY() + 0.5;
+            double sz = pos.getZ() + 0.5;
+            return LineLightMath.computePointLightOccluded(level, sx, sy, sz, 15.0, query, RANGE);
+        }
         double dx = query.getX() + 0.5 - (pos.getX() + 0.5);
         double dy = query.getY() + 0.5 - (pos.getY() + 0.5);
         double dz = query.getZ() + 0.5 - (pos.getZ() + 0.5);

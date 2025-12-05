@@ -3,10 +3,12 @@ package com.sighs.handheldmoon.client;
 import com.sighs.handheldmoon.HandheldMoon;
 import com.sighs.handheldmoon.client.renderer.FullMoonRenderer;
 import com.sighs.handheldmoon.client.renderer.MoonlightLampRenderer;
-import com.sighs.handheldmoon.compat.TrinketsCompat;
+import com.sighs.handheldmoon.compat.tacz.TaczCompatInner;
+import com.sighs.handheldmoon.compat.trinkets.TrinketsCompat;
 import com.sighs.handheldmoon.event.handler.*;
 import com.sighs.handheldmoon.item.MoonlightLampItem;
 import com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
+import com.sighs.handheldmoon.network.NetworkHandler;
 import com.sighs.handheldmoon.registry.ModBlockEntities;
 import com.sighs.handheldmoon.registry.ModEntities;
 import com.sighs.handheldmoon.registry.ModItems;
@@ -14,6 +16,7 @@ import com.sighs.handheldmoon.registry.ModKeyBindings;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraft.client.renderer.item.ItemProperties;
@@ -26,6 +29,14 @@ public class HandheldMoonClient implements ClientModInitializer, ModelLoadingPlu
     @Override
     public void onInitializeClient() {
         ModelLoadingPlugin.register(this);
+
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            EffectManager.clean("flashlight");
+        });
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            EffectManager.clean("flashlight");
+        });
+
         ModKeyBindings.register();
         TrinketsCompat.init();
         ItemProperties.register(

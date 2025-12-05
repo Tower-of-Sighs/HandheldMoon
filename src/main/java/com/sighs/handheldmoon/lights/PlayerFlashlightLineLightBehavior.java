@@ -1,6 +1,7 @@
 package com.sighs.handheldmoon.lights;
 
 import com.sighs.handheldmoon.HandheldMoon;
+import com.sighs.handheldmoon.registry.Config;
 import com.sighs.handheldmoon.util.LineLightMath;
 import com.sighs.handheldmoon.util.Utils;
 import dev.lambdaurora.lambdynlights.api.behavior.DynamicLightBehavior;
@@ -56,14 +57,20 @@ public class PlayerFlashlightLineLightBehavior implements DynamicLightBehavior {
     @Override
     public double lightAtPos(BlockPos query, double falloffRatio) {
         if (!lastPowered) return 0.0;
-
-        return LineLightMath.computeLight(
+        if (Config.LIGHT_OCCLUSION.get()) return LineLightMath.computeLightOccluded(
+                player.level(),
                 eyeX, eyeY, eyeZ,
                 dirX, dirY, dirZ,
                 luminance,
                 query,
                 RANGE, INNER, OUTER
         );
+        return LineLightMath.computeLight(
+                eyeX, eyeY, eyeZ,
+                dirX, dirY, dirZ,
+                luminance,
+                query,
+                RANGE, INNER, OUTER);
     }
 
     @Override
