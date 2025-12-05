@@ -25,19 +25,20 @@ public class Shader {
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.START) return;
-        if (Config.LIGHT_INTENSITY.get() < 0.1) return;
 
         Minecraft mc = Minecraft.getInstance();
-        if (mc.options.getCameraType() == CameraType.THIRD_PERSON_FRONT) return;
         Player player = mc.player;
         if (player == null) return;
+
+        boolean flag1 = Config.LIGHT_INTENSITY.get() < 0.1;
+        boolean flag2 = mc.options.getCameraType() == CameraType.THIRD_PERSON_FRONT;
 
         long currentTime = System.currentTimeMillis();
         long deltaTime = currentTime - lastTickTime;
         float deltaSeconds = Math.max((deltaTime / 1000.0f), 0.001f);
         lastTickTime = currentTime;
 
-        if (Utils.isUsingFlashlight(player)) {
+        if (Utils.isUsingFlashlight(player) && !(flag1 || flag2)) {
             EffectManager.loadEffect("flashlight", "shaders/post/flashlight.json");
 
             // 视角变化量

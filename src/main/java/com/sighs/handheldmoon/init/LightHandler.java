@@ -5,7 +5,6 @@ import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
 import com.sighs.handheldmoon.compat.TaczCompat;
 import com.sighs.handheldmoon.entity.FullMoonEntity;
 import com.sighs.handheldmoon.event.Cache;
-import com.sighs.handheldmoon.registry.Config;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;

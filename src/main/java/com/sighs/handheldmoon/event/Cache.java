@@ -64,15 +64,18 @@ public class Cache {
             }
             if (entity instanceof FullMoonEntity) {
                 DynamicLightSource lightSource = (DynamicLightSource) entity;
-                _selfLightSourceList.add(lightSource);
-                if (realLight) _realLightSourceList.add(lightSource);
                 var be = entity.level().getBlockEntity(entity.blockPosition());
                 if (be instanceof MoonlightLampBlockEntity lamp) {
                     if (lamp.getPowered()) {
                         if (playerRay) _rayLightSourceList.add((DynamicLightSource) lamp);
+                        if (realLight) _realLightSourceList.add(lightSource);
+                        _selfLightSourceList.add(lightSource);
                     }
                 } else if (be instanceof FullMoonBlockEntity) {
                     _realLightSourceList.add(lightSource);
+                    _selfLightSourceList.add(lightSource);
+                } else {
+                    _selfLightSourceList.add(lightSource);
                 }
             }
         }

@@ -5,11 +5,10 @@
   "compatibilityLevel": "JAVA_8",
   "refmap": "handheldmoon.refmap.json",
   "mixins": [
-
+    "DynamicLightHandlersMixin"
   ],
   "client": [
-    "DirectionalLightMixin",
-    "SodiumDynamicLightsMixin"
+    "DirectionalLightMixin"
   ],
   "injectors": {
     "defaultRequire": 1
