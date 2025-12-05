@@ -10,7 +10,6 @@ public class TaczCompat {
 
     public static void init() {
         INSTALLED = ModList.get().isLoaded(MOD_ID);
-        if (INSTALLED) FlashlightRender.register();
     }
 
     public static boolean isUsingAttachmentFlashlight(Player player) {

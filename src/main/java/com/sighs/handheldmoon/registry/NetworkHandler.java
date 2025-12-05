@@ -20,7 +20,7 @@ public class NetworkHandler {
     public static void register() {
         int packetId = 0;
         CHANNEL.registerMessage(packetId++, ServerMoonLightLampSyncPacket.class, ServerMoonLightLampSyncPacket::encode, ServerMoonLightLampSyncPacket::decode, ServerMoonLightLampSyncPacket::handle);
-
+        CHANNEL.registerMessage(packetId++, ServerToggleAttachmentLampPacket.class, ServerToggleAttachmentLampPacket::encode, ServerToggleAttachmentLampPacket::decode, ServerToggleAttachmentLampPacket::handle);
     }
 
     public static void sendToClient(ServerPlayer player, Object packet) {

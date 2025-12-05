@@ -1,5 +1,7 @@
 package com.sighs.handheldmoon.compat;
 
+import com.sighs.handheldmoon.network.ServerToggleAttachmentLampPacket;
+import com.sighs.handheldmoon.registry.NetworkHandler;
 import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.api.item.attachment.AttachmentType;
 import net.minecraft.resources.ResourceLocation;
@@ -14,8 +16,11 @@ public class TaczCompatInner {
         ItemStack itemStack = player.getMainHandItem();
         IGun iGun = IGun.getIGunOrNull(itemStack);
         if (iGun != null) {
-            var tag = player.getPersistentData();
+            var tag = itemStack.getOrCreateTag();
             tag.putBoolean("poweredMoonlightLamp", !tag.getBoolean("poweredMoonlightLamp"));
+            if (player.level().isClientSide) {
+                NetworkHandler.CHANNEL.sendToServer(new ServerToggleAttachmentLampPacket());
+            }
         }
     }
     public static boolean isLampAttachment(ItemStack itemStack) {
