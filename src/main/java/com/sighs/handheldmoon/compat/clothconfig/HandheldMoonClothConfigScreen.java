@@ -61,7 +61,7 @@ public class HandheldMoonClothConfigScreen {
         clientSettings.addEntry(entry.startBooleanToggle(
                         Component.translatable("config.handheldMoon.client_settings.enable_cone_raycast"),
                         Config.CONE_RAYCAST.get())
-                .setDefaultValue(true)
+                .setDefaultValue(false)
                 .setTooltip(Component.translatable("config.handheldMoon.client_settings.enable_cone_raycast.tooltip"))
                 .setSaveConsumer(Config.CONE_RAYCAST::set)
                 .build());

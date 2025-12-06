@@ -81,7 +81,7 @@ public class RayEvent {
             var be = mc.level.getBlockEntity(pos);
             if (be instanceof MoonlightLampBlockEntity lamp && lamp.getPowered()) {
                 Vec3 eyePos = pos.getCenter();
-                Vec3 viewVec = lamp.getViewVec().normalize();
+                Vec3 viewVec = lamp.getViewVec().normalize().scale(-1);
                 renderCones(poseStack, eyePos, viewVec);
             }
         }

@@ -6,6 +6,10 @@ modId = "${mod_id}"
 version = "${mod_version}"
 displayName = "${mod_name}"
 authors = "${mod_authors}"
+credits = "zhenshiz"
+logoFile = "assets/handheldmoon/icon.png"
+displayURL = "https://github.com/Tower-of-Sighs/HandheldMoon"
+issueTrackerURL = "https://github.com/Tower-of-Sighs/HandheldMoon/issues"
 description = '''${mod_description}'''
 [modproperties.handheldmoon."yumi:entrypoints"]
 "lambdynlights:initializer" = "com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer"

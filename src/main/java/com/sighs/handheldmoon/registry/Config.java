@@ -46,7 +46,7 @@ public class Config {
         CONE_RAYCAST = BUILDER
                 .comment("启用圆锥渲染的射线检测（截断）。")
                 .translation(translateKey("enable_cone_raycast"))
-                .define("enableConeRaycast", true);
+                .define("enableConeRaycast", false);
         BUILDER.pop();
 
         SPEC = BUILDER.build();
