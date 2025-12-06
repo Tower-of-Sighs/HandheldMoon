@@ -1,7 +1,28 @@
 {
 	"variants": {
-		"": {
-			"model": "handheldmoon:block/moonlight_lamp"
+		"facing=down": {
+			"model": "handheldmoon:block/moonlight_lamp",
+			"x": 90
+		},
+		"facing=up": {
+			"model": "handheldmoon:block/moonlight_lamp",
+			"x": 270
+		},
+		"facing=north": {
+			"model": "handheldmoon:block/moonlight_lamp",
+			"y": 0
+		},
+		"facing=east": {
+			"model": "handheldmoon:block/moonlight_lamp",
+			"y": 90
+		},
+		"facing=south": {
+			"model": "handheldmoon:block/moonlight_lamp",
+			"y": 180
+		},
+		"facing=west": {
+			"model": "handheldmoon:block/moonlight_lamp",
+			"y": 270
 		}
 	}
 }

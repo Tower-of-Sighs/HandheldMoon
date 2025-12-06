@@ -169,6 +169,7 @@ repositories {
     flatDir {
         dir 'libs'
     }
+    maven { url "https://maven.shedaniel.me/" }
 }
 
 dependencies {
@@ -198,18 +199,20 @@ dependencies {
 
     implementation fg.deobf("curse.maven:embeddium-908741:5681725")
     implementation fg.deobf("curse.maven:rubidium-extra-654373:6101745")
-    implementation fg.deobf("curse.maven:oculus-581495:6020952")
+//    implementation fg.deobf("curse.maven:oculus-581495:6020952")
 
     implementation fg.deobf("curse.maven:curios-309927:5843594")
 
     compileOnly fg.deobf("mezz.jei:jei-1.20.1-forge-api:15.20.0.104")
     implementation fg.deobf("mezz.jei:jei-1.20.1-forge:15.20.0.104")
 
-//    implementation fg.deobf("libs:freecam:2.0.1-forge-1.20.1")
+    implementation fg.deobf("curse.maven:free-cam-557076:4643128")
 
     implementation fg.deobf("curse.maven:dynamiclights-reforged-551736:6044481")
 
-    implementation fg.deobf("libs:tacz:1.20.1-1.1.6-hotfix")
+    implementation fg.deobf("curse.maven:timeless-and-classics-zero-1028108:7278003")
+    implementation fg.deobf("curse.maven:starlight-forge-526854:4631193")
+    implementation fg.deobf("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}")
 
 }
 

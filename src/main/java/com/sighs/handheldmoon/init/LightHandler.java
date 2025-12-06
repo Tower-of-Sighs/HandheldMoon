@@ -5,10 +5,15 @@ import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
 import com.sighs.handheldmoon.compat.TaczCompat;
 import com.sighs.handheldmoon.entity.FullMoonEntity;
 import com.sighs.handheldmoon.event.Cache;
+import com.sighs.handheldmoon.registry.Config;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import toni.sodiumdynamiclights.DynamicLightSource;
 
@@ -79,10 +84,38 @@ public class LightHandler {
                     if (lightLevel > currentLightLevel) {
                         if (lightSource instanceof Player player) {
                             if (!TaczCompat.isUsingAttachmentFlashlight(player)) {
-//                                lightLevel -= 0.5;
                             }
                         }
-                        cir.setReturnValue(Math.max(lightLevel + 0.3, currentLightLevel));
+                        Level level = (lightSource instanceof Player p) ? p.level() : (lightSource instanceof FullMoonEntity e) ? e.level() : null;
+                        if (level != null && Config.LIGHT_OCCLUSION.get()) {
+                            Vec3 start = new Vec3(lightSource.sdl$getDynamicLightX() + 0.5, lightSource.sdl$getDynamicLightY() + 0.5, lightSource.sdl$getDynamicLightZ() + 0.5);
+                            Vec3 center = new Vec3(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
+                            if (isFullMoonBlock) {
+                                var hitCenter = level.clip(new ClipContext(start, center, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null));
+                                boolean passCenter = !(hitCenter.getType() == HitResult.Type.BLOCK && !hitCenter.getBlockPos().equals(pos));
+                                if (!passCenter) {
+                                    Vec3 up = new Vec3(center.x, center.y + 0.25, center.z);
+                                    Vec3 down = new Vec3(center.x, center.y - 0.25, center.z);
+                                    var hitUp = level.clip(new ClipContext(start, up, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null));
+                                    boolean passUp = !(hitUp.getType() == HitResult.Type.BLOCK && !hitUp.getBlockPos().equals(pos));
+                                    var hitDown = level.clip(new ClipContext(start, down, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null));
+                                    boolean passDown = !(hitDown.getType() == HitResult.Type.BLOCK && !hitDown.getBlockPos().equals(pos));
+                                    if (passUp || passDown) {
+                                        lightLevel *= 0.6;
+                                    } else {
+                                        lightLevel = currentLightLevel;
+                                    }
+                                }
+                            } else {
+                                var hit = level.clip(new ClipContext(start, center, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null));
+                                if (hit.getType() == HitResult.Type.BLOCK && !hit.getBlockPos().equals(pos)) {
+                                    lightLevel = currentLightLevel;
+                                }
+                            }
+                        }
+                        if (lightLevel > currentLightLevel) {
+                            cir.setReturnValue(Math.max(lightLevel + 0.3, currentLightLevel));
+                        }
                     }
                 }
             }

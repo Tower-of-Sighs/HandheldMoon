@@ -10,7 +10,10 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -18,8 +21,13 @@ import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix4f;
 import toni.sodiumdynamiclights.DynamicLightSource;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 @Mod.EventBusSubscriber(modid = HandheldMoon.MODID, value = Dist.CLIENT)
 public class Ray {
+    private static final Map<UUID, Vec3> LAST_DIR = new HashMap<>();
     private static final float VIEW_ANGLE_DEG = 56.0f;
     private static final float VIEW_RANGE = 14.0f;
     private static final int SEGMENTS = 32; // 段数
@@ -39,6 +47,7 @@ public class Ray {
         PoseStack poseStack = event.getPoseStack();
 
         RenderSystem.enableBlend();
+        RenderSystem.enableDepthTest();
         RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
         RenderSystem.disableCull();
 
@@ -62,6 +71,7 @@ public class Ray {
 
         poseStack.popPose();
         RenderSystem.disableBlend();
+        RenderSystem.disableDepthTest();
         RenderSystem.enableCull();
         RenderSystem.defaultBlendFunc();
     }
@@ -114,6 +124,19 @@ public class Ray {
 
             Vec3 basePoint = baseCenter.add(rightVec.scale(scaledRadius * cos))
                     .add(orthoUp.scale(scaledRadius * sin));
+
+            if (Config.CONE_RAYCAST.get()) {
+                HitResult hit = Minecraft.getInstance().level.clip(new ClipContext(
+                        apex,
+                        basePoint,
+                        ClipContext.Block.COLLIDER,
+                        ClipContext.Fluid.NONE,
+                        null
+                ));
+                if (hit.getType() == HitResult.Type.BLOCK) {
+                    basePoint = hit.getLocation();
+                }
+            }
 
             // 圆周点使用边缘透明度
             buffer.vertex(matrix, (float)basePoint.x, (float)basePoint.y, (float)basePoint.z)

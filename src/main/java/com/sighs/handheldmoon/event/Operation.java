@@ -17,6 +17,7 @@ import net.minecraftforge.fml.common.Mod;
 public class Operation {
     private static double cacheGama = 0;
     private static long lastActionTime;
+    private static boolean vComboUsed;
 
     @SubscribeEvent
     public static void onKey(InputEvent.Key event) {
@@ -26,9 +27,10 @@ public class Operation {
         if (event.getKey() == KeyBindings.FLASHLIGHT_SWITCH.getKey().getValue()) {
             if (event.getAction() == InputConstants.PRESS) {
                 cacheGama = Config.LIGHT_INTENSITY.get();
+                vComboUsed = false;
             }
             if (event.getAction() == InputConstants.RELEASE) {
-                if (cacheGama == Config.LIGHT_INTENSITY.get()) {
+                if (!vComboUsed && cacheGama == Config.LIGHT_INTENSITY.get()) {
                     Utils.toggleFlashlight(player);
                 }
             }
@@ -39,19 +41,32 @@ public class Operation {
     public static void wheelAction(InputEvent.MouseButton.Pre event) {
         Player player = Minecraft.getInstance().player;
         if (player == null) return;
-        if (KeyBindings.FLASHLIGHT_SWITCH.isDown() && event.getAction() == InputConstants.RELEASE) {
-            if (player.tickCount - lastActionTime < 10) return;
+        if (!KeyBindings.FLASHLIGHT_SWITCH.isDown()) return;
+
+        if (event.getAction() == InputConstants.PRESS) {
+            vComboUsed = true;
+            event.setCanceled(true);
+            return;
+        }
+        if (event.getAction() == InputConstants.RELEASE) {
+            if (player.tickCount - lastActionTime < 10) {
+                event.setCanceled(true);
+                return;
+            }
             if (event.getButton() == 0) {
                 Config.REAL_LIGHT.set(!Config.REAL_LIGHT.get());
                 Config.REAL_LIGHT.save();
                 player.displayClientMessage(Component.translatable("message.handheldmoon.real_light", Config.REAL_LIGHT.get().toString()), true);
+                vComboUsed = true;
             }
             if (event.getButton() == 1) {
                 Config.PLAYER_RAY.set(!Config.PLAYER_RAY.get());
                 Config.PLAYER_RAY.save();
                 player.displayClientMessage(Component.translatable("message.handheldmoon.player_ray", Config.PLAYER_RAY.get().toString()), true);
+                vComboUsed = true;
             }
             lastActionTime = player.tickCount;
+            event.setCanceled(true);
         }
     }
 
@@ -60,6 +75,7 @@ public class Operation {
         Player player = Minecraft.getInstance().player;
         if (player == null || !Utils.isUsingFlashlight(player)) return;
         if (KeyBindings.FLASHLIGHT_SWITCH.isDown()) {
+            vComboUsed = true;
             modifyValue(event.getScrollDelta());
             event.setCanceled(true);
         }
