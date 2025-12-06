@@ -2,6 +2,7 @@ package com.sighs.handheldmoon.event.handler;
 
 import com.sighs.handheldmoon.HandheldMoon;
 import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
+import com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import com.sighs.handheldmoon.util.ClientUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Direction;
@@ -30,6 +31,7 @@ public class InteractEventHandler {
                     } else {
                         lamp.setYRot(lamp.getYRot() + (float) event.getScrollDeltaY() * 2);
                     }
+                    HandheldMoonDynamicLightsInitializer.syncLampBehavior(lamp);
                     event.setCanceled(true);
                 }
             }
@@ -41,6 +43,7 @@ public class InteractEventHandler {
         MoonlightLampBlockEntity lamp = ClientUtils.getCursorMoonlightLampBlock();
         if (event.getSide().isClient() && event.getHand() == InteractionHand.MAIN_HAND && lamp != null) {
             lamp.setPowered(!lamp.getPowered());
+            HandheldMoonDynamicLightsInitializer.syncLampBehavior(lamp);
         }
     }
 }

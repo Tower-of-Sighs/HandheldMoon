@@ -97,9 +97,9 @@ public class MoonlightLampBlockEntity extends BlockEntity {
         xRot = tag.getFloat("xRot");
         yRot = tag.getFloat("yRot");
         powered = tag.getBoolean("powered");
-        if (level != null && level.isClientSide) {
-            HandheldMoonDynamicLightsInitializer.syncLampBehavior(this);
-        }
+//        if (level != null && level.isClientSide) {
+//            HandheldMoonDynamicLightsInitializer.syncLampBehavior(this);
+//        }
     }
 
     @Override
