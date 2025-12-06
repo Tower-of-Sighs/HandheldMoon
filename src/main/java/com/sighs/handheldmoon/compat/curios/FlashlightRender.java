@@ -1,4 +1,4 @@
-package com.sighs.handheldmoon.compat;
+package com.sighs.handheldmoon.compat.curios;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.sighs.handheldmoon.registry.ModItems;

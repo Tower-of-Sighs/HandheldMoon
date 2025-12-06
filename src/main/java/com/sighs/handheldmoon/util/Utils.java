@@ -1,6 +1,7 @@
 package com.sighs.handheldmoon.util;
 
-import com.sighs.handheldmoon.compat.CuriosCompat;
+import com.sighs.handheldmoon.compat.curios.CuriosCompat;
+import com.sighs.handheldmoon.compat.tacz.TaczCompat;
 import com.sighs.handheldmoon.item.MoonlightLampItem;
 import com.sighs.handheldmoon.registry.ModItems;
 import net.minecraft.util.Mth;
@@ -17,7 +18,7 @@ public class Utils {
         if (isFlashlight(player.getOffhandItem())) {
             result = isPoweredFlashlight(player.getOffhandItem());
         }
-        return result || CuriosCompat.isUsingTrinketsFlashlight(player);
+        return result || CuriosCompat.isUsingCuriosFlashlight(player) || TaczCompat.isUsingAttachmentFlashlight(player);
     }
 
     public static boolean isFlashlight(ItemStack itemStack) {
@@ -35,7 +36,8 @@ public class Utils {
         if (isFlashlight(player.getOffhandItem())) {
             MoonlightLampItem.togglePowered(player.getOffhandItem());
         }
-        CuriosCompat.toggleTrinketsFlashlight(player);
+        CuriosCompat.toggleCuriosFlashlight(player);
+        TaczCompat.toggleAttachmentFlashlight(player);
     }
 
     public static Vec3 calculateViewVector(float xRot, float yRot) {

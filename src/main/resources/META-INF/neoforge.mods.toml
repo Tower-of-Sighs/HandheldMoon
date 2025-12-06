@@ -7,6 +7,8 @@ version = "${mod_version}"
 displayName = "${mod_name}"
 authors = "${mod_authors}"
 description = '''${mod_description}'''
+[modproperties.handheldmoon."yumi:entrypoints"]
+"lambdynlights:initializer" = "com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer"
 
 [[mixins]]
 config = "${mod_id}.mixins.json"
@@ -28,9 +30,12 @@ side = "BOTH"
 [[dependencies."${mod_id}"]]
 modId = "lambdynlights_runtime"
 type = "required"
-versionRange = "[4.8.6+1.21.1,)"
+versionRange = "[1.0,)"
 ordering = "NONE"
 side = "BOTH"
 
 [features."${mod_id}"]
 openGLVersion = "[3.2,)"
+
+[[accessTransformers]]
+file = "META-INF/accesstransformer.cfg"

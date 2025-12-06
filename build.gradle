@@ -62,10 +62,11 @@ repositories {
             url = uri("https://maven.gegy.dev")
         }
     }
+    maven { url "https://maven.shedaniel.me/" }
 }
 
 base {
-    archivesName = mod_id
+    archivesName = "${mod_name}-neoforge-${minecraft_version}"
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
@@ -79,12 +80,22 @@ neoForge {
         minecraftVersion = project.parchment_minecraft_version
     }
 
+    accessTransformers.from 'src/main/resources/META-INF/accesstransformer.cfg'
+
     runs {
         client {
             client()
 
             // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        client2 {
+            // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
+            client()
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            programArgument "--username"
+            programArgument "Flechazo"
         }
 
         server {
@@ -162,13 +173,20 @@ dependencies {
     implementation "maven.modrinth:jei:${jei_version}"
     implementation "maven.modrinth:curios:${curios_version}"
 
-    // KubeJS
-    implementation "dev.latvian.mods:rhino:${rhino_version}"
-    implementation "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
 
     //iris
     implementation "maven.modrinth:sodium:${sodium_version}"
+    implementation "curse.maven:sodium-extra-447673:5913377"
     implementation "maven.modrinth:iris:${iris_version}"
+
+    implementation "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
+
+    implementation "curse.maven:tacz-1-21-1-1353462:7295633"
+
+    implementation "curse.maven:mafglib-910766:6895587"
+    implementation "curse.maven:tweakerge-915857:7123684"
+
+    implementation "curse.maven:scalablelux-1055925:6952385"
 }
 
 tasks.withType(ProcessResources).configureEach {

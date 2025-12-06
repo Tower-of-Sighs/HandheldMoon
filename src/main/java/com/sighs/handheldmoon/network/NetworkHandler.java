@@ -13,5 +13,6 @@ public class NetworkHandler {
     public static void register(final RegisterPayloadHandlersEvent event) {
         final PayloadRegistrar registrar = event.registrar(HandheldMoon.MOD_ID);
         registrar.playBidirectional(ServerMoonLightLampSyncPacket.TYPE, ServerMoonLightLampSyncPacket.STREAM_CODEC, ServerMoonLightLampSyncPacket::handle);
+        registrar.playBidirectional(ServerToggleAttachmentLampPacket.TYPE, ServerToggleAttachmentLampPacket.STREAM_CODEC, ServerToggleAttachmentLampPacket::handle);
     }
 }

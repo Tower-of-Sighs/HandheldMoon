@@ -3,7 +3,7 @@ package com.sighs.handheldmoon.client;
 import com.sighs.handheldmoon.HandheldMoon;
 import com.sighs.handheldmoon.client.renderer.FullMoonRenderer;
 import com.sighs.handheldmoon.client.renderer.MoonlightLampRenderer;
-import com.sighs.handheldmoon.compat.CuriosCompat;
+import com.sighs.handheldmoon.compat.curios.CuriosCompat;
 import com.sighs.handheldmoon.item.MoonlightLampItem;
 import com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import com.sighs.handheldmoon.registry.ModBlockEntities;
@@ -24,7 +24,7 @@ import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 
 
 @EventBusSubscriber(modid = HandheldMoon.MOD_ID, value = Dist.CLIENT)
-public class SetupEvent {
+public class HandheldMoonClient {
     @SubscribeEvent
     public static void registerItemProperties(FMLClientSetupEvent event) {
         event.enqueueWork(() -> {

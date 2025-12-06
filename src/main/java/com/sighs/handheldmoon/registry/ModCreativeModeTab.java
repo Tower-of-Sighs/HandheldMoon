@@ -13,10 +13,10 @@ public class ModCreativeModeTab {
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> CATBURGER_TAB =
             CREATIVE_MODE_TABS.register("catburger_tab", () -> CreativeModeTab.builder()
-                    .title(Component.translatable("itemGroup.tab.handheldmoon")) // 标题
-                    .icon(() -> ModItems.MOONLIGHT_LAMP.get().getDefaultInstance()) // 图标
+                    .title(Component.translatable("itemGroup.tab.handheldmoon"))
+                    .icon(() -> ModItems.MOONLIGHT_LAMP.get().getDefaultInstance())
                     .displayItems((parameters, output) -> {
-                        output.accept(ModItems.MOONLIGHT_LAMP.get());
+                        output.accept(ModItems.MOONLIGHT_LAMP.get().getDefaultInstance());
                         output.accept(ModItems.FULL_MOON.get());
                     })
                     .build());

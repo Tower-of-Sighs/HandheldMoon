@@ -1,4 +1,4 @@
-package com.sighs.handheldmoon.compat;
+package com.sighs.handheldmoon.compat.curios;
 
 import com.sighs.handheldmoon.registry.ModItems;
 import net.minecraft.world.entity.player.Player;
@@ -14,16 +14,23 @@ public class CuriosCompat {
         if (INSTALLED) FlashlightRender.register();
     }
 
-    public static boolean isUsingTrinketsFlashlight(Player player) {
+    public static boolean isUsingCuriosFlashlight(Player player) {
         if (INSTALLED) {
-            return CuriosCompatInner.isUsingTrinketsFlashlight(player);
+            return CuriosCompatInner.isUsingCuriosFlashlight(player);
         }
         return false;
     }
 
-    public static void toggleTrinketsFlashlight(Player player) {
+    public static boolean hasCuriosFlashlight(Player player) {
         if (INSTALLED) {
-            CuriosCompatInner.toggleTrinketsFlashlight(player);
+            return CuriosCompatInner.hasCuriosFlashlight(player);
+        }
+        return false;
+    }
+
+    public static void toggleCuriosFlashlight(Player player) {
+        if (INSTALLED) {
+            CuriosCompatInner.toggleCuriosFlashlight(player);
         }
     }
 

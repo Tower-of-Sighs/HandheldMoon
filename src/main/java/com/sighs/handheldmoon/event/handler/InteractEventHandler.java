@@ -2,12 +2,12 @@ package com.sighs.handheldmoon.event.handler;
 
 import com.sighs.handheldmoon.HandheldMoon;
 import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
-import com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import com.sighs.handheldmoon.util.ClientUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Direction;
-import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -18,28 +18,18 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 public class InteractEventHandler {
 
     @SubscribeEvent
-    public static void onMouseScroll(InputEvent.MouseScrollingEvent event) {
-        var mc = Minecraft.getInstance();
-
-        // 确保世界和玩家存在
-        if (mc.level == null || mc.player == null) return;
-
-        var hit = mc.hitResult;
+    public static void wheel(InputEvent.MouseScrollingEvent event) {
+        Minecraft mc = Minecraft.getInstance();
+        HitResult hit = mc.hitResult;
         if (hit instanceof BlockHitResult result) {
-            var blockEntity = mc.level.getBlockEntity(result.getBlockPos());
-
-            if (blockEntity instanceof MoonlightLampBlockEntity lamp) {
-                if (mc.options.keyShift.isDown()) {
-                    double scrollDeltaY = event.getScrollDeltaY();
-
+            var blockentity = mc.level.getBlockEntity(result.getBlockPos());
+            if (blockentity instanceof MoonlightLampBlockEntity lamp) {
+                if (Minecraft.getInstance().options.keyShift.isDown()) {
                     if (result.getDirection() == Direction.UP || result.getDirection() == Direction.DOWN) {
-                        lamp.setXRot(lamp.getXRot() + (float) scrollDeltaY * 2);
+                        lamp.setXRot(lamp.getXRot() + (float) event.getScrollDeltaY() * 2);
                     } else {
-                        lamp.setYRot(lamp.getYRot() + (float) scrollDeltaY * 2);
+                        lamp.setYRot(lamp.getYRot() + (float) event.getScrollDeltaY() * 2);
                     }
-
-                    HandheldMoonDynamicLightsInitializer.syncLampBehavior(lamp);
-
                     event.setCanceled(true);
                 }
             }
@@ -47,17 +37,10 @@ public class InteractEventHandler {
     }
 
     @SubscribeEvent
-    public static void onInteractBlock(PlayerInteractEvent.RightClickBlock event) {
-        if (event.getLevel().isClientSide()) {
-            var lamp = ClientUtils.getCursorMoonlightLampBlock();
-
-            if (lamp != null) {
-                lamp.setPowered(!lamp.getPowered());
-                HandheldMoonDynamicLightsInitializer.syncLampBehavior(lamp);
-
-                event.setCanceled(true);
-                event.setCancellationResult(InteractionResult.SUCCESS);
-            }
+    public static void interact(PlayerInteractEvent.RightClickBlock event) {
+        MoonlightLampBlockEntity lamp = ClientUtils.getCursorMoonlightLampBlock();
+        if (event.getSide().isClient() && event.getHand() == InteractionHand.MAIN_HAND && lamp != null) {
+            lamp.setPowered(!lamp.getPowered());
         }
     }
 }

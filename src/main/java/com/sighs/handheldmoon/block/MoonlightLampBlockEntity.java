@@ -3,19 +3,23 @@ package com.sighs.handheldmoon.block;
 import com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import com.sighs.handheldmoon.registry.ModBlockEntities;
 import com.sighs.handheldmoon.util.ClientUtils;
+import com.sighs.handheldmoon.util.Utils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
+
+import java.util.UUID;
 
 public class MoonlightLampBlockEntity extends BlockEntity {
     private float xRot = 0;
     private float yRot = 0;
     private boolean powered = true;
-
     private boolean clientInited = false;
+    private UUID uuid = UUID.randomUUID();
 
     public MoonlightLampBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.MOONLIGHT_LAMP.get(), pos, state);
@@ -44,6 +48,10 @@ public class MoonlightLampBlockEntity extends BlockEntity {
         return yRot;
     }
 
+    public Vec3 getViewVec() {
+        return Utils.calculateViewVector(this.getXRot() - 90.0f, this.getYRot());
+    }
+
     public void setYRot(float yRot) {
         this.yRot = yRot;
         if (level.isClientSide) {
@@ -64,6 +72,15 @@ public class MoonlightLampBlockEntity extends BlockEntity {
         } else level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
     }
 
+    public UUID getUuid() {
+        if (uuid == null) uuid = UUID.randomUUID();
+        return uuid;
+    }
+
+    public void setUuid(UUID uuid) {
+        this.uuid = uuid;
+    }
+
     // 数据持久化全家桶，yue
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider provider) {
@@ -79,6 +96,9 @@ public class MoonlightLampBlockEntity extends BlockEntity {
         xRot = tag.getFloat("xRot");
         yRot = tag.getFloat("yRot");
         powered = tag.getBoolean("powered");
+        if (level != null && level.isClientSide) {
+            HandheldMoonDynamicLightsInitializer.syncLampBehavior(this);
+        }
     }
 
     @Override

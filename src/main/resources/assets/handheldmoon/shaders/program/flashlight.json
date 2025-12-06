@@ -1,6 +1,6 @@
 {
   "vertex": "blit",
-  "fragment": "flashlight",
+  "fragment": "handheldmoon:flashlight",
   "samplers": [
     { "name": "DiffuseSampler" }
   ],

@@ -1,6 +1,8 @@
 package com.sighs.handheldmoon;
 
 import com.mojang.logging.LogUtils;
+import com.sighs.handheldmoon.compat.clothconfig.HandheldMoonClothConfigScreen;
+import com.sighs.handheldmoon.compat.tacz.TaczCompat;
 import com.sighs.handheldmoon.registry.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
@@ -10,6 +12,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.loading.LoadingModList;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import org.slf4j.Logger;
@@ -20,14 +23,24 @@ public class HandheldMoon {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public HandheldMoon(IEventBus modEventBus, ModContainer modContainer, Dist dist) {
+        TaczCompat.init(modEventBus);
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
         ModBlocks.BLOCKS.register(modEventBus);
         ModCreativeModeTab.CREATIVE_MODE_TABS.register(modEventBus);
         ModDataComponent.DATA_COMPONENT_TYPES.register(modEventBus);
         ModEntities.ENTITY_TYPES.register(modEventBus);
         ModItems.ITEMS.register(modEventBus);
+        modContainer.registerConfig(ModConfig.Type.CLIENT, Config.SPEC, "%s_config.toml".formatted(MOD_ID));
         if (dist == Dist.CLIENT) {
-            modContainer.registerConfig(ModConfig.Type.COMMON, Config.CONFIG_SPEC, "%s_config.toml".formatted(MOD_ID));
+            registerConfigMenu(modContainer);
+        }
+    }
+
+    private void registerConfigMenu(ModContainer modContainer) {
+        var clothConfigInfo = LoadingModList.get().getModFileById("cloth_config");
+        if (clothConfigInfo != null) {
+            HandheldMoonClothConfigScreen.registerModsPage(modContainer);
+        } else {
             modContainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
         }
     }

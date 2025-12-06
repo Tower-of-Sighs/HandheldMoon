@@ -2,7 +2,6 @@ package com.sighs.handheldmoon.item;
 
 import com.sighs.handheldmoon.registry.ModBlocks;
 import com.sighs.handheldmoon.registry.ModDataComponent;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
@@ -20,6 +19,13 @@ public class MoonlightLampItem extends BlockItem {
         ItemStack itemStack = player.getItemInHand(hand);
         togglePowered(itemStack);
         return super.use(level, player, hand);
+    }
+
+    @Override
+    public ItemStack getDefaultInstance() {
+        ItemStack stack = super.getDefaultInstance();
+        stack.set(ModDataComponent.POWERED, 0);
+        return stack;
     }
 
     public static void togglePowered(ItemStack stack) {

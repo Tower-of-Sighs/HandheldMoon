@@ -24,12 +24,13 @@ public record ServerMoonLightLampSyncPacket(BlockPos blockPos, float xRot, float
     );
 
     public static void handle(ServerMoonLightLampSyncPacket msg, IPayloadContext context) {
-        if (context.player().level().getBlockEntity(msg.blockPos) instanceof MoonlightLampBlockEntity lamp) {
-            lamp.setXRot(msg.xRot());
-            lamp.setYRot(msg.yRot());
-            lamp.setPowered(msg.powered);
-            lamp.setChanged();
-        }
+        context.enqueueWork(() -> {
+            if (context.player().level().getBlockEntity(msg.blockPos) instanceof MoonlightLampBlockEntity lamp) {
+                lamp.setXRot(msg.xRot());
+                lamp.setYRot(msg.yRot());
+                lamp.setPowered(msg.powered());
+            }
+        });
     }
 
     @Override

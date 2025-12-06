@@ -2,7 +2,7 @@
   "targets": ["swap"],
   "passes": [
     {
-      "name": "flashlight",
+      "name": "handheldmoon:flashlight",
       "intarget": "minecraft:main",
       "outtarget": "swap",
       "uniforms": [
