@@ -12,6 +12,7 @@ import net.minecraft.world.entity.player.Player;
 public class OperationEventHandler {
     private static double cacheGama = 0;
     private static long lastActionTime;
+    private static boolean vComboUsed;
 
     public static void init() {
         InputEvent.KEY.register(OperationEventHandler::onKey);
@@ -26,9 +27,10 @@ public class OperationEventHandler {
         if (key == ModKeyBindings.FLASHLIGHT_SWITCH.key.getValue()) {
             if (action == InputConstants.PRESS) {
                 cacheGama = Config.LIGHT_INTENSITY.get();
+                vComboUsed = false;
             }
             if (action == InputConstants.RELEASE) {
-                if (cacheGama == Config.LIGHT_INTENSITY.get()) {
+                if (!vComboUsed && cacheGama == Config.LIGHT_INTENSITY.get()) {
                     Utils.toggleFlashlight(player);
                 }
             }
@@ -38,23 +40,30 @@ public class OperationEventHandler {
     public static boolean wheelAction(int button, int action, int modifiers) {
         Player player = Minecraft.getInstance().player;
         if (player == null) return false;
-        if (ModKeyBindings.FLASHLIGHT_SWITCH.isDown() && action == InputConstants.RELEASE) {
-            if (player.tickCount - lastActionTime < 10) return false;
+        if (!ModKeyBindings.FLASHLIGHT_SWITCH.isDown()) return false;
+
+        if (player.tickCount - lastActionTime < 10) return true;
+
+        if (action == InputConstants.PRESS) {
             if (button == 0) {
                 Config.REAL_LIGHT.set(!Config.REAL_LIGHT.get());
                 Config.REAL_LIGHT.save();
                 player.displayClientMessage(Component.translatable("message.handheldmoon.real_light", Config.REAL_LIGHT.get().toString()), true);
+                vComboUsed = true;
+                lastActionTime = player.tickCount;
                 return true;
             }
             if (button == 1) {
                 Config.PLAYER_RAY.set(!Config.PLAYER_RAY.get());
                 Config.PLAYER_RAY.save();
                 player.displayClientMessage(Component.translatable("message.handheldmoon.player_ray", Config.PLAYER_RAY.get().toString()), true);
+                vComboUsed = true;
+                lastActionTime = player.tickCount;
                 return true;
             }
-            lastActionTime = player.tickCount;
         }
-        return false;
+
+        return action == InputConstants.RELEASE && (button == 0 || button == 1);
     }
 
     public static boolean wheelAction(double scrollDeltaX, double scrollDeltaY, double mouseX, double mouseY,
@@ -62,6 +71,7 @@ public class OperationEventHandler {
         Player player = Minecraft.getInstance().player;
         if (player == null || !Utils.isUsingFlashlight(player)) return false;
         if (ModKeyBindings.FLASHLIGHT_SWITCH.isDown()) {
+            vComboUsed = true;
             modifyValue(scrollDeltaY);
             return true;
         }

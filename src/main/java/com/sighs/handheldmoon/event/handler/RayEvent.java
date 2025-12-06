@@ -3,6 +3,8 @@ package com.sighs.handheldmoon.event.handler;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
+import com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import com.sighs.handheldmoon.registry.Config;
 import com.sighs.handheldmoon.util.Utils;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
@@ -11,13 +13,21 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
 import org.joml.Matrix4f;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class RayEvent {
+    private static final Map<UUID, Vec3> LAST_DIR = new HashMap<>();
     private static final float VIEW_ANGLE_DEG = 56.0f;
     private static final float VIEW_RANGE = 14.0f;
     private static final int SEGMENTS = 32; // 段数
@@ -35,7 +45,7 @@ public class RayEvent {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
 
-        float partialTick = mc.getFrameTimeNs();
+        float partialTick = context.tickCounter().getGameTimeDeltaPartialTick(true);
         PoseStack poseStack = context.matrixStack();
 
         RenderSystem.enableBlend();
@@ -55,13 +65,27 @@ public class RayEvent {
             if (!Utils.isUsingFlashlight(player)) continue;
 
             Vec3 eyePos = player.getEyePosition(partialTick);
-            Vec3 viewVec = player.getViewVector(partialTick).normalize();
+            Vec3 viewVecRaw = player.getViewVector(partialTick).normalize();
+            Vec3 prev = LAST_DIR.getOrDefault(player.getUUID(), viewVecRaw);
+            Vec3 viewVec = prev.scale(0.7).add(viewVecRaw.scale(0.3)).normalize();
+            LAST_DIR.put(player.getUUID(), viewVec);
 
             renderCones(poseStack, eyePos, viewVec);
         }
 
+        for (BlockPos pos : HandheldMoonDynamicLightsInitializer.getActiveLampPositions()) {
+            var be = mc.level.getBlockEntity(pos);
+            if (be instanceof MoonlightLampBlockEntity lamp && lamp.getPowered()) {
+                Vec3 eyePos = pos.getCenter();
+                Vec3 viewVec = lamp.getViewVec().normalize().scale(-1);
+                renderCones(poseStack, eyePos, viewVec);
+            }
+        }
+
         poseStack.popPose();
+
         RenderSystem.disableBlend();
+        RenderSystem.disableDepthTest();
         RenderSystem.enableCull();
         RenderSystem.defaultBlendFunc();
     }
@@ -108,10 +132,23 @@ public class RayEvent {
             double cos = Math.cos(theta);
             double sin = Math.sin(theta);
 
-            Vec3 basePoint = baseCenter.add(rightVec.scale(scaledRadius * cos))
+            Vec3 basePoint = baseCenter
+                    .add(rightVec.scale(scaledRadius * cos))
                     .add(orthoUp.scale(scaledRadius * sin));
 
-            // 圆周点使用边缘透明度
+            if (Config.CONE_RAYCAST.get()) {
+                HitResult hit = Minecraft.getInstance().level.clip(new ClipContext(
+                        apex,
+                        basePoint,
+                        ClipContext.Block.COLLIDER,
+                        ClipContext.Fluid.NONE,
+                        CollisionContext.empty()
+                ));
+                if (hit.getType() == HitResult.Type.BLOCK) {
+                    basePoint = hit.getLocation();
+                }
+            }
+
             buffer.addVertex(matrix, (float) basePoint.x, (float) basePoint.y, (float) basePoint.z)
                     .setColor(CONE_R, CONE_G, CONE_B, edgeAlpha);
         }

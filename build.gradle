@@ -103,6 +103,8 @@ dependencies {
 
     modImplementation "curse.maven:tweakeroo-297344:5647797"
     modImplementation "curse.maven:malilib-303119:5647783"
+
+    modImplementation "curse.maven:sodium-extra-447673:5913375"
 }
 
 processResources {

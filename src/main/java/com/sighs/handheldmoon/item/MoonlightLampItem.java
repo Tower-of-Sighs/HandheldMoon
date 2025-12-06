@@ -21,6 +21,13 @@ public class MoonlightLampItem extends BlockItem {
         return super.use(level, player, hand);
     }
 
+    @Override
+    public ItemStack getDefaultInstance() {
+        ItemStack stack = super.getDefaultInstance();
+        stack.set(ModDataComponent.POWERED, 0);
+        return stack;
+    }
+
     public static void togglePowered(ItemStack stack) {
         int powered = stack.getOrDefault(ModDataComponent.POWERED, 0);
         int newValue = powered ^ 1;

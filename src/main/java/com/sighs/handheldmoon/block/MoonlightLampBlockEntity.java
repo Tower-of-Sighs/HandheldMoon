@@ -3,12 +3,15 @@ package com.sighs.handheldmoon.block;
 import com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import com.sighs.handheldmoon.registry.ModBlockEntities;
 import com.sighs.handheldmoon.util.ClientUtils;
+import com.sighs.handheldmoon.util.LineLightMath;
+import com.sighs.handheldmoon.util.Utils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.UUID;
 
@@ -44,6 +47,10 @@ public class MoonlightLampBlockEntity extends BlockEntity {
 
     public float getYRot() {
         return yRot;
+    }
+
+    public Vec3 getViewVec() {
+        return LineLightMath.computeDirection(this.getYRot(), this.getXRot() - 90.0f, true);
     }
 
     public void setYRot(float yRot) {

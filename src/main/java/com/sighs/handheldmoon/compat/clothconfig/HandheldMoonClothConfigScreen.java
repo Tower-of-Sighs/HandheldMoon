@@ -56,6 +56,13 @@ public class HandheldMoonClothConfigScreen {
                 .setTooltip(Component.translatable("config.handheldMoon.client_settings.enable_light_occlusion.tooltip"))
                 .setSaveConsumer(Config.LIGHT_OCCLUSION::set)
                 .build());
+        clientSettings.addEntry(entry.startBooleanToggle(
+                        Component.translatable("config.handheldMoon.client_settings.enable_cone_raycast"),
+                        Config.CONE_RAYCAST.get())
+                .setDefaultValue(false)
+                .setTooltip(Component.translatable("config.handheldMoon.client_settings.enable_cone_raycast.tooltip"))
+                .setSaveConsumer(Config.CONE_RAYCAST::set)
+                .build());
 
         return root;
     }
