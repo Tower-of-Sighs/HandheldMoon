@@ -76,19 +76,19 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
 
     @Override
     public BoundingBox getBoundingBox() {
-        double ex = sX + dX * RANGE;
-        double ey = sY + dY * RANGE;
-        double ez = sZ + dZ * RANGE;
-        double rMax = RANGE * Math.tan(0.7);
-        double rX = rMax * Math.sqrt(1.0 - dX * dX);
-        double rY = rMax * Math.sqrt(1.0 - dY * dY);
-        double rZ = rMax * Math.sqrt(1.0 - dZ * dZ);
-        int minX = Mth.floor(Math.min(sX, ex) - (ex < sX ? rX : 0.0));
-        int minY = Mth.floor(Math.min(sY, ey) - (ey < sY ? rY : 0.0));
-        int minZ = Mth.floor(Math.min(sZ, ez) - (ez < sZ ? rZ : 0.0));
-        int maxX = Mth.floor(Math.max(sX, ex) + (ex > sX ? rX : 0.0));
-        int maxY = Mth.floor(Math.max(sY, ey) + (ey > sY ? rY : 0.0));
-        int maxZ = Mth.floor(Math.max(sZ, ez) + (ez > sZ ? rZ : 0.0));
+        double sx = sX;
+        double sy = sY;
+        double sz = sZ;
+        double ex = sx + dX * RANGE;
+        double ey = sy + dY * RANGE;
+        double ez = sz + dZ * RANGE;
+        double r = 10.0;
+        int minX = Mth.floor(Math.min(sx, ex) - r);
+        int minY = Mth.floor(Math.min(sy, ey) - r);
+        int minZ = Mth.floor(Math.min(sz, ez) - r);
+        int maxX = Mth.floor(Math.max(sx, ex) + r);
+        int maxY = Mth.floor(Math.max(sy, ey) + r);
+        int maxZ = Mth.floor(Math.max(sz, ez) + r);
         return new BoundingBox(minX, minY, minZ, maxX, maxY, maxZ);
     }
 

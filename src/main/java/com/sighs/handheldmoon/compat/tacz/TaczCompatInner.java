@@ -4,7 +4,6 @@ import com.sighs.handheldmoon.network.ServerToggleAttachmentLampPacket;
 import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.api.item.attachment.AttachmentType;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -12,6 +11,7 @@ import net.minecraft.world.item.ItemStack;
 public class TaczCompatInner {
 
     public static final String TAG_POWERED_LAMP = "poweredMoonlightLamp";
+
     public static boolean isUsingAttachmentFlashlight(Player player) {
         return isLampAttachment(player.getMainHandItem());
     }
@@ -28,7 +28,7 @@ public class TaczCompatInner {
         var tag = mainHand.getOrCreateTag();
         boolean currentlyOn = tag.getBoolean(TAG_POWERED_LAMP);
         tag.putBoolean(TAG_POWERED_LAMP, !currentlyOn);
-        if(player.level().isClientSide) {
+        if (player.level().isClientSide) {
             ClientPlayNetworking.send(new ServerToggleAttachmentLampPacket());
         }
     }

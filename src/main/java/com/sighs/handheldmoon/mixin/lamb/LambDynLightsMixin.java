@@ -15,7 +15,7 @@ public class LambDynLightsMixin {
     @Inject(method = "<clinit>", at = @At("RETURN"))
     private static void injectTaczCompat(CallbackInfo ci) {
         if (FabricLoader.getInstance().isModLoaded("tacz")) {
-                CompatLayer.LAYERS.add(new TaczLambDynLightsCompat());
+            CompatLayer.LAYERS.add(new TaczLambDynLightsCompat());
         }
     }
 }

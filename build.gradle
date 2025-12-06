@@ -59,6 +59,7 @@ repositories {
         name = "Ladysnake Libs"
         url = 'https://maven.ladysnake.org/releases'
     }
+    maven { url "https://maven.shedaniel.me/" }
 }
 
 dependencies {
@@ -100,6 +101,9 @@ dependencies {
     modImplementation files("libs/luaj-jse-3.0.8-figura.jar")
     modImplementation files("libs/modernkeybinding-1.20.X-1.2.0.jar")
 
+    modApi("me.shedaniel.cloth:cloth-config-fabric:${project.cloth_config_version}") {
+        exclude(group: "net.fabricmc.fabric-api")
+    }
 }
 
 processResources {

@@ -28,6 +28,6 @@ public record ServerToggleAttachmentLampPacket() implements FabricPacket {
     }
 
     public static void handle(ServerToggleAttachmentLampPacket msg, ServerPlayer player, PacketSender responseSender) {
-            TaczCompat.toggleAttachmentFlashlight(player);
+        TaczCompat.toggleAttachmentFlashlight(player);
     }
 }

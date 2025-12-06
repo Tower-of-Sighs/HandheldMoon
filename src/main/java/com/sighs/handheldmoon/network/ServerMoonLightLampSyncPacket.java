@@ -10,7 +10,8 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
-public record ServerMoonLightLampSyncPacket(BlockPos pos, float xRot, float yRot, boolean powered) implements FabricPacket {
+public record ServerMoonLightLampSyncPacket(BlockPos pos, float xRot, float yRot,
+                                            boolean powered) implements FabricPacket {
     public static final PacketType<ServerMoonLightLampSyncPacket> TYPE = PacketType.create(new ResourceLocation(HandheldMoon.MOD_ID, "server_moon_light_lamp_sync"), ServerMoonLightLampSyncPacket::new);
 
     public ServerMoonLightLampSyncPacket(FriendlyByteBuf buf) {
@@ -36,11 +37,11 @@ public record ServerMoonLightLampSyncPacket(BlockPos pos, float xRot, float yRot
     }
 
     public static void handle(ServerMoonLightLampSyncPacket msg, ServerPlayer player, PacketSender responseSender) {
-            if (player.level().getBlockEntity(msg.pos) instanceof MoonlightLampBlockEntity lamp) {
-                lamp.setXRot(msg.xRot);
-                lamp.setYRot(msg.yRot);
-                lamp.setPowered(msg.powered);
-                lamp.setChanged();
-            }
+        if (player.level().getBlockEntity(msg.pos) instanceof MoonlightLampBlockEntity lamp) {
+            lamp.setXRot(msg.xRot);
+            lamp.setYRot(msg.yRot);
+            lamp.setPowered(msg.powered);
+            lamp.setChanged();
+        }
     }
 }

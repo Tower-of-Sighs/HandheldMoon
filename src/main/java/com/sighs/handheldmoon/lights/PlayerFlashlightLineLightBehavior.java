@@ -6,7 +6,6 @@ import com.sighs.handheldmoon.util.LineLightMath;
 import com.sighs.handheldmoon.util.Utils;
 import dev.lambdaurora.lambdynlights.api.behavior.DynamicLightBehavior;
 import dev.lambdaurora.lambdynlights.engine.DynamicLightingEngine;
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
@@ -24,7 +23,6 @@ public class PlayerFlashlightLineLightBehavior implements DynamicLightBehavior {
     private static final double RANGE = 32.0;
     private static final double INNER = 0.5;
     private static final double OUTER = 0.7;
-    private static final double BB_OUTER = Math.atan(12.0 / RANGE);
     private double eyeX, eyeY, eyeZ;
     private double dirX, dirY, dirZ;
     private double luminance;
@@ -81,23 +79,17 @@ public class PlayerFlashlightLineLightBehavior implements DynamicLightBehavior {
         double ex = sx + dirX * RANGE;
         double ey = sy + dirY * RANGE;
         double ez = sz + dirZ * RANGE;
-        double rMax = RANGE * Math.tan(BB_OUTER);
-        double rX = rMax * Math.sqrt(1.0 - dirX * dirX);
-        double rY = rMax * Math.sqrt(1.0 - dirY * dirY);
-        double rZ = rMax * Math.sqrt(1.0 - dirZ * dirZ);
-        Vec3 cam = Minecraft.getInstance().player != null ? Minecraft.getInstance().player.getViewVector(1.0f).normalize() : new Vec3(0, 0, 1);
-        double cx = cam.x;
-        double cy = cam.y;
-        double cz = cam.z;
-        double pad = DynamicLightingEngine.CELL_SIZE / 3.0;
-        int minX = Mth.floor(Math.min(sx, ex) - ((ex < sx && cx < 0.0) ? rX : 0.0) - pad);
-        int minY = Mth.floor(Math.min(sy, ey) - ((ey < sy && cy < 0.0) ? rY : 0.0) - pad);
-        int minZ = Mth.floor(Math.min(sz, ez) - ((ez < sz && cz < 0.0) ? rZ : 0.0) - pad);
-        int maxX = Mth.floor(Math.max(sx, ex) + ((ex > sx && cx > 0.0) ? rX : 0.0) + pad);
-        int maxY = Mth.floor(Math.max(sy, ey) + ((ey > sy && cy > 0.0) ? rY : 0.0) + pad);
-        int maxZ = Mth.floor(Math.max(sz, ez) + ((ez > sz && cz > 0.0) ? rZ : 0.0) + pad);
+        double r = 8.0;
+        int minX = Mth.floor(Math.min(sx, ex) - r);
+        int minY = Mth.floor(Math.min(sy, ey) - r);
+        int minZ = Mth.floor(Math.min(sz, ez) - r);
+        int maxX = Mth.floor(Math.max(sx, ex) + r);
+        int maxY = Mth.floor(Math.max(sy, ey) + r);
+        int maxZ = Mth.floor(Math.max(sz, ez) + r);
 
-        return new BoundingBox(minX, minY, minZ, maxX, maxY, maxZ);
+        BoundingBox box = new BoundingBox(minX, minY, minZ, maxX, maxY, maxZ);
+
+        return box;
     }
 
     @Override
@@ -122,16 +114,13 @@ public class PlayerFlashlightLineLightBehavior implements DynamicLightBehavior {
         double ex = sx + nx * RANGE;
         double ey = sy + ny * RANGE;
         double ez = sz + nz * RANGE;
-        double rMax = RANGE * Math.tan(BB_OUTER);
-        double rX = rMax * Math.sqrt(1.0 - nx * nx);
-        double rY = rMax * Math.sqrt(1.0 - ny * ny);
-        double rZ = rMax * Math.sqrt(1.0 - nz * nz);
-        int minX = Mth.floor(Math.min(sx, ex) - (ex < sx ? rX : 0.0));
-        int minY = Mth.floor(Math.min(sy, ey) - (ey < sy ? rY : 0.0));
-        int minZ = Mth.floor(Math.min(sz, ez) - (ez < sz ? rZ : 0.0));
-        int maxX = Mth.floor(Math.max(sx, ex) + (ex > sx ? rX : 0.0));
-        int maxY = Mth.floor(Math.max(sy, ey) + (ey > sy ? rY : 0.0));
-        int maxZ = Mth.floor(Math.max(sz, ez) + (ez > sz ? rZ : 0.0));
+        double r = 8.0;
+        int minX = Mth.floor(Math.min(sx, ex) - r);
+        int minY = Mth.floor(Math.min(sy, ey) - r);
+        int minZ = Mth.floor(Math.min(sz, ez) - r);
+        int maxX = Mth.floor(Math.max(sx, ex) + r);
+        int maxY = Mth.floor(Math.max(sy, ey) + r);
+        int maxZ = Mth.floor(Math.max(sz, ez) + r);
 
         int cellStartX = DynamicLightingEngine.positionToCell(minX);
         int cellStartY = DynamicLightingEngine.positionToCell(minY);

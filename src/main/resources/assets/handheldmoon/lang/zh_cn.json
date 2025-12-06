@@ -15,5 +15,23 @@
 
   "trinkets.slot.shoulder.shoulder": "肩膀",
 
-  "handheldmoon.attachment.handheldmoon.name":"月光灯筒"
+  "handheldmoon.attachment.handheldmoon.name": "月光灯筒",
+
+  "config.handheldMoon.title": "掌中明月 配置",
+  "config.handheldMoon.client_settings": "客户端设置",
+
+  "config.handheldMoon.client_settings.enable_fixed_flashlight": "固定手电筒光位置",
+  "config.handheldMoon.client_settings.enable_fixed_flashlight.tooltip": "固定手电筒光的位置，减少第三人称视角下的漂移。",
+
+  "config.handheldMoon.client_settings.enable_player_ray": "显示玩家光束",
+  "config.handheldMoon.client_settings.enable_player_ray.tooltip": "渲染其它玩家的光束。游戏内调整：按住“%s”键 + 鼠标右键切换。",
+
+  "config.handheldMoon.client_settings.enable_real_light": "启用真实光照",
+  "config.handheldMoon.client_settings.enable_real_light.tooltip": "启用动态真实光照。游戏内调整：按住“%s”键 + 鼠标左键切换。",
+
+  "config.handheldMoon.client_settings.light_intensity": "手电筒强度",
+  "config.handheldMoon.client_settings.light_intensity.tooltip": "后处理亮度倍增，不影响真实光照亮度。游戏内调整：按住“%s”键 + 滚轮调节。",
+
+  "config.handheldMoon.client_settings.enable_light_occlusion": "启用光照遮挡",
+  "config.handheldMoon.client_settings.enable_light_occlusion.tooltip": "计算遮挡，性能开销大，仅供观赏。"
 }

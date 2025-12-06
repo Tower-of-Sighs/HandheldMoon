@@ -7,10 +7,9 @@ public class Config {
     private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
 
     public static final ForgeConfigSpec.ConfigValue<Boolean> ENABLE_FIXED_FLASHLIGHT;
-    public static final ForgeConfigSpec.ConfigValue<Double> LIGHT_INTENSITY;
     public static final ForgeConfigSpec.ConfigValue<Boolean> PLAYER_RAY;
     public static final ForgeConfigSpec.ConfigValue<Boolean> REAL_LIGHT;
-
+    public static final ForgeConfigSpec.ConfigValue<Double> LIGHT_INTENSITY;
     public static final ForgeConfigSpec.ConfigValue<Boolean> LIGHT_OCCLUSION;
 
     static {
@@ -27,7 +26,7 @@ public class Config {
                 .define("enableRealLight", true);
         LIGHT_INTENSITY = BUILDER
                 .comment("手电筒光强度。")
-                .define("LightIntensity", 0.3);
+                .defineInRange("lightIntensity", 0.3, 0.0, 1.0);
         LIGHT_OCCLUSION = BUILDER
                 .comment("启用光照遮挡，极吃性能，仅供观赏")
                 .define("enableLightOcclusion", false);

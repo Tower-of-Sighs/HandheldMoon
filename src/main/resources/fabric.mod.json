@@ -3,12 +3,16 @@
   "id": "handheldmoon",
   "version": "${version}",
   "name": "HandheldMoon",
-  "description": "Loot Bags is a mod which adds bags that drop other items, renewed by src_resources.",
+  "description": "This mod adds several large-area lighting items such as flashlights and mini moons.",
   "authors": [
     "MerrySnow",
     "Flechazo"
   ],
-  "contact": {},
+  "contact": {
+    "homepage": "https://curseforge.com/minecraft/mc-mods/handheld-moon",
+    "sources": "https://github.com/Tower-of-Sighs/HandheldMoon",
+    "issues": "https://github.com/Tower-of-Sighs/HandheldMoon/issues"
+  },
   "license": "All-Rights-Reserved",
   "icon": "assets/handheldmoon/icon.png",
   "environment": "*",
@@ -21,6 +25,9 @@
     ],
     "lambdynlights:initializer": [
       "com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer"
+    ],
+    "modmenu": [
+      "com.sighs.handheldmoon.compat.modmenu.ModMenuIntegration"
     ]
   },
   "mixins": [
@@ -33,5 +40,14 @@
     "lambdynlights": "*",
     "forgeconfigapiport": "*"
   },
-  "accessWidener": "handheldmoon.accesswidener"
+  "accessWidener": "handheldmoon.accesswidener",
+  "custom": {
+    "modmenu": {
+      "links": {
+        "modmenu.curseforge": "https://www.curseforge.com/minecraft/mc-mods/handheld-moon",
+        "modmenu.discord": "https://discord.gg/C8epbbwjrS",
+        "modmenu.wiki": "https://doc.sighs.cc/HandheldMoon/intro"
+      }
+    }
+  }
 }
