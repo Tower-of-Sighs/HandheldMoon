@@ -33,5 +33,8 @@
   "config.handheldMoon.client_settings.light_intensity.tooltip": "后处理亮度倍增，不影响真实光照亮度。游戏内调整：按住“%s”键 + 滚轮调节。",
 
   "config.handheldMoon.client_settings.enable_light_occlusion": "启用光照遮挡",
-  "config.handheldMoon.client_settings.enable_light_occlusion.tooltip": "计算遮挡，性能开销大，仅供观赏。"
+  "config.handheldMoon.client_settings.enable_light_occlusion.tooltip": "计算遮挡，性能敏感，复杂地形慎用。",
+
+  "config.handheldMoon.client_settings.enable_cone_raycast": "启用圆锥射线检测",
+  "config.handheldMoon.client_settings.enable_cone_raycast.tooltip": "通过射线检测截断圆锥，提升真实感，但可能产生抖动且性能敏感，复杂地形慎用"
 }

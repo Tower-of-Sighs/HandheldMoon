@@ -23,6 +23,7 @@ public class FullMoonBlockEntity extends BlockEntity {
 
     public FullMoonBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.FULL_MOON, pos, state);
+        this.uuid = UUID.randomUUID();
     }
 
     @Override

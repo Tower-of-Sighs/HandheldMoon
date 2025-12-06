@@ -25,7 +25,7 @@ public class ModCreativeModeTab {
                         .title(Component.translatable("itemGroup.tab.handheldmoon"))
                         .icon(() -> ModItems.MOONLIGHT_LAMP.getDefaultInstance())
                         .displayItems((ctx, entries) -> {
-                            entries.accept(ModItems.MOONLIGHT_LAMP);
+                            entries.accept(ModItems.MOONLIGHT_LAMP.getDefaultInstance());
                             entries.accept(ModItems.FULL_MOON);
                         })
                         .build()

@@ -21,6 +21,14 @@ public class MoonlightLampItem extends BlockItem {
         return super.use(level, player, hand);
     }
 
+    @Override
+    public ItemStack getDefaultInstance() {
+        ItemStack stack = super.getDefaultInstance();
+        var tag = stack.getOrCreateTag();
+        tag.putInt("powered", 0);
+        return stack;
+    }
+
     public static void togglePowered(ItemStack stack) {
         CompoundTag nbt = stack.getOrCreateTag();
         int powered = nbt.getInt("powered");

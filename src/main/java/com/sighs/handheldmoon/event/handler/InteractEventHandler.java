@@ -45,7 +45,7 @@ public class InteractEventHandler {
     public static InteractionResult interact(Player player, Level world, InteractionHand hand, BlockHitResult hitResult) {
         if (world.isClientSide()) {
             var lamp = ClientUtils.getCursorMoonlightLampBlock();
-            if (lamp != null) {
+            if (lamp != null && hand == InteractionHand.MAIN_HAND) {
                 lamp.setPowered(!lamp.getPowered());
                 HandheldMoonDynamicLightsInitializer.syncLampBehavior(lamp);
                 return InteractionResult.SUCCESS;

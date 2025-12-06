@@ -11,14 +11,16 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class HandheldMoonDynamicLightsInitializer implements DynamicLightsInitializer {
     private static DynamicLightBehaviorManager MANAGER;
     private static final Map<BlockPos, MoonLampLineLightBehavior> LAMP_BEHAVIORS = new HashMap<>();
     private static final Map<UUID, PlayerFlashlightLineLightBehavior> PLAYER_BEHAVIORS = new HashMap<>();
+
+    public static Set<BlockPos> getActiveLampPositions() {
+        return new HashSet<>(LAMP_BEHAVIORS.keySet());
+    }
 
     private static final Map<BlockPos, FullMoonBlockBehavior> FULL_MOON_BEHAVIORS = new HashMap<>();
 

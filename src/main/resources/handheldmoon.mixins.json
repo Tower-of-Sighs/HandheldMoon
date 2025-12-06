@@ -9,7 +9,6 @@
     "lamb.SpatialLookupDeferredEntryMixin"
   ],
   "client": [
-    "PostChainMixin",
     "client.EntityRendererMixin",
     "client.KeyboardHandlerMixin",
     "client.MouseHandlerMixin"

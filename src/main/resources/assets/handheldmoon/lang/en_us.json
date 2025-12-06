@@ -33,5 +33,8 @@
   "config.handheldMoon.client_settings.light_intensity.tooltip": "Post-processing brightness multiplier. In-game: hold '%s' and scroll to adjust.",
 
   "config.handheldMoon.client_settings.enable_light_occlusion": "Enable Light Occlusion",
-  "config.handheldMoon.client_settings.enable_light_occlusion.tooltip": "Compute occlusion for beams. Heavy performance; for showcase only."
+  "config.handheldMoon.client_settings.enable_light_occlusion.tooltip": "Compute occlusion for beams. performance-sensitive, use with caution in complex terrain.",
+
+  "config.handheldMoon.client_settings.enable_cone_raycast": "Enable Cone Raycast",
+  "config.handheldMoon.client_settings.enable_cone_raycast.tooltip": "Clip cone to blocks via ray casts; improves realism but may jitter and impact performance."
 }
