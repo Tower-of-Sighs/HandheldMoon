@@ -2,6 +2,7 @@ package com.sighs.handheldmoon.lights;
 
 import com.sighs.handheldmoon.block.FullMoonBlockEntity;
 import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
+import com.sighs.handheldmoon.registry.Config;
 import com.sighs.handheldmoon.util.Utils;
 import dev.lambdaurora.lambdynlights.api.DynamicLightsContext;
 import dev.lambdaurora.lambdynlights.api.DynamicLightsInitializer;
@@ -20,6 +21,7 @@ public class HandheldMoonDynamicLightsInitializer implements DynamicLightsInitia
     private static final Map<BlockPos, MoonLampLineLightBehavior> LAMP_BEHAVIORS = new HashMap<>();
     private static final Map<UUID, PlayerFlashlightLineLightBehavior> PLAYER_BEHAVIORS = new HashMap<>();
     private static final Map<BlockPos, FullMoonBlockBehavior> FULL_MOON_BEHAVIORS = new HashMap<>();
+
     @Override
     public void onInitializeDynamicLights(DynamicLightsContext context) {
         MANAGER = context.dynamicLightBehaviorManager();
@@ -33,6 +35,7 @@ public class HandheldMoonDynamicLightsInitializer implements DynamicLightsInitia
 
     public static void syncLampBehavior(MoonlightLampBlockEntity lamp) {
         if (MANAGER == null) return;
+        if (!Config.REAL_LIGHT.get()) return;
         var pos = lamp.getBlockPos();
         var existing = LAMP_BEHAVIORS.get(pos);
         if (lamp.getPowered()) {
@@ -54,6 +57,7 @@ public class HandheldMoonDynamicLightsInitializer implements DynamicLightsInitia
         if (MANAGER == null) return;
         var mc = Minecraft.getInstance();
         if (mc.level == null) return;
+        if (!Config.REAL_LIGHT.get()) return;
         for (Player p : mc.level.players()) {
             var id = p.getUUID();
             var existing = PLAYER_BEHAVIORS.get(id);

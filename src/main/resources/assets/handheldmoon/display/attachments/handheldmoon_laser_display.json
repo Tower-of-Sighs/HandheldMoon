@@ -1,0 +1,14 @@
+{
+  "slot": "handheldmoon:attachment/slot/handheldmoon",
+  "model": "handheldmoon:attachment/handheldmoon_laser_geo",
+  "texture": "handheldmoon:attachment/uv/handheldmoon",
+  "sounds": {
+    "install": "tacz:attachments/bayonet_install",
+    "uninstall": "tacz:attachments/bayonet_uninstall"
+  },
+  "laser": {
+    "default_color": "0x000000",
+    "can_edit": true,
+    "length": 1
+  }
+}

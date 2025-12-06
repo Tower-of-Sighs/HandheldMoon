@@ -1,8 +1,7 @@
-package com.sighs.handheldmoon.compat;
+package com.sighs.handheldmoon.compat.trinkets;
 
 import com.sighs.handheldmoon.item.MoonlightLampItem;
 import com.sighs.handheldmoon.registry.ModItems;
-import com.sighs.handheldmoon.util.TrinketUtils;
 import com.sighs.handheldmoon.util.Utils;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;

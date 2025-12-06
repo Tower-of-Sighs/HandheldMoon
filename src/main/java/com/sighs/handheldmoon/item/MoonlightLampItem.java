@@ -2,7 +2,6 @@ package com.sighs.handheldmoon.item;
 
 import com.sighs.handheldmoon.registry.ModBlocks;
 import com.sighs.handheldmoon.registry.ModDataComponent;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;

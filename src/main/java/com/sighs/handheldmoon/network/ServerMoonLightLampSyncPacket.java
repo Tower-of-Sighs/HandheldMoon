@@ -9,10 +9,9 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerPlayer;
 
-public record ServerMoonLightLampSyncPacket(BlockPos blockPos, float xRot, float yRot, boolean powered) implements CustomPacketPayload {
+public record ServerMoonLightLampSyncPacket(BlockPos blockPos, float xRot, float yRot,
+                                            boolean powered) implements CustomPacketPayload {
 
     public static final Type<ServerMoonLightLampSyncPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "server_moon_light_lamp_sync"));
 

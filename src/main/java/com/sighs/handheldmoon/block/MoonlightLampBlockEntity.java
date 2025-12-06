@@ -10,12 +10,14 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
+import java.util.UUID;
+
 public class MoonlightLampBlockEntity extends BlockEntity {
     private float xRot = 0;
     private float yRot = 0;
     private boolean powered = true;
-
     private boolean clientInited = false;
+    private UUID uuid = UUID.randomUUID();
 
     public MoonlightLampBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.MOONLIGHT_LAMP, pos, state);
@@ -62,6 +64,15 @@ public class MoonlightLampBlockEntity extends BlockEntity {
             ClientUtils.syncMoonlightLampBlock(this);
             HandheldMoonDynamicLightsInitializer.syncLampBehavior(this);
         } else level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+    }
+
+    public UUID getUuid() {
+        if (uuid == null) uuid = UUID.randomUUID();
+        return uuid;
+    }
+
+    public void setUuid(UUID uuid) {
+        this.uuid = uuid;
     }
 
     // 数据持久化全家桶，yue

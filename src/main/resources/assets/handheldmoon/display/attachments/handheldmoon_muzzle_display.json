@@ -1,0 +1,10 @@
+{
+  "slot": "handheldmoon:attachment/slot/handheldmoon",
+  "model": "handheldmoon:attachment/handheldmoon_muzzle_geo",
+  "texture": "handheldmoon:attachment/uv/handheldmoon",
+  "show_muzzle": true,
+  "sounds": {
+    "install": "tacz:attachments/bayonet_install",
+    "uninstall": "tacz:attachments/bayonet_uninstall"
+  }
+}

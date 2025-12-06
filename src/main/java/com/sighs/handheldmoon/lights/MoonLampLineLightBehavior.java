@@ -1,6 +1,7 @@
 package com.sighs.handheldmoon.lights;
 
 import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
+import com.sighs.handheldmoon.registry.Config;
 import com.sighs.handheldmoon.util.LineLightMath;
 import dev.lambdaurora.lambdynlights.api.behavior.DynamicLightBehavior;
 import net.minecraft.client.Minecraft;
@@ -43,17 +44,27 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
             sY = pos.getY() + 0.5;
             sZ = pos.getZ() + 0.5;
 
-            float adjustedPitch = l.getXRot() + 90.0f;
-            var d = LineLightMath.computeDirection(l.getYRot(), adjustedPitch, true);
-            dX = d.x;
-            dY = d.y;
-            dZ = d.z;
+            float yaw = l.getYRot();
+            float pitch = l.getXRot() - 90.0f;
+
+            var d = LineLightMath.computeDirection(yaw, pitch, true);
+            dX = -d.x;
+            dY = -d.y;
+            dZ = -d.z;
 
             luminance = 15.0;
             lastXRot = l.getXRot();
             lastYRot = l.getYRot();
         }
 
+        if (Config.LIGHT_OCCLUSION.get()) return LineLightMath.computeLightOccluded(
+                Minecraft.getInstance().level,
+                sX, sY, sZ,
+                dX, dY, dZ,
+                luminance,
+                query,
+                RANGE, INNER, OUTER
+        );
         return LineLightMath.computeLight(
                 sX, sY, sZ,
                 dX, dY, dZ,
@@ -65,19 +76,19 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
 
     @Override
     public BoundingBox getBoundingBox() {
-        double ex = sX + dX * RANGE;
-        double ey = sY + dY * RANGE;
-        double ez = sZ + dZ * RANGE;
-        double rMax = RANGE * Math.tan(0.7);
-        double rX = rMax * Math.sqrt(1.0 - dX * dX);
-        double rY = rMax * Math.sqrt(1.0 - dY * dY);
-        double rZ = rMax * Math.sqrt(1.0 - dZ * dZ);
-        int minX = Mth.floor(Math.min(sX, ex) - (ex < sX ? rX : 0.0));
-        int minY = Mth.floor(Math.min(sY, ey) - (ey < sY ? rY : 0.0));
-        int minZ = Mth.floor(Math.min(sZ, ez) - (ez < sZ ? rZ : 0.0));
-        int maxX = Mth.floor(Math.max(sX, ex) + (ex > sX ? rX : 0.0));
-        int maxY = Mth.floor(Math.max(sY, ey) + (ey > sY ? rY : 0.0));
-        int maxZ = Mth.floor(Math.max(sZ, ez) + (ez > sZ ? rZ : 0.0));
+        double sx = sX;
+        double sy = sY;
+        double sz = sZ;
+        double ex = sx + dX * RANGE;
+        double ey = sy + dY * RANGE;
+        double ez = sz + dZ * RANGE;
+        double r = 10.0;
+        int minX = Mth.floor(Math.min(sx, ex) - r);
+        int minY = Mth.floor(Math.min(sy, ey) - r);
+        int minZ = Mth.floor(Math.min(sz, ez) - r);
+        int maxX = Mth.floor(Math.max(sx, ex) + r);
+        int maxY = Mth.floor(Math.max(sy, ey) + r);
+        int maxZ = Mth.floor(Math.max(sz, ez) + r);
         return new BoundingBox(minX, minY, minZ, maxX, maxY, maxZ);
     }
 
@@ -94,12 +105,11 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
             sX = pos.getX() + 0.5;
             sY = pos.getY() + 0.5;
             sZ = pos.getZ() + 0.5;
-            float adjustedPitch = xr + 90.0f;
-            double yawRad = yr * Mth.DEG_TO_RAD;
-            double pitchRad = adjustedPitch * Mth.DEG_TO_RAD;
-            dX = Math.sin(yawRad) * Math.cos(pitchRad);
-            dY = -Math.sin(pitchRad);
-            dZ = Math.cos(yawRad) * Math.cos(pitchRad);
+            float adjustedPitch = xr - 90.0f;
+            var d = LineLightMath.computeDirection(yr, adjustedPitch, true);
+            dX = -d.x;
+            dY = -d.y;
+            dZ = -d.z;
             luminance = 15.0;
         }
         lastXRot = xr;

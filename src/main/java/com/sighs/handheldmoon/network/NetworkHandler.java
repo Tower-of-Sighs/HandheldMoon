@@ -14,6 +14,15 @@ public class NetworkHandler {
                 ServerMoonLightLampSyncPacket.TYPE,
                 ServerMoonLightLampSyncPacket.STREAM_CODEC
         );
+        PayloadTypeRegistry.playC2S().register(
+                ServerToggleAttachmentLampPacket.TYPE,
+                ServerToggleAttachmentLampPacket.STREAM_CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
+                ServerToggleAttachmentLampPacket.TYPE,
+                ServerToggleAttachmentLampPacket.STREAM_CODEC
+        );
         ServerPlayNetworking.registerGlobalReceiver(ServerMoonLightLampSyncPacket.TYPE, ServerMoonLightLampSyncPacket::handle);
+        ServerPlayNetworking.registerGlobalReceiver(ServerToggleAttachmentLampPacket.TYPE, ServerToggleAttachmentLampPacket::handle);
     }
 }

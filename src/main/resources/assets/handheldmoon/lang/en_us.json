@@ -13,5 +13,25 @@
   "message.handheldmoon.real_light": "Real light: %s",
   "message.handheldmoon.player_ray": "Player ray: %s",
 
-  "trinkets.slot.shoulder.shoulder": "Shoulder"
+  "trinkets.slot.shoulder.shoulder": "Shoulder",
+
+  "handheldmoon.attachment.handheldmoon.name": "Moonlight Lamp",
+
+  "config.handheldMoon.title": "Handheld Moon Settings",
+  "config.handheldMoon.client_settings": "Client Settings",
+
+  "config.handheldMoon.client_settings.enable_fixed_flashlight": "Fixed Flashlight",
+  "config.handheldMoon.client_settings.enable_fixed_flashlight.tooltip": "Fixes flashlight beam position to reduce drift in third-person view.",
+
+  "config.handheldMoon.client_settings.enable_player_ray": "Enable Player Beam",
+  "config.handheldMoon.client_settings.enable_player_ray.tooltip": "Show flashlight beams for other players. In-game: hold '%s' and Right Mouse to toggle.",
+
+  "config.handheldMoon.client_settings.enable_real_light": "Enable Real Light",
+  "config.handheldMoon.client_settings.enable_real_light.tooltip": "Enable dynamic real lighting. In-game: hold '%s' and Left Mouse to toggle.",
+
+  "config.handheldMoon.client_settings.light_intensity": "Flashlight Intensity",
+  "config.handheldMoon.client_settings.light_intensity.tooltip": "Post-processing brightness multiplier. In-game: hold '%s' and scroll to adjust.",
+
+  "config.handheldMoon.client_settings.enable_light_occlusion": "Enable Light Occlusion",
+  "config.handheldMoon.client_settings.enable_light_occlusion.tooltip": "Compute occlusion for beams. performance-sensitive, use with caution in complex terrain."
 }

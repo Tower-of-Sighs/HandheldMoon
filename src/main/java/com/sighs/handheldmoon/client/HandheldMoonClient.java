@@ -3,7 +3,7 @@ package com.sighs.handheldmoon.client;
 import com.sighs.handheldmoon.HandheldMoon;
 import com.sighs.handheldmoon.client.renderer.FullMoonRenderer;
 import com.sighs.handheldmoon.client.renderer.MoonlightLampRenderer;
-import com.sighs.handheldmoon.compat.TrinketsCompat;
+import com.sighs.handheldmoon.compat.trinkets.TrinketsCompat;
 import com.sighs.handheldmoon.event.handler.*;
 import com.sighs.handheldmoon.item.MoonlightLampItem;
 import com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
@@ -20,7 +20,7 @@ import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.resources.ResourceLocation;
 
 
-public class HandheldMoonClient implements ClientModInitializer{
+public class HandheldMoonClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {

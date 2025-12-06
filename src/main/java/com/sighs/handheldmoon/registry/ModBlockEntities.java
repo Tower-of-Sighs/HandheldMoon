@@ -3,7 +3,6 @@ package com.sighs.handheldmoon.registry;
 import com.sighs.handheldmoon.HandheldMoon;
 import com.sighs.handheldmoon.block.FullMoonBlockEntity;
 import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
-import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;

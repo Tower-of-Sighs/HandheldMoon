@@ -7,9 +7,10 @@ public class Config {
     private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
 
     public static final ModConfigSpec.ConfigValue<Boolean> ENABLE_FIXED_FLASHLIGHT;
-    public static final ModConfigSpec.ConfigValue<Double> LIGHT_INTENSITY;
     public static final ModConfigSpec.ConfigValue<Boolean> PLAYER_RAY;
     public static final ModConfigSpec.ConfigValue<Boolean> REAL_LIGHT;
+    public static final ModConfigSpec.ConfigValue<Double> LIGHT_INTENSITY;
+    public static final ModConfigSpec.ConfigValue<Boolean> LIGHT_OCCLUSION;
 
     static {
         BUILDER.push("Client Setting");
@@ -25,7 +26,10 @@ public class Config {
                 .define("enableRealLight", true);
         LIGHT_INTENSITY = BUILDER
                 .comment("手电筒光强度。")
-                .define("LightIntensity", 0.3);
+                .defineInRange("lightIntensity", 0.3, 0.0, 1.0);
+        LIGHT_OCCLUSION = BUILDER
+                .comment("启用光照遮挡，性能敏感，复杂地形慎用")
+                .define("enableLightOcclusion", false);
         BUILDER.pop();
 
         SPEC = BUILDER.build();

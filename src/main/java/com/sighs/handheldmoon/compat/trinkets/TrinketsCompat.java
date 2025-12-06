@@ -1,4 +1,4 @@
-package com.sighs.handheldmoon.compat;
+package com.sighs.handheldmoon.compat.trinkets;
 
 import com.sighs.handheldmoon.registry.ModItems;
 import net.fabricmc.loader.api.FabricLoader;
