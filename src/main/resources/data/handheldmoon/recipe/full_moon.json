@@ -6,15 +6,9 @@
     "ABA"
   ],
   "key": {
-    "A": {
-      "item": "minecraft:quartz"
-    },
-    "B": {
-      "item": "minecraft:lapis_lazuli"
-    },
-    "C": {
-      "item": "minecraft:calcite"
-    }
+    "A": "minecraft:quartz",
+    "B": "minecraft:lapis_lazuli",
+    "C": "minecraft:calcite"
   },
   "result": {
     "id": "handheldmoon:full_moon",

@@ -1,5 +1,6 @@
 package com.sighs.handheldmoon.event.handler;
 
+import com.mojang.blaze3d.resource.CrossFrameResourcePool;
 import com.sighs.handheldmoon.HandheldMoon;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
@@ -12,16 +13,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.ResourceManager;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 
 public class EffectManager {
     private static final Minecraft MC = Minecraft.getInstance();
-    private static final Map<String, ShaderEffect> EFFECTS = new ConcurrentHashMap<>();
+    private static final Map<String, ManagedPostChain> CHAINS = new LinkedHashMap<>();
+
     private static int lastWindowWidth = -1;
     private static int lastWindowHeight = -1;
 
@@ -33,7 +30,6 @@ public class EffectManager {
     public static void onRegisterClientReloadListeners() {
         ResourceManagerHelper.get(PackType.CLIENT_RESOURCES)
                 .registerReloadListener(new SimpleSynchronousResourceReloadListener() {
-
                     @Override
                     public ResourceLocation getFabricId() {
                         return ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "effect_manager_reload");
@@ -41,190 +37,121 @@ public class EffectManager {
 
                     @Override
                     public void onResourceManagerReload(ResourceManager resourceManager) {
-                        MC.execute(EffectManager::reloadAllShaders);
+                        MC.execute(EffectManager::reloadAll);
                     }
                 });
     }
 
-    public static class ShaderEffect {
-        private final String jsonPath;
-        private PostChain postChain;
-        private boolean enabled = true;
-        private boolean needsResize = true;
-
-
-        public ShaderEffect(String jsonPath) {
-            this.jsonPath = jsonPath;
-            this.postChain = createPostChain(jsonPath);
-        }
-
-        private PostChain createPostChain(String path) {
-            ResourceLocation location = ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, path);
-            try {
-                return new PostChain(MC.getTextureManager(), MC.getResourceManager(),
-                        MC.getMainRenderTarget(), location);
-            } catch (IOException e) {
-                return null;
-            }
-        }
-
-        public boolean isValid() {
-            return postChain != null && !postChain.passes.isEmpty();
-        }
-
-        public List<PostPass> getPasses() {
-            return postChain != null ? postChain.passes : Collections.emptyList();
-        }
-
-        public void resize(int width, int height) {
-            if (postChain != null && needsResize) {
-                postChain.resize(width, height);
-                needsResize = false;
-            }
-        }
-
-        public void process(float partialTick) {
-            if (postChain != null && enabled) {
-                postChain.process(partialTick);
-            }
-        }
-
-        public void close() {
-            if (postChain != null) {
-                postChain.close();
-                postChain = null;
-            }
-        }
-
-        public void markForResize() {
-            this.needsResize = true;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-    }
-
-    // 重新加载所有着色器
-    public static void reloadAllShaders() {
-
-        // 先关闭所有现有着色器
-        EFFECTS.values().forEach(ShaderEffect::close);
-
-        // 重新创建所有着色器
-        EFFECTS.replaceAll((name, oldEffect) -> {
-            ShaderEffect newEffect = new ShaderEffect(oldEffect.jsonPath);
-            if (!newEffect.isValid()) {
-                return oldEffect; // 保持旧的着色器以防万一
-            }
-            return newEffect;
-        });
-
-        // 标记需要调整大小
-        markAllForResize();
-    }
-
-    // 获取着色器效果
     public static List<PostPass> getEffect(String name) {
-        ShaderEffect effect = EFFECTS.get(name);
-        return effect != null ? effect.getPasses() : Collections.emptyList();
+        ManagedPostChain chain = CHAINS.get(name);
+        return (chain != null && chain.postChain != null) ? chain.postChain.passes : Collections.emptyList();
     }
 
-    // 加载着色器效果
-    public static boolean loadEffect(String name, String jsonPath) {
-        if (EFFECTS.containsKey(name)) {
-            return EFFECTS.get(name).isValid();
-        }
-
-        ShaderEffect effect = new ShaderEffect(jsonPath);
-        if (effect.isValid()) {
-            EFFECTS.put(name, effect);
-            return true;
-        } else {
-            return false;
+    public static void loadEffect(String name, String jsonPath) {
+        if (!CHAINS.containsKey(name)) {
+            CHAINS.put(name, new ManagedPostChain(jsonPath));
         }
     }
 
     public static boolean isLoading(String name) {
-        return EFFECTS.containsKey(name);
+        return CHAINS.containsKey(name);
     }
 
     public static boolean isValid(String name) {
-        ShaderEffect effect = EFFECTS.get(name);
-        return effect != null && effect.isValid();
+        ManagedPostChain chain = CHAINS.get(name);
+        return chain != null && chain.postChain != null && !chain.postChain.passes.isEmpty();
     }
 
-    public static void initAll() {
-        // 这个方法现在只是标记需要调整大小
+    public static void reloadAll() {
+        CHAINS.values().forEach(ManagedPostChain::close);
+        CHAINS.replaceAll((name, old) -> new ManagedPostChain(old.jsonPath));
         markAllForResize();
     }
 
     public static void onRenderLevelStage(WorldRenderContext context) {
-        // 只在窗口大小改变时调整大小
         checkAndHandleResize();
 
-        // 处理所有启用的着色器
-        EFFECTS.values().forEach(effect -> effect.process(context.tickCounter().getGameTimeDeltaPartialTick(true)));
-
-        // 恢复主渲染目标
-        MC.getMainRenderTarget().bindWrite(false);
-    }
-
-
-    // 检查并处理窗口大小变化
-    private static void checkAndHandleResize() {
-        int currentWidth = MC.getWindow().getWidth();
-        int currentHeight = MC.getWindow().getHeight();
-
-        if (currentWidth != lastWindowWidth || currentHeight != lastWindowHeight) {
-            lastWindowWidth = currentWidth;
-            lastWindowHeight = currentHeight;
-            markAllForResize();
+        for (ManagedPostChain chain : CHAINS.values()) {
+            if (chain.postChain != null) {
+                chain.process();
+            }
         }
 
-        // 调整所有需要调整大小的着色器
-        EFFECTS.values().forEach(effect -> effect.resize(currentWidth, currentHeight));
+        MC.getMainRenderTarget().bindWrite(false);
+
+        CHAINS.values().forEach(ManagedPostChain::endFrame);
+    }
+
+    private static void checkAndHandleResize() {
+        int w = MC.getWindow().getWidth();
+        int h = MC.getWindow().getHeight();
+        if (w != lastWindowWidth || h != lastWindowHeight) {
+            lastWindowWidth = w;
+            lastWindowHeight = h;
+            markAllForResize();
+        }
     }
 
     private static void markAllForResize() {
-        EFFECTS.values().forEach(ShaderEffect::markForResize);
+        CHAINS.values().forEach(chain -> chain.needsResize = true);
     }
 
     public static void clean(String name) {
-        ShaderEffect effect = EFFECTS.remove(name);
-        if (effect != null) {
-            effect.close();
+        ManagedPostChain chain = CHAINS.remove(name);
+        if (chain != null) {
+            chain.close();
         }
     }
 
     public static void cleanup() {
-        EFFECTS.values().forEach(ShaderEffect::close);
-        EFFECTS.clear();
+        CHAINS.values().forEach(ManagedPostChain::close);
+        CHAINS.clear();
     }
 
-    public static void setEffectEnabled(String name, boolean enabled) {
-        ShaderEffect effect = EFFECTS.get(name);
-        if (effect != null) {
-            effect.setEnabled(enabled);
+    private static class ManagedPostChain {
+        final String jsonPath;
+        PostChain postChain;
+        boolean needsResize = true;
+        final CrossFrameResourcePool resourcePool = new CrossFrameResourcePool(3);
+
+        ManagedPostChain(String jsonPath) {
+            this.jsonPath = jsonPath;
+            reload();
         }
-    }
 
-    public static boolean isEffectEnabled(String name) {
-        ShaderEffect effect = EFFECTS.get(name);
-        return effect != null && effect.isEnabled();
-    }
+        void reload() {
+            close();
+            try {
+                ResourceLocation rl = jsonPath.contains(":")
+                        ? ResourceLocation.parse(jsonPath)
+                        : ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, jsonPath);
+                this.postChain = MC.getShaderManager().getPostChain(rl, Set.of(PostChain.MAIN_TARGET_ID));
+            } catch (Exception e) {
+                HandheldMoon.LOGGER.error("Failed to load post chain: {}", jsonPath, e);
+                this.postChain = null;
+            }
+        }
 
-    public static Set<String> getLoadedEffectNames() {
-        return Collections.unmodifiableSet(EFFECTS.keySet());
-    }
+        void process() {
+            if (postChain == null) return;
 
-    public static int getActiveEffectCount() {
-        return (int) EFFECTS.values().stream()
-                .filter(ShaderEffect::isEnabled)
-                .count();
+            if (needsResize) {
+                resourcePool.clear();
+                needsResize = false;
+            }
+
+            postChain.process(MC.getMainRenderTarget(), resourcePool);
+        }
+
+        void endFrame() {
+            resourcePool.endFrame();
+        }
+
+        void close() {
+            if (postChain != null) {
+                postChain = null;
+            }
+            resourcePool.close();
+        }
     }
 }

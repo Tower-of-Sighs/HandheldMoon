@@ -4,6 +4,9 @@
   "block.handheldmoon.moonlight_lamp": "月光灯筒",
   "block.handheldmoon.full_moon": "盈月",
 
+  "item.handheldmoon.moonlight_lamp": "月光灯筒",
+  "item.handheldmoon.full_moon": "盈月",
+
   "entity.handheldmoon.full_moon": "盈月",
 
   "key.categories.handheldmoon": "掌中明月",

@@ -5,7 +5,7 @@ import com.sighs.handheldmoon.util.Utils;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.EffectInstance;
+import net.minecraft.client.renderer.ShaderManager;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 
@@ -36,7 +36,7 @@ public class ShaderEventHandler {
         lastTickTime = currentTime;
 
         if (Utils.isUsingFlashlight(player)) {
-            EffectManager.loadEffect("flashlight", "shaders/post/flashlight.json");
+            EffectManager.loadEffect("flashlight", "flashlight");
 
             // 视角变化量
             float currentYaw = player.getYRot();
@@ -59,18 +59,15 @@ public class ShaderEventHandler {
                 currentOffsetX = 0;
                 currentOffsetY = 0;
             }
-
             float radius = mc.getWindow().getHeight() * 0.48f;
             if (mc.options.getCameraType() != CameraType.FIRST_PERSON) radius /= 2;
             float finalRadius = radius;
 
-            EffectManager.getEffect("flashlight").forEach(postPass -> {
-                EffectInstance effect = postPass.getEffect();
-                if (effect.getName().equals("flashlight")) {
-                    effect.safeGetUniform("Offset").set(currentOffsetX, -currentOffsetY);
-                    effect.safeGetUniform("Radius").set(finalRadius);
-                    effect.safeGetUniform("IntensityAmount").set(Config.LIGHT_INTENSITY.get().floatValue());
-                }
+            EffectManager.getEffect("flashlight").forEach(pass -> {
+                var shader = pass.getShader();
+                shader.safeGetUniform("Offset").set(currentOffsetX, -currentOffsetY);
+                shader.safeGetUniform("Radius").set(finalRadius);
+                shader.safeGetUniform("IntensityAmount").set(Config.LIGHT_INTENSITY.get().floatValue());
             });
         } else {
             EffectManager.clean("flashlight");

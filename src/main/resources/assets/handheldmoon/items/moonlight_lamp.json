@@ -1,0 +1,14 @@
+{
+  "model": {
+    "type": "minecraft:condition",
+    "property": "handheldmoon:powered",
+    "on_true": {
+      "type": "minecraft:model",
+      "model": "handheldmoon:item/moonlight_lamp_on"
+    },
+    "on_false": {
+      "type": "minecraft:model",
+      "model": "handheldmoon:item/moonlight_lamp"
+    }
+  }
+}

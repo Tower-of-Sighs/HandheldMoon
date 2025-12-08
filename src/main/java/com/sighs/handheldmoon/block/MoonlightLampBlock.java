@@ -4,6 +4,7 @@ import com.mojang.serialization.MapCodec;
 import com.sighs.handheldmoon.item.MoonlightLampItem;
 import com.sighs.handheldmoon.registry.ModDataComponent;
 import com.sighs.handheldmoon.registry.ModItems;
+import com.sighs.handheldmoon.util.RegisterHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.LivingEntity;
@@ -19,7 +20,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import org.jetbrains.annotations.Nullable;
@@ -27,10 +28,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class MoonlightLampBlock extends BaseEntityBlock {
-    public static final DirectionProperty FACING = BlockStateProperties.FACING;
+    public static final EnumProperty<Direction> FACING = BlockStateProperties.FACING;
 
     public MoonlightLampBlock() {
-        super(Properties.of().noCollission().strength(1f));
+        super(Properties.of().noCollission().strength(1f).setId(RegisterHelper.blockKey("moonlight_lamp")));
         this.registerDefaultState(this.getStateDefinition().any().setValue(FACING, Direction.WEST));
     }
 
@@ -39,10 +40,11 @@ public class MoonlightLampBlock extends BaseEntityBlock {
         return simpleCodec(props -> new MoonlightLampBlock());
     }
 
-    @Override
-    public RenderShape getRenderShape(BlockState state) {
-        return RenderShape.ENTITYBLOCK_ANIMATED;
-    }
+//    @Override
+//    public RenderShape getRenderShape(BlockState state) {
+//        return RenderShape.ENTITYBLOCK_ANIMATED;
+//    }
+
 
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext blockPlaceContext) {

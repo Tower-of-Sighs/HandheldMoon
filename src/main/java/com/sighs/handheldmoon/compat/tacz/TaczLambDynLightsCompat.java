@@ -6,6 +6,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.Range;
 
+@Deprecated
 public class TaczLambDynLightsCompat implements CompatLayer {
     @Override
     public @Range(from = 0L, to = 15L) int getLivingEntityLuminanceFromItems(ItemLightSourceManager itemLightSourceManager, LivingEntity livingEntity, boolean b) {

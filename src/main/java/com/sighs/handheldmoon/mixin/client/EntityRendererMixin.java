@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.sighs.handheldmoon.util.Utils;
 import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -11,7 +12,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(EntityRenderer.class)
-public class EntityRendererMixin {
+public class EntityRendererMixin<T extends Entity, S extends EntityRenderState> {
     @WrapOperation(
             method = "getPackedLightCoords",
             at = @At(
@@ -19,7 +20,7 @@ public class EntityRendererMixin {
                     target = "Lnet/minecraft/client/renderer/entity/EntityRenderer;getBlockLightLevel(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/core/BlockPos;)I"
             )
     )
-    private int handheldMoon$onForceEntityLitUp(EntityRenderer<?> instance, Entity entity, BlockPos pos, Operation<Integer> original) {
+    private int handheldMoon$onForceEntityLitUp(EntityRenderer<T, S> instance, Entity entity, BlockPos pos, Operation<Integer> original) {
         if (entity instanceof Player player) {
             if (Utils.isUsingFlashlight(player)) {
                 return 15;

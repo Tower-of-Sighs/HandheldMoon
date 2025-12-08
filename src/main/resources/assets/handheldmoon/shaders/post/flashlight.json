@@ -1,29 +1,14 @@
 {
-  "targets": ["swap"],
-  "passes": [
-    {
-      "name": "flashlight",
-      "intarget": "minecraft:main",
-      "outtarget": "swap",
-      "uniforms": [
-        {
-          "name": "IntensityAmount",
-          "values": [ 1.0 ]
-        },
-        {
-          "name": "Offset",
-          "values": [ 0.0, 0.0 ]
-        },
-        {
-          "name": "Radius",
-          "values": [ 1.0 ]
-        }
-      ]
-    },
-    {
-      "name": "blit",
-      "intarget": "swap",
-      "outtarget": "minecraft:main"
-    }
+  "vertex": "minecraft:post/blit",
+  "fragment": "handheldmoon:post/flashlight",
+  "samplers": [
+    { "name": "InSampler" }
+  ],
+  "uniforms": [
+    { "name": "ProjMat",       "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+    { "name": "OutSize",       "type": "float",     "count": 2,  "values": [ 1.0, 1.0 ] },
+    { "name": "IntensityAmount", "type": "float", "count": 1, "values": [ 1.0 ] },
+    { "name": "Offset", "type": "float", "count": 2, "values": [ 0.0, 0.0 ] },
+    { "name": "Radius", "type": "float", "count": 1, "values": [ 1.0 ] }
   ]
 }

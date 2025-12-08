@@ -4,6 +4,9 @@
   "block.handheldmoon.moonlight_lamp": "Moonlight Lamp",
   "block.handheldmoon.full_moon": "Full Moon",
 
+  "item.handheldmoon.moonlight_lamp": "Moonlight Lamp",
+  "item.handheldmoon.full_moon": "Full Moon",
+
   "entity.handheldmoon.full_moon": "Full Moon",
 
   "key.categories.handheldmoon": "Handheld Moon",
