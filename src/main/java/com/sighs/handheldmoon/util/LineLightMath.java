@@ -5,6 +5,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
@@ -62,6 +63,8 @@ public final class LineLightMath {
         Vec3 end = new Vec3(query.getX() + 0.5, query.getY() + 0.5, query.getZ() + 0.5);
         var hit = level.clip(new ClipContext(start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
         if (hit.getType() == HitResult.Type.BLOCK && !hit.getBlockPos().equals(query)) return 0.0;
+        if (level.getBlockState(query).getFluidState().isSourceOfType(Fluids.WATER) || level.getBlockState(query).getFluidState().isSourceOfType(Fluids.FLOWING_WATER))
+            return res; // 直接不遮挡
         return res;
     }
 

@@ -22,8 +22,8 @@ public class MoonlightLampRenderer implements BlockEntityRenderer<MoonlightLampB
     public void render(MoonlightLampBlockEntity lamp, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, int packedOverlay) {
 
         var modelManager = Minecraft.getInstance().getModelManager();
-        BakedModel model_on = modelManager.getModel(new ModelResourceLocation(ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "item/moonlight_lamp_on"), "fabric_resource"));
-        BakedModel model = modelManager.getModel(new ModelResourceLocation(ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "item/moonlight_lamp"), "fabric_resource"));
+        BakedModel model_on = modelManager.getModel(ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "item/moonlight_lamp_on"));
+        BakedModel model = modelManager.getModel(ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "item/moonlight_lamp"));
 
         poseStack.pushPose();
 

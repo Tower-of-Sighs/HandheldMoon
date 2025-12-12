@@ -8,7 +8,7 @@ import org.lwjgl.glfw.GLFW;
 public class ModKeyBindings {
     public static final KeyMapping FLASHLIGHT_SWITCH = new KeyMapping("key.handheldmoon.lamp_switch.desc",
             InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_V,
+            GLFW.GLFW_KEY_R,
             "key.categories.handheldmoon"
     );
 

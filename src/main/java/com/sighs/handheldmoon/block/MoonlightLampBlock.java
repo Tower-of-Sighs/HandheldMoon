@@ -40,11 +40,10 @@ public class MoonlightLampBlock extends BaseEntityBlock {
         return simpleCodec(props -> new MoonlightLampBlock());
     }
 
-//    @Override
-//    public RenderShape getRenderShape(BlockState state) {
-//        return RenderShape.ENTITYBLOCK_ANIMATED;
-//    }
-
+    @Override
+    public RenderShape getRenderShape(BlockState state) {
+        return RenderShape.INVISIBLE;
+    }
 
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext blockPlaceContext) {

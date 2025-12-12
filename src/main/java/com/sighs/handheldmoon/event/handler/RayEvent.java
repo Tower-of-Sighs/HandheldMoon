@@ -49,6 +49,8 @@ public class RayEvent {
         float partialTick = context.tickCounter().getGameTimeDeltaPartialTick(true);
         PoseStack poseStack = context.matrixStack();
 
+        RenderSystem.enableDepthTest();
+        RenderSystem.depthMask(false);
         RenderSystem.enableBlend();
         RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
         RenderSystem.disableCull();
@@ -87,6 +89,7 @@ public class RayEvent {
 
         RenderSystem.disableBlend();
         RenderSystem.disableDepthTest();
+        RenderSystem.depthMask(true);
         RenderSystem.enableCull();
         RenderSystem.defaultBlendFunc();
     }
