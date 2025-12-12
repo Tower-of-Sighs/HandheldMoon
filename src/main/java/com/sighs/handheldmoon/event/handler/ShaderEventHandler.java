@@ -1,15 +1,20 @@
 package com.sighs.handheldmoon.event.handler;
 
+import com.mojang.blaze3d.systems.RenderPass;
 import com.sighs.handheldmoon.registry.Config;
 import com.sighs.handheldmoon.util.Utils;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.ShaderManager;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.function.Consumer;
 
 public class ShaderEventHandler {
+    private static final Logger LOGGER = LoggerFactory.getLogger("HandheldMoon/ShaderEventHandler");
     private static float previousYaw = 0.0f;
     private static float previousPitch = 0.0f;
     private static float currentOffsetX = 0.0f;
@@ -18,6 +23,7 @@ public class ShaderEventHandler {
 
     public static void init() {
         ClientTickEvents.START_CLIENT_TICK.register(ShaderEventHandler::onClientTick);
+        LOGGER.info("ShaderEventHandler initialized and client tick hook registered");
     }
 
     public static void onClientTick(Minecraft client) {
@@ -61,14 +67,19 @@ public class ShaderEventHandler {
             }
             float radius = mc.getWindow().getHeight() * 0.48f;
             if (mc.options.getCameraType() != CameraType.FIRST_PERSON) radius /= 2;
+            LOGGER.info("Computed Radius: {}, Offset: ({}, {})", radius, currentOffsetX, currentOffsetY);
             float finalRadius = radius;
 
-            EffectManager.getEffect("flashlight").forEach(pass -> {
-                var shader = pass.getShader();
-                shader.safeGetUniform("Offset").set(currentOffsetX, -currentOffsetY);
-                shader.safeGetUniform("Radius").set(finalRadius);
-                shader.safeGetUniform("IntensityAmount").set(Config.LIGHT_INTENSITY.get().floatValue());
-            });
+            Consumer<RenderPass> uniforms = renderPass -> {
+                try {
+                    renderPass.setUniform("Offset", currentOffsetX, -currentOffsetY);
+                    renderPass.setUniform("Radius", finalRadius);
+                    renderPass.setUniform("IntensityAmount", Config.LIGHT_INTENSITY.get().floatValue());
+                } catch (Exception e) {
+                    LOGGER.error("Failed to set uniforms", e);
+                }
+            };
+            EffectManager.setEffectUniforms("flashlight", uniforms);
         } else {
             EffectManager.clean("flashlight");
 

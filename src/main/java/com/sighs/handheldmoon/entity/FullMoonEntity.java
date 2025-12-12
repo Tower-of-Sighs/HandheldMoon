@@ -47,9 +47,13 @@ public class FullMoonEntity extends ThrowableItemProjectile {
 
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
-        radius = tag.getInt("radius");
+        radius = tag.getIntOr("radius", 16);
         if (tag.contains("ax") && tag.contains("ay") && tag.contains("az")) {
-            anchorPos = new BlockPos(tag.getInt("ax"), tag.getInt("ay"), tag.getInt("az"));
+            int x = tag.getIntOr("ax", 0);
+            int y = tag.getIntOr("ay", 0);
+            int z = tag.getIntOr("az", 0);
+
+            anchorPos = (x == 0 && y == 0 && z == 0) ? null : new BlockPos(x, y, z);
         } else {
             anchorPos = null;
         }

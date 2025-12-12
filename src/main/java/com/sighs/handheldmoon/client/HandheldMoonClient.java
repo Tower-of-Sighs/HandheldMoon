@@ -12,8 +12,11 @@ import com.sighs.handheldmoon.registry.ModEntities;
 import com.sighs.handheldmoon.registry.ModKeyBindings;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.model.loading.v1.ExtraModelKey;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
+import net.fabricmc.fabric.api.client.model.loading.v1.SimpleUnbakedExtraModel;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.minecraft.client.renderer.block.model.BlockStateModel;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraft.client.renderer.item.properties.conditional.ConditionalItemModelProperties;
 import net.minecraft.resources.ResourceLocation;
@@ -21,11 +24,26 @@ import net.minecraft.resources.ResourceLocation;
 
 public class HandheldMoonClient implements ClientModInitializer {
 
+    public static final ExtraModelKey<BlockStateModel> MOONLIGHT_LAMP_MODEL_KEY =
+            ExtraModelKey.create(() -> HandheldMoon.MOD_ID + ":item/moonlight_lamp");
+    public static final ExtraModelKey<BlockStateModel> MOONLIGHT_LAMP_ON_MODEL_KEY =
+            ExtraModelKey.create(() -> HandheldMoon.MOD_ID + ":item/moonlight_lamp_on");
+
     @Override
     public void onInitializeClient() {
-        ModelLoadingPlugin.register(out -> {
-            out.addModels(ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "item/moonlight_lamp"));
-            out.addModels(ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "item/moonlight_lamp_on"));
+        ModelLoadingPlugin.register(context -> {
+            context.addModel(
+                    MOONLIGHT_LAMP_MODEL_KEY,
+                    SimpleUnbakedExtraModel.blockStateModel(
+                            ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "item/moonlight_lamp")
+                    )
+            );
+            context.addModel(
+                    MOONLIGHT_LAMP_ON_MODEL_KEY,
+                    SimpleUnbakedExtraModel.blockStateModel(
+                            ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "item/moonlight_lamp_on")
+                    )
+            );
         });
         ModKeyBindings.register();
         TrinketsCompat.init();

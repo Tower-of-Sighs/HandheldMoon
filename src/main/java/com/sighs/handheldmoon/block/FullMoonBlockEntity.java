@@ -5,6 +5,7 @@ import com.sighs.handheldmoon.registry.ModBlockEntities;
 import com.sighs.handheldmoon.entity.FullMoonEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -62,12 +63,12 @@ public class FullMoonBlockEntity extends BlockEntity {
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider provider) {
         super.saveAdditional(tag, provider);
-        tag.putUUID("uuid", uuid);
+        tag.storeNullable("uuid", UUIDUtil.CODEC, uuid);
     }
 
     @Override
     public void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {
         super.loadAdditional(tag, provider);
-        uuid = tag.getUUID("uuid");
+        uuid = tag.read("uuid", UUIDUtil.CODEC).orElse(null);
     }
 }

@@ -4,6 +4,7 @@ import com.mojang.serialization.MapCodec;
 import com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import com.sighs.handheldmoon.util.RegisterHelper;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
@@ -40,11 +41,13 @@ public class FullMoonBlock extends BaseEntityBlock {
     }
 
     @Override
-    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
-        if (level.isClientSide) {
-            HandheldMoonDynamicLightsInitializer.removeFullMoonBehaviorAt(pos);
+    protected void affectNeighborsAfterRemoval(BlockState blockState, ServerLevel serverLevel, BlockPos blockPos, boolean isMoving) {
+
+        if (serverLevel.isClientSide) {
+            HandheldMoonDynamicLightsInitializer.removeFullMoonBehaviorAt(blockPos);
         }
-        super.onRemove(state, level, pos, newState, isMoving);
+
+        super.affectNeighborsAfterRemoval(blockState, serverLevel, blockPos, isMoving);
     }
 
     @Override

@@ -5,17 +5,18 @@ uniform sampler2D DepthSampler;
 uniform float IntensityAmount;
 uniform vec2 Offset;
 uniform float Radius;
-uniform vec2 OutSize;
+uniform vec2 InSize;
+
+in vec2 texCoord;
 
 out vec4 fragColor;
 
 void main() {
-    vec2 uv = gl_FragCoord.xy / OutSize;
-    vec4 color = texture(InSampler, uv);
+    vec4 color = texture(InSampler, texCoord);
     vec3 finalColor = color.rgb;
 
-    vec2 pixelCoord = gl_FragCoord.xy;
-    vec2 center = OutSize * 0.5 + Offset;
+    vec2 pixelCoord = texCoord * InSize;
+    vec2 center = InSize * 0.5 + Offset;
     float dist = distance(pixelCoord, center);
 
     float edge = Radius / 3.0;

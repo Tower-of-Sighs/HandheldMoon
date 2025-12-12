@@ -4,7 +4,7 @@ import com.mojang.logging.LogUtils;
 import com.sighs.handheldmoon.compat.tacz.TaczCompat;
 import com.sighs.handheldmoon.network.NetworkHandler;
 import com.sighs.handheldmoon.registry.*;
-import fuzs.forgeconfigapiport.fabric.api.neoforge.v4.NeoForgeConfigRegistry;
+import fuzs.forgeconfigapiport.fabric.api.v5.ConfigRegistry;
 import net.fabricmc.api.ModInitializer;
 import net.neoforged.fml.config.ModConfig;
 import org.slf4j.Logger;
@@ -18,7 +18,7 @@ public class HandheldMoon implements ModInitializer {
     @Override
     public void onInitialize() {
         TaczCompat.init();
-        NeoForgeConfigRegistry.INSTANCE.register(MOD_ID, ModConfig.Type.CLIENT, Config.SPEC);
+        ConfigRegistry.INSTANCE.register(MOD_ID, ModConfig.Type.CLIENT, Config.SPEC);
         NetworkHandler.init();
         ModDataComponent.init();
         ModBlocks.init();

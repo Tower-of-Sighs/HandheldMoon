@@ -1,6 +1,7 @@
 package com.sighs.handheldmoon.event.handler;
 
 import com.mojang.blaze3d.resource.CrossFrameResourcePool;
+import com.mojang.blaze3d.systems.RenderPass;
 import com.sighs.handheldmoon.HandheldMoon;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
@@ -13,9 +14,18 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.ResourceManager;
 
-import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 
 public class EffectManager {
+    private static final Logger LOGGER = LoggerFactory.getLogger("HandheldMoon/EffectManager");
     private static final Minecraft MC = Minecraft.getInstance();
     private static final Map<String, ManagedPostChain> CHAINS = new LinkedHashMap<>();
 
@@ -25,6 +35,7 @@ public class EffectManager {
     public static void init() {
         WorldRenderEvents.LAST.register(EffectManager::onRenderLevelStage);
         onRegisterClientReloadListeners();
+        LOGGER.info("EffectManager initialized and world render hook registered");
     }
 
     public static void onRegisterClientReloadListeners() {
@@ -77,8 +88,6 @@ public class EffectManager {
             }
         }
 
-        MC.getMainRenderTarget().bindWrite(false);
-
         CHAINS.values().forEach(ManagedPostChain::endFrame);
     }
 
@@ -108,11 +117,19 @@ public class EffectManager {
         CHAINS.clear();
     }
 
+    public static void setEffectUniforms(String name, Consumer<RenderPass> consumer) {
+        ManagedPostChain chain = CHAINS.get(name);
+        if (chain != null) {
+            chain.uniformSetter = consumer;
+        }
+    }
+
     private static class ManagedPostChain {
         final String jsonPath;
         PostChain postChain;
         boolean needsResize = true;
         final CrossFrameResourcePool resourcePool = new CrossFrameResourcePool(3);
+        Consumer<RenderPass> uniformSetter;
 
         ManagedPostChain(String jsonPath) {
             this.jsonPath = jsonPath;
@@ -140,7 +157,8 @@ public class EffectManager {
                 needsResize = false;
             }
 
-            postChain.process(MC.getMainRenderTarget(), resourcePool);
+            Consumer<RenderPass> consumer = uniformSetter;
+            postChain.process(MC.getMainRenderTarget(), resourcePool, consumer);
         }
 
         void endFrame() {
@@ -152,6 +170,7 @@ public class EffectManager {
                 postChain = null;
             }
             resourcePool.close();
+            uniformSetter = null;
         }
     }
 }

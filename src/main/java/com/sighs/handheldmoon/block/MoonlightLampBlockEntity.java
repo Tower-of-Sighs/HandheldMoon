@@ -93,9 +93,9 @@ public class MoonlightLampBlockEntity extends BlockEntity {
     @Override
     public void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {
         super.loadAdditional(tag, provider);
-        xRot = tag.getFloat("xRot");
-        yRot = tag.getFloat("yRot");
-        powered = tag.getBoolean("powered");
+        xRot = tag.getFloatOr("xRot", 0.0f);
+        yRot = tag.getFloatOr("yRot", 0.0f);
+        powered = tag.getBooleanOr("powered", true);
     }
 
     @Override

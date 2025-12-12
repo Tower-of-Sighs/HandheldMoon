@@ -41,7 +41,6 @@ public class FlashlightRender implements TrinketRenderer {
                 state.headItem,
                 TrinketsCompat.getFirstFlashlight(MC.player),
                 ItemDisplayContext.NONE,
-                true,
                 MC.level,
                 MC.player,
                 1

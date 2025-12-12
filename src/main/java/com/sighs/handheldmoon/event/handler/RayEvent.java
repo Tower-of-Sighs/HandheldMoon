@@ -1,8 +1,10 @@
 package com.sighs.handheldmoon.event.handler;
 
-import com.mojang.blaze3d.platform.GlStateManager;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.*;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
 import com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import com.sighs.handheldmoon.registry.Config;
@@ -12,8 +14,6 @@ import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.renderer.CoreShaders;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
@@ -49,12 +49,6 @@ public class RayEvent {
         float partialTick = context.tickCounter().getGameTimeDeltaPartialTick(true);
         PoseStack poseStack = context.matrixStack();
 
-        RenderSystem.enableDepthTest();
-        RenderSystem.depthMask(false);
-        RenderSystem.enableBlend();
-        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
-        RenderSystem.disableCull();
-
         poseStack.pushPose();
         Camera camera = mc.gameRenderer.getMainCamera();
         Vec3 cameraPos = camera.getPosition();
@@ -86,12 +80,6 @@ public class RayEvent {
         }
 
         poseStack.popPose();
-
-        RenderSystem.disableBlend();
-        RenderSystem.disableDepthTest();
-        RenderSystem.depthMask(true);
-        RenderSystem.enableCull();
-        RenderSystem.defaultBlendFunc();
     }
 
     // 多层径向渐变圆锥
@@ -119,8 +107,6 @@ public class RayEvent {
         }
         rightVec = upReference.cross(direction).normalize();
         orthoUp = direction.cross(rightVec).normalize();
-
-        RenderSystem.setShader(CoreShaders.POSITION_COLOR);
         Tesselator tess = Tesselator.getInstance();
         BufferBuilder buffer = tess.begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION_COLOR);
 
@@ -156,7 +142,5 @@ public class RayEvent {
             buffer.addVertex(matrix, (float) basePoint.x, (float) basePoint.y, (float) basePoint.z)
                     .setColor(CONE_R, CONE_G, CONE_B, edgeAlpha);
         }
-
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
     }
 }
