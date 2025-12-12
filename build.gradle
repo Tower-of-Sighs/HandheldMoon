@@ -110,6 +110,8 @@ dependencies {
     modRuntimeOnly "maven.modrinth:malilib:kILcOIL5"
 
     modRuntimeOnly "curse.maven:sodium-extra-447673:5961075"
+
+    modImplementation "curse.maven:carry-on-274259:6449642"
 }
 
 processResources {

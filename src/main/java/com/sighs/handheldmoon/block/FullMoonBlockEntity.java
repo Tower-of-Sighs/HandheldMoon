@@ -2,12 +2,14 @@ package com.sighs.handheldmoon.block;
 
 import com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import com.sighs.handheldmoon.registry.ModBlockEntities;
+import com.sighs.handheldmoon.entity.FullMoonEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 
 import java.util.UUID;
 
@@ -33,6 +35,20 @@ public class FullMoonBlockEntity extends BlockEntity {
 
         if (level.isClientSide) {
             HandheldMoonDynamicLightsInitializer.addFullMoonBehavior(this);
+        }
+
+        if (!level.isClientSide) {
+            BlockPos pos = getBlockPos();
+            AABB box = new AABB(
+                    pos.getX() + 0.5 - 0.25, pos.getY() + 0.5 - 0.25, pos.getZ() + 0.5 - 0.25,
+                    pos.getX() + 0.5 + 0.25, pos.getY() + 0.5 + 0.25, pos.getZ() + 0.5 + 0.25
+            );
+            if (level.getEntitiesOfClass(FullMoonEntity.class, box).isEmpty()) {
+                FullMoonEntity entity = new FullMoonEntity(level);
+                entity.setPos(pos.getX() + 0.5, pos.getY() + 0.4, pos.getZ() + 0.5);
+                entity.setAnchor(pos);
+                level.addFreshEntity(entity);
+            }
         }
     }
 
