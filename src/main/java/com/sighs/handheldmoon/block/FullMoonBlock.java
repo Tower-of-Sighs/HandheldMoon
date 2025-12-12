@@ -25,29 +25,14 @@ public class FullMoonBlock extends BaseEntityBlock {
     @Override
     public void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean isMoving) {
         super.onPlace(state, level, pos, oldState, isMoving);
-        if (!level.isClientSide) {
-            FullMoonEntity entity = new FullMoonEntity(level);
-            entity.setPos(pos.getX() + 0.5, pos.getY() + 0.4, pos.getZ() + 0.5);
-            level.addFreshEntity(entity);
-
-            if (level.getBlockEntity(pos) instanceof FullMoonBlockEntity be) {
-                be.setUuid(entity.getUUID());
-                be.setChanged();
-            } else {
-                HandheldMoonDynamicLightsInitializer.ensureFullMoonBehaviorAt(pos);
-            }
+        if (level.isClientSide) {
+            HandheldMoonDynamicLightsInitializer.ensureFullMoonBehaviorAt(pos);
         }
     }
 
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
-        if (!level.isClientSide && level.getBlockEntity(pos) instanceof FullMoonBlockEntity be) {
-            UUID entityId = be.getUuid();
-            if (entityId != null) {
-                Entity entity = ((ServerLevel) level).getEntity(entityId);
-                if (entity != null) entity.discard();
-            }
-        } else {
+        if (level.isClientSide) {
             HandheldMoonDynamicLightsInitializer.removeFullMoonBehaviorAt(pos);
         }
         super.onRemove(state, level, pos, newState, isMoving);

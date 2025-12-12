@@ -107,6 +107,8 @@ dependencies {
 
     modImplementation "curse.maven:sodium-extra-447673:6298804"
     modImplementation files("libs/CaffeineConfig-1.3.0+1.17.jar")
+
+    modImplementation "curse.maven:carry-on-274259:4882498"
 }
 
 processResources {
