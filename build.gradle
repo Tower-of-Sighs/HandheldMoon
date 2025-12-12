@@ -105,6 +105,8 @@ dependencies {
     modImplementation "curse.maven:malilib-303119:5647783"
 
     modImplementation "curse.maven:sodium-extra-447673:5913375"
+
+    modImplementation "curse.maven:carry-on-274259:5649345"
 }
 
 processResources {
