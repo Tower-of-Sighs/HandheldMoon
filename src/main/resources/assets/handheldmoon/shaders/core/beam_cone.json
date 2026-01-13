@@ -1,0 +1,28 @@
+{
+  "vertex": "position_tex_color",
+  "fragment": "handheldmoon:beam_cone",
+  "samplers": [],
+  "uniforms": [
+    { "name": "ModelViewMat", "type": "matrix4x4", "count": 16, "values": [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1] },
+    { "name": "ProjMat",      "type": "matrix4x4", "count": 16, "values": [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1] },
+
+    { "name": "uApex",         "type": "float", "count": 3,  "values": [0,0,0] },
+    { "name": "uDir",          "type": "float", "count": 3,  "values": [0,0,1] },
+    { "name": "uRange",        "type": "float", "count": 1,  "values": [14.0] },
+    { "name": "uHalfAngle",    "type": "float", "count": 1,  "values": [0.4886922] },
+
+    { "name": "uSizeScale",    "type": "float", "count": 1,  "values": [1.0] },
+    { "name": "uCenterAlpha",  "type": "float", "count": 1,  "values": [0.12] },
+    { "name": "uEdgeAlpha",    "type": "float", "count": 1,  "values": [0.02] },
+
+    { "name": "uNoiseAmp",     "type": "float", "count": 1,  "values": [0.35] },
+    { "name": "uUseOverride",  "type": "float", "count": 1,  "values": [0.0] },
+    { "name": "uOverrideColor","type": "float", "count": 3,  "values": [1.0,1.0,1.0] },
+
+    { "name": "uPalCount",     "type": "float", "count": 1,  "values": [0.0] },
+    { "name": "uPal0",         "type": "float", "count": 3,  "values": [1.0,1.0,1.0] },
+    { "name": "uPal1",         "type": "float", "count": 3,  "values": [1.0,1.0,1.0] },
+    { "name": "uPal2",         "type": "float", "count": 3,  "values": [1.0,1.0,1.0] },
+    { "name": "uPal3",         "type": "float", "count": 3,  "values": [1.0,1.0,1.0] }
+  ]
+}

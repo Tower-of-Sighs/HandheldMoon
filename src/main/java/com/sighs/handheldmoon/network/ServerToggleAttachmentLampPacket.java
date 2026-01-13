@@ -10,7 +10,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 
 public record ServerToggleAttachmentLampPacket() implements CustomPacketPayload {
-    public static final Type<ServerToggleAttachmentLampPacket> TYPE = new Type(ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "server_toggle_attachment_lamp"));
+    public static final Type<ServerToggleAttachmentLampPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(HandheldMoon.MOD_ID, "server_toggle_attachment_lamp"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, ServerToggleAttachmentLampPacket> STREAM_CODEC = StreamCodec.unit(new ServerToggleAttachmentLampPacket());
 

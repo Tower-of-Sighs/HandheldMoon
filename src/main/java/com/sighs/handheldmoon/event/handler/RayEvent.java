@@ -7,6 +7,7 @@ import com.sighs.handheldmoon.HandheldMoon;
 import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
 import com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import com.sighs.handheldmoon.registry.Config;
+import com.sighs.handheldmoon.util.ColorUtils;
 import com.sighs.handheldmoon.util.Utils;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -24,20 +25,12 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import org.joml.Matrix4f;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @EventBusSubscriber(modid = HandheldMoon.MOD_ID, value = Dist.CLIENT)
 public class RayEvent {
     private static final Map<UUID, Vec3> LAST_DIR = new HashMap<>();
-    private static final float VIEW_ANGLE_DEG = 56.0f;
-    private static final float VIEW_RANGE = 14.0f;
-    private static final int SEGMENTS = 32; // 段数
-    private static final float CONE_R = 1.0f;  // 白色
-    private static final float CONE_G = 1.0f;
-    private static final float CONE_B = 1.0f;
+    private static final int SEGMENTS = 32;
 
     @SubscribeEvent
     public static void renderPlayerViewConesWithRadialGradient(RenderLevelStageEvent event) {
@@ -94,23 +87,58 @@ public class RayEvent {
         RenderSystem.defaultBlendFunc();
     }
 
+    @SuppressWarnings("unchecked")
     public static void renderCones(PoseStack poseStack, Vec3 apex, Vec3 direction) {
-        renderConeLayer(poseStack, apex, direction, 1.0f, 0.15f, 0.0f);
-        renderConeLayer(poseStack, apex, direction, 1.08f, 0.12f, 0.0f);
-        renderConeLayer(poseStack, apex, direction, 1.16f, 0.08f, 0.0f);
+        double range = Config.LIGHT_RANGE.get();
+        double angle = Config.LIGHT_ANGLE.get();
+        List<float[]> stops = ColorUtils.parseColorStops(Config.LIGHT_COLORS_ARGB.get());
+        List<String> sizeStr = (List<String>) Config.LAYER_SIZE_SCALES.get();
+        List<String> centerStr = (List<String>) Config.LAYER_CENTER_ALPHAS.get();
+        List<String> edgeStr = (List<String>) Config.LAYER_EDGE_ALPHAS.get();
+        List<String> layerColorStr = (List<String>) Config.LAYER_COLORS_ARGB.get();
+        int layerCount = Math.min(sizeStr.size(), Math.min(centerStr.size(), edgeStr.size()));
+        double noiseAmp = Config.COLOR_NOISE_AMPLITUDE.get();
+        for (int i = 0; i < layerCount; i++) {
+            float sizeScale = parseFloat(sizeStr.get(i), 1.0f);
+            float centerAlpha = clamp01(parseFloat(centerStr.get(i), 0.12f));
+            float edgeAlpha = clamp01(parseFloat(edgeStr.get(i), 0.02f));
+            float[] layerColor = null;
+            if (i < layerColorStr.size()) {
+                layerColor = ColorUtils.parseColorARGB(layerColorStr.get(i));
+            }
+            renderConeLayer(poseStack, apex, direction, (float) range, (float) angle, stops, sizeScale, centerAlpha, edgeAlpha, layerColor, (float) noiseAmp);
+        }
+        if (Config.FOG_ENABLED.get()) {
+            float[] fog = ColorUtils.parseColorARGB(Config.FOG_COLOR_ARGB.get());
+            List<float[]> fogStops = java.util.List.of(fog);
+            renderConeLayer(poseStack, apex, direction, (float) range, (float) angle, fogStops,
+                    Config.FOG_SIZE_SCALE.get().floatValue(),
+                    Config.FOG_CENTER_ALPHA.get().floatValue(),
+                    Config.FOG_EDGE_ALPHA.get().floatValue(),
+                    fog,
+                    0.0f);
+        }
     }
 
-    public static void renderConeLayer(PoseStack poseStack, Vec3 apex, Vec3 direction,
-                                       float sizeScale, float centerAlpha, float edgeAlpha) {
-        // 缩放后的圆锥参数
-        float scaledRange = VIEW_RANGE * sizeScale;
-        float scaledHalfAngleRad = (float) Math.toRadians(VIEW_ANGLE_DEG * sizeScale / 2.0f);
+    public static void renderConeLayer(
+            PoseStack poseStack,
+            Vec3 apex,
+            Vec3 direction,
+            float baseRange,
+            float baseAngleDeg,
+            List<float[]> colorStops,
+            float sizeScale,
+            float centerAlpha,
+            float edgeAlpha,
+            float[] layerColorOverride,
+            float noiseAmplitude
+    ) {
+        float scaledRange = baseRange * sizeScale;
+        float scaledHalfAngleRad = (float) Math.toRadians(baseAngleDeg * sizeScale / 2.0f);
         float scaledRadius = scaledRange * (float) Math.tan(scaledHalfAngleRad);
 
-        // 底面中心点
         Vec3 baseCenter = apex.add(direction.scale(scaledRange));
 
-        // 局部坐标系
         Vec3 upReference = new Vec3(0, 1, 0);
         Vec3 rightVec, orthoUp;
         if (Math.abs(direction.dot(upReference)) > 0.99) {
@@ -121,42 +149,55 @@ public class RayEvent {
 
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
         Tesselator tess = Tesselator.getInstance();
-
         BufferBuilder buffer = tess.begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION_COLOR);
-
         Matrix4f matrix = poseStack.last().pose();
 
-        // 顶点 - 使用最高透明度（中心最亮）
+        float[] cCenter = layerColorOverride != null ? layerColorOverride : ColorUtils.colorAt(colorStops, 0.0f);
         buffer.addVertex(matrix, (float) apex.x, (float) apex.y, (float) apex.z)
-                .setColor(CONE_R, CONE_G, CONE_B, centerAlpha);
+                .setColor(cCenter[0], cCenter[1], cCenter[2], centerAlpha);
 
-        // 添加底面圆周点 - 使用最低透明度（边缘最暗/透明）
+        long seed = Double.doubleToLongBits(apex.x) ^ Double.doubleToLongBits(apex.y) ^ Double.doubleToLongBits(apex.z)
+                ^ Double.doubleToLongBits(direction.x) ^ Double.doubleToLongBits(direction.y) ^ Double.doubleToLongBits(direction.z);
+
         for (int i = 0; i <= SEGMENTS; i++) {
             double theta = 2.0 * Math.PI * i / SEGMENTS;
             double cos = Math.cos(theta);
             double sin = Math.sin(theta);
-
             Vec3 basePoint = baseCenter
                     .add(rightVec.scale(scaledRadius * cos))
                     .add(orthoUp.scale(scaledRadius * sin));
 
             if (Config.CONE_RAYCAST.get()) {
                 HitResult hit = Minecraft.getInstance().level.clip(new ClipContext(
-                        apex,
-                        basePoint,
-                        ClipContext.Block.COLLIDER,
-                        ClipContext.Fluid.NONE,
-                        CollisionContext.empty()
+                        apex, basePoint, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()
                 ));
                 if (hit.getType() == HitResult.Type.BLOCK) {
                     basePoint = hit.getLocation();
                 }
             }
 
+            float thetaNorm = (float) (i / (double) SEGMENTS);
+            float baseT = Math.min(1.0f, 0.8f + (sizeScale - 1.0f) * 0.6f);
+            float[] cEdge = ColorUtils.colorAtWithNoise(colorStops, baseT, thetaNorm, seed, noiseAmplitude);
+            float alphaLocal = edgeAlpha * (0.85f + 0.15f * ((float) Math.sin(thetaNorm * 11.0 + seed * 0.001) * 0.5f + 0.5f));
             buffer.addVertex(matrix, (float) basePoint.x, (float) basePoint.y, (float) basePoint.z)
-                    .setColor(CONE_R, CONE_G, CONE_B, edgeAlpha);
+                    .setColor(cEdge[0], cEdge[1], cEdge[2], alphaLocal);
         }
 
         BufferUploader.drawWithShader(buffer.buildOrThrow());
+    }
+
+    private static float parseFloat(String s, float fallback) {
+        try {
+            if (s == null) return fallback;
+            return Float.parseFloat(s.trim());
+        } catch (Exception e) {
+            return fallback;
+        }
+    }
+
+    private static float clamp01(float v) {
+        if (v < 0f) return 0f;
+        return Math.min(v, 1f);
     }
 }

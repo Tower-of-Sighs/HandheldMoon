@@ -9,7 +9,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
-public class Utils {
+public final class Utils {
     public static boolean isUsingFlashlight(Player player) {
         boolean result = false;
         if (isFlashlight(player.getMainHandItem())) {

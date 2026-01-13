@@ -8,7 +8,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-public class ClientUtils {
+public final class ClientUtils {
 
     public static MoonlightLampBlockEntity getPoweredMoonlightLampBlock(FullMoonEntity entity) {
         if (entity.level().getBlockEntity(entity.blockPosition()) instanceof MoonlightLampBlockEntity lamp) {
