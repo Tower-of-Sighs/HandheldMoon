@@ -23,6 +23,7 @@ public class PlayerFlashlightLineLightBehavior implements DynamicLightBehavior {
     private static final double RANGE = 32.0;
     private static final double INNER = 0.5;
     private static final double OUTER = 0.7;
+    private static final double LUMINANCE_THRESHOLD = 0.5;
     private double eyeX, eyeY, eyeZ;
     private double dirX, dirY, dirZ;
     private double luminance;
@@ -43,7 +44,7 @@ public class PlayerFlashlightLineLightBehavior implements DynamicLightBehavior {
         this.dirX = -Math.sin(yawRad) * Math.cos(pitchRad);
         this.dirY = -Math.sin(pitchRad);
         this.dirZ = Math.cos(yawRad) * Math.cos(pitchRad);
-        this.luminance = 15.0;
+        this.luminance = Config.REAL_LIGHT_LUMINANCE.get();
         this.lastCellStartX = Integer.MIN_VALUE;
         this.lastCellStartY = Integer.MIN_VALUE;
         this.lastCellStartZ = Integer.MIN_VALUE;
@@ -76,10 +77,11 @@ public class PlayerFlashlightLineLightBehavior implements DynamicLightBehavior {
         double sx = eyeX;
         double sy = eyeY;
         double sz = eyeZ;
-        double ex = sx + dirX * RANGE;
-        double ey = sy + dirY * RANGE;
-        double ez = sz + dirZ * RANGE;
-        double r = 8.0;
+        double eff = LineLightMath.effectiveRange(luminance, RANGE, LUMINANCE_THRESHOLD);
+        double ex = sx + dirX * eff;
+        double ey = sy + dirY * eff;
+        double ez = sz + dirZ * eff;
+        double r = LineLightMath.conePadding(eff, OUTER, 1.0, 12.0);
         int minX = Mth.floor(Math.min(sx, ex) - r);
         int minY = Mth.floor(Math.min(sy, ey) - r);
         int minZ = Mth.floor(Math.min(sz, ez) - r);
@@ -111,10 +113,11 @@ public class PlayerFlashlightLineLightBehavior implements DynamicLightBehavior {
         double ny = d.y;
         double nz = d.z;
 
-        double ex = sx + nx * RANGE;
-        double ey = sy + ny * RANGE;
-        double ez = sz + nz * RANGE;
-        double r = 8.0;
+        double eff = LineLightMath.effectiveRange(Config.REAL_LIGHT_LUMINANCE.get(), RANGE, LUMINANCE_THRESHOLD);
+        double ex = sx + nx * eff;
+        double ey = sy + ny * eff;
+        double ez = sz + nz * eff;
+        double r = LineLightMath.conePadding(eff, OUTER, 1.0, 12.0);
         int minX = Mth.floor(Math.min(sx, ex) - r);
         int minY = Mth.floor(Math.min(sy, ey) - r);
         int minZ = Mth.floor(Math.min(sz, ez) - r);
@@ -143,7 +146,7 @@ public class PlayerFlashlightLineLightBehavior implements DynamicLightBehavior {
             dirX = nx;
             dirY = ny;
             dirZ = nz;
-            luminance = 15.0;
+            luminance = Config.REAL_LIGHT_LUMINANCE.get();
             lastCellStartX = cellStartX;
             lastCellStartY = cellStartY;
             lastCellStartZ = cellStartZ;

@@ -17,6 +17,7 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
     private static final double RANGE = 32.0;
     private static final double INNER = 0.5;
     private static final double OUTER = 0.7;
+    private static final double LUMINANCE_THRESHOLD = 0.5;
     private double sX, sY, sZ;
     private double dX, dY, dZ;
     private double luminance;
@@ -52,7 +53,7 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
             dY = -d.y;
             dZ = -d.z;
 
-            luminance = 15.0;
+            luminance = Config.REAL_LIGHT_LUMINANCE.get();
             lastXRot = l.getXRot();
             lastYRot = l.getYRot();
         }
@@ -79,10 +80,11 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
         double sx = sX;
         double sy = sY;
         double sz = sZ;
-        double ex = sx + dX * RANGE;
-        double ey = sy + dY * RANGE;
-        double ez = sz + dZ * RANGE;
-        double r = 10.0;
+        double eff = LineLightMath.effectiveRange(luminance, RANGE, LUMINANCE_THRESHOLD);
+        double ex = sx + dX * eff;
+        double ey = sy + dY * eff;
+        double ez = sz + dZ * eff;
+        double r = LineLightMath.conePadding(eff, OUTER, 1.0, 12.0);
         int minX = Mth.floor(Math.min(sx, ex) - r);
         int minY = Mth.floor(Math.min(sy, ey) - r);
         int minZ = Mth.floor(Math.min(sz, ez) - r);
@@ -110,7 +112,7 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
             dX = -d.x;
             dY = -d.y;
             dZ = -d.z;
-            luminance = 15.0;
+            luminance = Config.REAL_LIGHT_LUMINANCE.get();
         }
         lastXRot = xr;
         lastYRot = yr;
