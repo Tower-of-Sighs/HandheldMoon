@@ -169,6 +169,7 @@ dependencies {
         }
     }
 
+    implementation "curse.maven:carry-on-274259:7393892"
 
     implementation "maven.modrinth:jei:${jei_version}"
     implementation "maven.modrinth:curios:${curios_version}"
