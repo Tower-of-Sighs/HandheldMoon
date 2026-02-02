@@ -174,7 +174,7 @@ public class RayEvent {
 
             if (Config.CONE_RAYCAST.get()) {
                 HitResult hit = Minecraft.getInstance().level.clip(new ClipContext(
-                        apex, basePoint, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()
+                        apex, basePoint, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null
                 ));
                 if (hit.getType() == HitResult.Type.BLOCK) {
                     basePoint = hit.getLocation();
@@ -185,11 +185,11 @@ public class RayEvent {
             float baseT = Math.min(1.0f, 0.8f + (sizeScale - 1.0f) * 0.6f);
             float[] cEdge = ColorUtils.colorAtWithNoise(colorStops, baseT, thetaNorm, seed, noiseAmplitude);
             float alphaLocal = edgeAlpha * (0.85f + 0.15f * ((float) Math.sin(thetaNorm * 11.0 + seed * 0.001) * 0.5f + 0.5f));
-            buffer.addVertex(matrix, (float) basePoint.x, (float) basePoint.y, (float) basePoint.z)
-                    .setColor(cEdge[0], cEdge[1], cEdge[2], alphaLocal);
+            buffer.vertex(matrix, (float) basePoint.x, (float) basePoint.y, (float) basePoint.z)
+                    .color(cEdge[0], cEdge[1], cEdge[2], alphaLocal);
         }
 
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+        BufferUploader.drawWithShader(buffer.end());
     }
 
     private static float parseFloat(String s, float fallback) {
