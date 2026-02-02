@@ -123,6 +123,17 @@ public final class LineLightMath {
         }
     }
 
+    public static double effectiveRange(double luminance, double range, double threshold) {
+        if (luminance <= threshold) return 0.0;
+        double t = 1.0 - threshold / luminance;
+        return range * Math.sqrt(Math.max(0.0, t));
+    }
+
+    public static double conePadding(double distance, double outerAngleRad, double minPad, double maxPad) {
+        double pad = distance * Math.tan(outerAngleRad);
+        return Mth.clamp(pad, minPad, maxPad);
+    }
+
     public static long getBlockVolume(DynamicLightBehavior.BoundingBox box) {
         long dx = (long) box.endX() - box.startX() + 1;
         long dy = (long) box.endY() - box.startY() + 1;
