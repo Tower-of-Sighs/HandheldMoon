@@ -1,0 +1,45 @@
+{
+    "schemaVersion": 1,
+    "id": "${mod_id}",
+    "version": "${version}",
+    "name": "${mod_name}",
+    "description": "${description}",
+    "authors": [
+        "${mod_author}"
+    ],
+    "contact": {
+        "homepage": "https://fabricmc.net/",
+        "sources": "https://github.com/FabricMC/fabric-example-mod"
+    },
+    "license": "${license}",
+    "icon": "assets/handheldmoon/icon.png",
+    "environment": "*",
+    "entrypoints": {
+        "main": [
+            "cc.sighs.handheldmoon.fabric.HandheldMoonFabric"
+        ],
+        "client": [
+            "cc.sighs.handheldmoon.fabric.HandheldMoonFabricClient"
+        ],
+        "dynamiclights": [
+            "cc.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer"
+        ],
+        "modmenu": [
+            "cc.sighs.handheldmoon.fabric.compat.ModMenuCompat"
+        ]
+    },
+    "mixins": [
+        "${mod_id}.mixins.json",
+        "${mod_id}.fabric.mixins.json"
+    ],
+    "depends": {
+        "fabricloader": ">=${fabric_loader_version}",
+        "fabric-api": "*",
+        "minecraft": "~${minecraft_version}",
+        "java": ">=${java_version}"
+    },
+    "suggests": {
+        "another-mod": "*"
+    }
+}
+  

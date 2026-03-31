@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "handheldmoon:block/full_moon",
+    "particle": "handheldmoon:block/full_moon"
+  }
+}
