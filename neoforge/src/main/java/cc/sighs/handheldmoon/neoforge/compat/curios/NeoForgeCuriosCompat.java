@@ -1,6 +1,6 @@
 package cc.sighs.handheldmoon.neoforge.compat.curios;
 
-import cc.sighs.handheldmoon.compat.curios.ICuriosCompat;
+import cc.sighs.handheldmoon.compat.accessory.IAccessoryCompat;
 import cc.sighs.handheldmoon.item.MoonlightLampItem;
 import cc.sighs.handheldmoon.registry.ModItems;
 import cc.sighs.handheldmoon.util.Utils;
@@ -11,9 +11,14 @@ import top.theillusivec4.curios.api.SlotResult;
 
 import java.util.List;
 
-public class NeoForgeCuriosCompat implements ICuriosCompat {
+public class NeoForgeCuriosCompat implements IAccessoryCompat {
     @Override
-    public boolean isUsingCuriosFlashlight(Player player) {
+    public void initClient() {
+        FlashlightRender.register();
+    }
+
+    @Override
+    public boolean isUsingAccessoryFlashlight(Player player) {
         boolean[] result = {false};
         CuriosApi.getCuriosInventory(player).ifPresent(handler -> {
             handler.findCurios(Utils::isFlashlight).forEach(slotResult -> {
@@ -26,7 +31,7 @@ public class NeoForgeCuriosCompat implements ICuriosCompat {
     }
 
     @Override
-    public boolean hasCuriosFlashlight(Player player) {
+    public boolean hasAccessoryFlashlight(Player player) {
         boolean[] result = {false};
         CuriosApi.getCuriosInventory(player).ifPresent(handler -> {
             handler.findCurios(Utils::isFlashlight).forEach(slotResult -> {
@@ -39,7 +44,7 @@ public class NeoForgeCuriosCompat implements ICuriosCompat {
     }
 
     @Override
-    public void toggleCuriosFlashlight(Player player) {
+    public void toggleAccessoryFlashlight(Player player) {
         CuriosApi.getCuriosInventory(player).ifPresent(handler ->
                 handler.findCurios(Utils::isFlashlight).forEach(slotResult ->
                         MoonlightLampItem.togglePowered(slotResult.stack())
@@ -48,7 +53,7 @@ public class NeoForgeCuriosCompat implements ICuriosCompat {
     }
 
     @Override
-    public ItemStack getFirstFlashlight(Player player) {
+    public ItemStack getFirstAccessoryFlashlight(Player player) {
         ItemStack[] itemStack = {ModItems.MOONLIGHT_LAMP.get().getDefaultInstance()};
         CuriosApi.getCuriosInventory(player).ifPresent(handler -> {
             List<SlotResult> list = handler.findCurios(Utils::isFlashlight);

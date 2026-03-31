@@ -1,6 +1,6 @@
 package cc.sighs.handheldmoon.util;
 
-import cc.sighs.handheldmoon.compat.curios.CuriosCompat;
+import cc.sighs.handheldmoon.compat.accessory.AccessoryCompat;
 import cc.sighs.handheldmoon.item.MoonlightLampItem;
 import cc.sighs.handheldmoon.registry.ModItems;
 import net.minecraft.world.entity.player.Player;
@@ -15,8 +15,8 @@ public final class Utils {
         if (isFlashlight(player.getOffhandItem())) {
             result = isPoweredFlashlight(player.getOffhandItem());
         }
-//        return result || CuriosCompat.isUsingCuriosFlashlight(player) || TaczCompat.isUsingAttachmentFlashlight(player);
-        return result || CuriosCompat.isUsingCuriosFlashlight(player);
+//        return result || AccessoryCompat.isUsingAccessoryFlashlight(player) || TaczCompat.isUsingAttachmentFlashlight(player);
+        return result || AccessoryCompat.isUsingAccessoryFlashlight(player);
     }
 
     public static boolean isFlashlight(ItemStack itemStack) {
@@ -34,7 +34,7 @@ public final class Utils {
         if (isFlashlight(player.getOffhandItem())) {
             MoonlightLampItem.togglePowered(player.getOffhandItem());
         }
-        CuriosCompat.toggleCuriosFlashlight(player);
+        AccessoryCompat.toggleAccessoryFlashlight(player);
 //        TaczCompat.toggleAttachmentFlashlight(player);
     }
 }
