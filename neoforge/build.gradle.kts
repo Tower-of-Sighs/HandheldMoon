@@ -24,8 +24,16 @@ val releaseChangelog = providers.gradleProperty("release_changelog").orElse("No 
 val publishChangelog = providers.provider {
     "[dist=${releaseDist.get()}]\n\n${releaseChangelog.get()}"
 }
-val modrinthProjectId = providers.gradleProperty("modrinth_project_neoforge").orElse(providers.gradleProperty("modrinth_project"))
-val curseforgeProjectId = providers.gradleProperty("curseforge_project_neoforge").orElse(providers.gradleProperty("curseforge_project"))
+val modrinthToken = providers.gradleProperty("modrinth_token").orElse(providers.environmentVariable("MODRINTH_TOKEN"))
+val curseforgeToken = providers.gradleProperty("curseforge_token").orElse(providers.environmentVariable("CURSEFORGE_TOKEN"))
+val modrinthProjectId = providers.provider {
+    val loaderSpecific = providers.gradleProperty("modrinth_project_neoforge").orNull?.trim().orEmpty()
+    if (loaderSpecific.isNotEmpty()) loaderSpecific else providers.gradleProperty("modrinth_project").orNull?.trim().orEmpty()
+}
+val curseforgeProjectId = providers.provider {
+    val loaderSpecific = providers.gradleProperty("curseforge_project_neoforge").orNull?.trim().orEmpty()
+    if (loaderSpecific.isNotEmpty()) loaderSpecific else providers.gradleProperty("curseforge_project").orNull?.trim().orEmpty()
+}
 val ldl_version: String by project
 val curios_version: String by project
 
@@ -120,7 +128,7 @@ sourceSets.configureEach {
 }
 
 modrinth {
-    token.set(providers.environmentVariable("MODRINTH_TOKEN"))
+    token.set(modrinthToken)
     projectId.set(modrinthProjectId)
     versionNumber.set(provider { "${project.version}+neoforge" })
     versionName.set(provider { "$mod_name ${project.version} (NeoForge) [${releaseDist.get()}]" })
@@ -134,7 +142,7 @@ modrinth {
 
 tasks.named("modrinth") {
     onlyIf {
-        !providers.environmentVariable("MODRINTH_TOKEN").orNull.isNullOrBlank() &&
+        !modrinthToken.orNull.isNullOrBlank() &&
             !modrinthProjectId.orNull.isNullOrBlank()
     }
 }
@@ -142,7 +150,7 @@ tasks.named("modrinth") {
 tasks.register<TaskPublishCurseForge>("publishCurseForge") {
     group = "publishing"
     description = "Publish NeoForge artifact to CurseForge."
-    apiToken = providers.environmentVariable("CURSEFORGE_TOKEN").orNull
+    apiToken = curseforgeToken.orNull
 
     val resolvedProjectId = curseforgeProjectId.orNull
     if (!resolvedProjectId.isNullOrBlank()) {
@@ -160,7 +168,7 @@ tasks.register<TaskPublishCurseForge>("publishCurseForge") {
     }
 
     onlyIf {
-        !providers.environmentVariable("CURSEFORGE_TOKEN").orNull.isNullOrBlank() &&
+        !curseforgeToken.orNull.isNullOrBlank() &&
             !curseforgeProjectId.orNull.isNullOrBlank()
     }
 }
@@ -170,4 +178,3 @@ tasks.register("publishToPlatformServices") {
     description = "Publish NeoForge artifact to Modrinth and CurseForge."
     dependsOn("modrinth", "publishCurseForge")
 }
-
