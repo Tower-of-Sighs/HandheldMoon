@@ -37,7 +37,7 @@
         "fabric-api": "*",
         "minecraft": "~${minecraft_version}",
         "java": ">=${java_version}",
-        "oelib": ">=0.2.3",
+        "oelib": ">=0.0.1",
         "lambdynlights": "*"
     },
     "suggests": {
