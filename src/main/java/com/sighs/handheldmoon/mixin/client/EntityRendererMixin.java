@@ -1,5 +1,6 @@
 package com.sighs.handheldmoon.mixin.client;
 
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.sighs.handheldmoon.util.Utils;
@@ -12,20 +13,17 @@ import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(EntityRenderer.class)
 public class EntityRendererMixin {
-    @WrapOperation(
+    @ModifyReturnValue(
             method = "getPackedLightCoords",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/renderer/entity/EntityRenderer;getBlockLightLevel(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/core/BlockPos;)I"
-            )
+            at = @At("RETURN")
     )
-    private int handheldMoon$onForceEntityLitUp(EntityRenderer<?> instance, Entity entity, BlockPos pos, Operation<Integer> original) {
+    private int handheldMoon$forceFullLightIfUsingFlashlight(int original, Entity entity, float partialTicks) {
         if (entity instanceof Player player) {
             if (Utils.isUsingFlashlight(player)) {
-                return 15;
+                return 15728880;
             }
         }
-        return original.call(instance, entity, pos);
+        return original;
     }
 
 //    @WrapOperation(

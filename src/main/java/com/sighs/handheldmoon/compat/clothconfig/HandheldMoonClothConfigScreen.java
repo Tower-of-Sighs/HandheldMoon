@@ -105,19 +105,6 @@ public class HandheldMoonClothConfigScreen {
                 .setSaveConsumer(Config.COLOR_NOISE_AMPLITUDE::set)
                 .build());
         clientSettings.addEntry(entry.startBooleanToggle(
-                        Component.translatable("config.handheldMoon.client_settings.enable_real_light"),
-                        Config.REAL_LIGHT.get())
-                .setDefaultValue(true)
-                .setSaveConsumer(Config.REAL_LIGHT::set)
-                .build());
-        clientSettings.addEntry(entry.startDoubleField(
-                        Component.translatable("config.handheldMoon.client_settings.real_light_luminance"),
-                        Config.REAL_LIGHT_LUMINANCE.get())
-                .setDefaultValue(15.0)
-                .setMin(0.0).setMax(15.0)
-                .setSaveConsumer(Config.REAL_LIGHT_LUMINANCE::set)
-                .build());
-        clientSettings.addEntry(entry.startBooleanToggle(
                         Component.translatable("config.handheldMoon.client_settings.fog_enabled"),
                         Config.FOG_ENABLED.get())
                 .setDefaultValue(false)

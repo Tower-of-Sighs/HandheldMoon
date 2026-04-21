@@ -187,7 +187,7 @@ dependencies {
     implementation "curse.maven:mafglib-910766:6895587"
     implementation "curse.maven:tweakerge-915857:7123684"
 
-    implementation "curse.maven:scalablelux-1055925:6952385"
+    implementation "maven.modrinth:sable:${sable_version}"
 }
 
 tasks.withType(ProcessResources).configureEach {
