@@ -63,6 +63,10 @@ repositories {
         }
     }
     maven { url "https://maven.shedaniel.me/" }
+
+    maven {
+        url = "https://maven.ryanhcode.dev/releases"
+    }
 }
 
 base {
@@ -188,6 +192,11 @@ dependencies {
     implementation "curse.maven:tweakerge-915857:7123684"
 
     implementation "maven.modrinth:sable:${sable_version}"
+    compileOnly("dev.ryanhcode.sable-companion:sable-companion-common-${project.minecraft_version}:${project.sable_companion_version}")
+
+    implementation "maven.modrinth:create-aeronautics:1.1.3+mc1.21.1"
+
+    implementation "curse.maven:create-328085:7963363"
 }
 
 tasks.withType(ProcessResources).configureEach {
