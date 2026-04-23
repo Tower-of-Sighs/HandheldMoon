@@ -2,6 +2,7 @@ package com.sighs.handheldmoon.lights;
 
 import com.sighs.handheldmoon.block.FullMoonBlockEntity;
 import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
+import com.sighs.handheldmoon.entity.FullMoonEntity;
 import com.sighs.handheldmoon.registry.Config;
 import com.sighs.handheldmoon.util.Utils;
 import dev.lambdaurora.lambdynlights.api.DynamicLightsContext;
@@ -18,6 +19,7 @@ public class HandheldMoonDynamicLightsInitializer implements DynamicLightsInitia
     private static DynamicLightBehaviorManager MANAGER;
     private static final Map<BlockPos, MoonLampLineLightBehavior> LAMP_BEHAVIORS = new HashMap<>();
     private static final Map<UUID, PlayerFlashlightLineLightBehavior> PLAYER_BEHAVIORS = new HashMap<>();
+    private static final Map<UUID, FullMoonEntityLightBehavior> FULL_MOON_ENTITY_BEHAVIORS = new HashMap<>();
 
     public static Set<BlockPos> getActiveLampPositions() {
         return new HashSet<>(LAMP_BEHAVIORS.keySet());
@@ -77,6 +79,33 @@ public class HandheldMoonDynamicLightsInitializer implements DynamicLightsInitia
                     PLAYER_BEHAVIORS.remove(id);
                 }
             }
+        }
+    }
+
+    public static void updateFullMoonEntityBehaviors() {
+        if (MANAGER == null) return;
+        var mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+        if (!Config.REAL_LIGHT.get()) return;
+
+        Set<UUID> seen = new HashSet<>();
+        for (var entity : mc.level.entitiesForRendering()) {
+            if (!(entity instanceof FullMoonEntity fullMoon) || !fullMoon.isLampBound()) continue;
+            UUID id = fullMoon.getUUID();
+            seen.add(id);
+            if (!FULL_MOON_ENTITY_BEHAVIORS.containsKey(id)) {
+                FullMoonEntityLightBehavior behavior = new FullMoonEntityLightBehavior(fullMoon);
+                FULL_MOON_ENTITY_BEHAVIORS.put(id, behavior);
+                MANAGER.add(behavior);
+            }
+        }
+
+        Iterator<Map.Entry<UUID, FullMoonEntityLightBehavior>> iterator = FULL_MOON_ENTITY_BEHAVIORS.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, FullMoonEntityLightBehavior> entry = iterator.next();
+            if (seen.contains(entry.getKey())) continue;
+            MANAGER.remove(entry.getValue());
+            iterator.remove();
         }
     }
 

@@ -7,6 +7,7 @@ import com.sighs.handheldmoon.HandheldMoon;
 import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
 import com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import com.sighs.handheldmoon.registry.Config;
+import com.sighs.handheldmoon.util.AeronauticsUtils;
 import com.sighs.handheldmoon.util.ColorUtils;
 import com.sighs.handheldmoon.util.Utils;
 import net.minecraft.client.Camera;
@@ -24,6 +25,8 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import org.joml.Matrix4f;
+import org.joml.Quaterniond;
+import org.joml.Vector3d;
 
 import java.util.*;
 
@@ -75,6 +78,15 @@ public class RayEvent {
             if (be instanceof MoonlightLampBlockEntity lamp && lamp.getPowered()) {
                 Vec3 eyePos = pos.getCenter();
                 Vec3 viewVec = lamp.getViewVec().normalize().scale(-1);
+                if (AeronauticsUtils.isPhysicalized(be)) {
+                    eyePos = AeronauticsUtils.getPhysicalizedRenderPosition(be);
+                    Vector3d jomlVec = new Vector3d(viewVec.x, viewVec.y, viewVec.z);
+                    Quaterniond direction = AeronauticsUtils.getPhysicalizedRenderOrientation(be);
+                    if (direction != null) {
+                        direction.transform(jomlVec);
+                        viewVec = new Vec3(jomlVec.x, jomlVec.y, jomlVec.z);
+                    }
+                }
                 renderCones(poseStack, eyePos, viewVec);
             }
         }

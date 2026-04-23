@@ -1,5 +1,6 @@
 package com.sighs.handheldmoon.mixin.lamb;
 
+import com.sighs.handheldmoon.lights.FullMoonEntityLightBehavior;
 import com.sighs.handheldmoon.lights.MoonLampLineLightBehavior;
 import com.sighs.handheldmoon.lights.PlayerFlashlightLineLightBehavior;
 import com.sighs.handheldmoon.registry.Config;
@@ -23,7 +24,9 @@ public class SpatialLookupDeferredEntryMixin {
 
     @Inject(method = "getDynamicLightLevel", at = @At("HEAD"), cancellable = true)
     private void handheldmoon$scaleFalloff(BlockPos pos, CallbackInfoReturnable<Double> cir) {
-        if (behavior instanceof PlayerFlashlightLineLightBehavior || behavior instanceof MoonLampLineLightBehavior) {
+        if (behavior instanceof PlayerFlashlightLineLightBehavior
+                || behavior instanceof MoonLampLineLightBehavior
+                || behavior instanceof FullMoonEntityLightBehavior) {
             double scaled = (Config.REAL_LIGHT_LUMINANCE.get() / DynamicLightingEngine.MAX_RADIUS) * 0.45643546458763845;
             double luminance = this.behavior.lightAtPos(pos, scaled);
             cir.setReturnValue(Math.max(luminance, 0.0));

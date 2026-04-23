@@ -40,6 +40,7 @@ public class HandheldMoonClient {
     @SubscribeEvent
     public static void startWordTick(ClientTickEvent.Pre event) {
         HandheldMoonDynamicLightsInitializer.updatePlayerBehaviors();
+        HandheldMoonDynamicLightsInitializer.updateFullMoonEntityBehaviors();
     }
 
     @SubscribeEvent

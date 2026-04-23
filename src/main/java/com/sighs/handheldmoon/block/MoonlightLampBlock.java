@@ -120,6 +120,10 @@ public class MoonlightLampBlock extends BaseEntityBlock {
                 }
             };
         }
-        return null;
+        return (lvl, pos, st, be) -> {
+            if (be instanceof MoonlightLampBlockEntity lamp) {
+                lamp.serverTick();
+            }
+        };
     }
 }
