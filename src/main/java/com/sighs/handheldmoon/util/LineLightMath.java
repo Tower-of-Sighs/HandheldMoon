@@ -60,8 +60,15 @@ public final class LineLightMath {
         if (level == null) return res;
         Vec3 start = new Vec3(sx, sy, sz);
         Vec3 end = new Vec3(query.getX() + 0.5, query.getY() + 0.5, query.getZ() + 0.5);
-        var hit = level.clip(new ClipContext(start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
-        if (hit.getType() == HitResult.Type.BLOCK && !hit.getBlockPos().equals(query)) return 0.0;
+        try {
+            var hit = level.clip(new ClipContext(start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
+            if (hit.getType() == HitResult.Type.BLOCK && !hit.getBlockPos().equals(query)) return 0.0;
+        } catch (Exception e) {
+            // FIXME: 此问题是因为 Sable 本体的 poseSupplierStack 是一个线程不安全、生命周期不封闭、无校验的可变栈，应该由 Sable 修复而不是我们
+            // Safeguard: level.clip() may trigger other mods' mixins (e.g. Sable's sable$getPose)
+            // that are not thread-safe on Sodium chunk-builder threads.
+            return res;
+        }
         return res;
     }
 

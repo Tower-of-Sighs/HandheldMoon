@@ -3,7 +3,7 @@ package com.sighs.handheldmoon.entity;
 import com.sighs.handheldmoon.block.FullMoonBlock;
 import com.sighs.handheldmoon.lights.MoonlightLampEntityHeartbeatCenter;
 import com.sighs.handheldmoon.registry.ModEntities;
-import com.sighs.handheldmoon.registry.ModItems;
+import com.sighs.handheldmoon.util.AeronauticsUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -11,15 +11,18 @@ import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Quaterniond;
+import org.joml.Vector3d;
+
+import java.util.Optional;
 
 public class FullMoonEntity extends Entity {
     private int radius = 16;
-    private BlockPos anchorPos;
+    private static final EntityDataAccessor<Optional<BlockPos>> ANCHOR_POS = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
     private static final EntityDataAccessor<Boolean> LAMP_BOUND = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> LAMP_LUMINANCE = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Float> LAMP_X_ROT = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.FLOAT);
@@ -36,6 +39,7 @@ public class FullMoonEntity extends Entity {
 
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        builder.define(ANCHOR_POS, Optional.empty());
         builder.define(LAMP_BOUND, false);
         builder.define(LAMP_LUMINANCE, 15);
         builder.define(LAMP_X_ROT, 0.0f);
@@ -43,11 +47,11 @@ public class FullMoonEntity extends Entity {
     }
 
     public void setAnchor(BlockPos pos) {
-        this.anchorPos = pos;
+        this.entityData.set(ANCHOR_POS, Optional.ofNullable(pos));
     }
 
     public void bindToLamp(BlockPos pos) {
-        this.anchorPos = pos;
+        this.entityData.set(ANCHOR_POS, Optional.ofNullable(pos));
         this.entityData.set(LAMP_BOUND, true);
         syncToAnchor();
     }
@@ -63,11 +67,45 @@ public class FullMoonEntity extends Entity {
     }
 
     public float getLampXRot() {
+        Optional<BlockPos> blockPos = this.entityData.get(ANCHOR_POS);
+        if (blockPos.isPresent()) {
+            BlockEntity be = level().getBlockEntity(blockPos.get());
+            if (be != null && AeronauticsUtils.isPhysicalized(be)) {
+                Quaterniond direction = AeronauticsUtils.getPhysicalizedRenderOrientation(be);
+                if (direction != null) {
+                    Vec3 angle = calculateUpVector(this.entityData.get(LAMP_X_ROT), this.entityData.get(LAMP_Y_ROT));
+                    Vector3d jomlVec = new Vector3d(angle.x, angle.y, angle.z);
+                    direction.transform(jomlVec);
+                    return getXRotFromVec3(new Vec3(jomlVec.x, jomlVec.y, jomlVec.z)) + 90;
+                }
+            }
+        }
         return this.entityData.get(LAMP_X_ROT);
     }
 
     public float getLampYRot() {
+        Optional<BlockPos> blockPos = this.entityData.get(ANCHOR_POS);
+        if (blockPos.isPresent()) {
+            BlockEntity be = level().getBlockEntity(blockPos.get());
+            if (be != null && AeronauticsUtils.isPhysicalized(be)) {
+                Quaterniond direction = AeronauticsUtils.getPhysicalizedRenderOrientation(be);
+                if (direction != null) {
+                    Vec3 angle = calculateUpVector(this.entityData.get(LAMP_X_ROT), this.entityData.get(LAMP_Y_ROT));
+                    Vector3d jomlVec = new Vector3d(angle.x, angle.y, angle.z);
+                    direction.transform(jomlVec);
+                    return 180 - getYRotFromVec3(new Vec3(jomlVec.x, jomlVec.y, jomlVec.z));
+                }
+            }
+        }
         return this.entityData.get(LAMP_Y_ROT);
+    }
+
+    public static float getXRotFromVec3(Vec3 vec) {
+        return (float) Math.toDegrees(Math.asin(-vec.y));
+    }
+
+    public static float getYRotFromVec3(Vec3 vec) {
+        return (float) Math.toDegrees(Math.atan2(-vec.x, vec.z));
     }
 
     public int getLampLuminance() {
@@ -75,9 +113,15 @@ public class FullMoonEntity extends Entity {
     }
 
     private void syncToAnchor() {
-        if (anchorPos == null) return;
+        BlockPos pos = this.entityData.get(ANCHOR_POS).orElse(null);
+        if (pos == null) return;
         this.setDeltaMovement(Vec3.ZERO);
-        this.setPos(anchorPos.getX() + 0.5, anchorPos.getY() + 0.4, anchorPos.getZ() + 0.5);
+        if (AeronauticsUtils.isPhysicalized(level(), pos)) {
+            Vec3 renderPos = AeronauticsUtils.getPhysicalizedRenderPosition(level(), pos, new Vec3(0.5, 0.4, 0.5));
+            if (renderPos != null) this.moveTo(renderPos);
+        } else {
+            this.moveTo(pos.getX() + 0.5, pos.getY() + 0.4, pos.getZ() + 0.5);
+        }
     }
 
     @Override
@@ -92,7 +136,8 @@ public class FullMoonEntity extends Entity {
                 }
                 return;
             }
-            BlockPos checkPos = anchorPos != null ? anchorPos : blockPosition();
+            BlockPos anchor = this.entityData.get(ANCHOR_POS).orElse(null);
+            BlockPos checkPos = anchor != null ? anchor : blockPosition();
             BlockState state = level().getBlockState(checkPos);
             if (!(state.getBlock() instanceof FullMoonBlock)) {
                 discard();
@@ -104,9 +149,9 @@ public class FullMoonEntity extends Entity {
     public void readAdditionalSaveData(CompoundTag tag) {
         radius = tag.getInt("radius");
         if (tag.contains("ax") && tag.contains("ay") && tag.contains("az")) {
-            anchorPos = new BlockPos(tag.getInt("ax"), tag.getInt("ay"), tag.getInt("az"));
+            this.entityData.set(ANCHOR_POS, Optional.of(new BlockPos(tag.getInt("ax"), tag.getInt("ay"), tag.getInt("az"))));
         } else {
-            anchorPos = null;
+            this.entityData.set(ANCHOR_POS, Optional.empty());
         }
         if (tag.contains("lamp_bound")) {
             this.entityData.set(LAMP_BOUND, tag.getBoolean("lamp_bound"));
@@ -125,6 +170,7 @@ public class FullMoonEntity extends Entity {
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {
         tag.putInt("radius", radius);
+        BlockPos anchorPos = this.entityData.get(ANCHOR_POS).orElse(null);
         if (anchorPos != null) {
             tag.putInt("ax", anchorPos.getX());
             tag.putInt("ay", anchorPos.getY());

@@ -12,6 +12,7 @@ import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemDisplayContext;
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.world.item.ItemStack;
 
 public class FullMoonRenderer extends EntityRenderer<FullMoonEntity> {
     private final ItemRenderer itemRenderer;
@@ -23,7 +24,7 @@ public class FullMoonRenderer extends EntityRenderer<FullMoonEntity> {
 
     @Override
     public void render(FullMoonEntity entity, float entityYaw, float partialTicks, PoseStack poseStack, MultiBufferSource buffer, int packedLight) {
-        if (entity.level().getBlockEntity(entity.blockPosition()) instanceof MoonlightLampBlockEntity) {
+        if (entity.isLampBound()) {
             return;
         }
 
@@ -33,7 +34,7 @@ public class FullMoonRenderer extends EntityRenderer<FullMoonEntity> {
         poseStack.mulPose(this.entityRenderDispatcher.cameraOrientation());
 
         this.itemRenderer.renderStatic(
-                ModItems.FULL_MOON.get().getDefaultInstance(),
+                new ItemStack(ModItems.FULL_MOON.get()),
                 ItemDisplayContext.GROUND,
                 packedLight,
                 OverlayTexture.NO_OVERLAY,

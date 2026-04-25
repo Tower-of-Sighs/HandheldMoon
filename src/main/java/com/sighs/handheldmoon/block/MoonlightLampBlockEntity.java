@@ -62,7 +62,6 @@ public class MoonlightLampBlockEntity extends BlockEntity {
         FullMoonEntity entity = ensureBoundEntity();
         if (entity == null) return;
         entity.bindToLamp(getBlockPos());
-        entity.setLampState(getXRot(), getYRot(), getPowered() ? 15 : 1);
         if (AeronauticsUtils.isPhysicalized(this)) {
             Vec3 position = AeronauticsUtils.getPhysicalizedRenderPosition(this);
             if (position != null) entity.moveTo(position);
