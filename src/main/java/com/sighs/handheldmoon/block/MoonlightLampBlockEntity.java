@@ -7,6 +7,8 @@ import com.sighs.handheldmoon.registry.ModBlockEntities;
 import com.sighs.handheldmoon.util.AeronauticsUtils;
 import com.sighs.handheldmoon.util.ClientUtils;
 import com.sighs.handheldmoon.util.LineLightMath;
+import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -23,10 +25,14 @@ import org.joml.Vector3d;
 import java.util.UUID;
 
 public class MoonlightLampBlockEntity extends BlockEntity {
+    @Getter
     private float xRot = 0;
+    @Getter
     private float yRot = 0;
     private boolean powered = true;
     private boolean clientInited = false;
+    @Setter
+    @Getter
     private UUID uuid;
 
     public MoonlightLampBlockEntity(BlockPos pos, BlockState state) {
@@ -62,7 +68,6 @@ public class MoonlightLampBlockEntity extends BlockEntity {
         FullMoonEntity entity = ensureBoundEntity();
         if (entity == null) return;
         entity.bindToLamp(getBlockPos());
-        entity.setLampState(getXRot(), getYRot(), getPowered() ? 15 : 1);
         if (AeronauticsUtils.isPhysicalized(this)) {
             Vec3 position = AeronauticsUtils.getPhysicalizedRenderPosition(this);
             if (position != null) entity.moveTo(position);
@@ -76,10 +81,6 @@ public class MoonlightLampBlockEntity extends BlockEntity {
         else MoonlightLampEntityHeartbeatCenter.report(level, entity.getUUID());
     }
 
-    public float getXRot() {
-        return xRot;
-    }
-
     public void setXRot(float xRot) {
         this.xRot = xRot;
         if (level == null) return;
@@ -91,10 +92,6 @@ public class MoonlightLampBlockEntity extends BlockEntity {
             setChanged();
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
         }
-    }
-
-    public float getYRot() {
-        return yRot;
     }
 
     public Vec3 getViewVec() {
@@ -129,14 +126,6 @@ public class MoonlightLampBlockEntity extends BlockEntity {
             setChanged();
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
         }
-    }
-
-    public UUID getUuid() {
-        return uuid;
-    }
-
-    public void setUuid(UUID uuid) {
-        this.uuid = uuid;
     }
 
     // 数据持久化全家桶，yue

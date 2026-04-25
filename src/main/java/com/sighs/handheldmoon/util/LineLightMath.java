@@ -60,8 +60,14 @@ public final class LineLightMath {
         if (level == null) return res;
         Vec3 start = new Vec3(sx, sy, sz);
         Vec3 end = new Vec3(query.getX() + 0.5, query.getY() + 0.5, query.getZ() + 0.5);
-        var hit = level.clip(new ClipContext(start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
-        if (hit.getType() == HitResult.Type.BLOCK && !hit.getBlockPos().equals(query)) return 0.0;
+        try {
+            var hit = level.clip(new ClipContext(start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
+            if (hit.getType() == HitResult.Type.BLOCK && !hit.getBlockPos().equals(query)) return 0.0;
+        } catch (Exception e) {
+            // Safeguard: level.clip() may trigger other mods' mixins (e.g. Sable's sable$getPose)
+            // that are not thread-safe on Sodium chunk-builder threads.
+            return res;
+        }
         return res;
     }
 
@@ -90,14 +96,20 @@ public final class LineLightMath {
         Vec3 endCenter = new Vec3(cx, cy, cz);
         Vec3 endUp = new Vec3(cx, cy + 0.25, cz);
         Vec3 endDown = new Vec3(cx, cy - 0.25, cz);
-        var hitCenter = level.clip(new ClipContext(start, endCenter, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
-        boolean passCenter = !(hitCenter.getType() == HitResult.Type.BLOCK && !hitCenter.getBlockPos().equals(query));
-        if (passCenter) return res;
-        var hitUp = level.clip(new ClipContext(start, endUp, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
-        boolean passUp = !(hitUp.getType() == HitResult.Type.BLOCK && !hitUp.getBlockPos().equals(query));
-        var hitDown = level.clip(new ClipContext(start, endDown, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
-        boolean passDown = !(hitDown.getType() == HitResult.Type.BLOCK && !hitDown.getBlockPos().equals(query));
-        if (passUp || passDown) return res * 0.6;
+        try {
+            var hitCenter = level.clip(new ClipContext(start, endCenter, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
+            boolean passCenter = !(hitCenter.getType() == HitResult.Type.BLOCK && !hitCenter.getBlockPos().equals(query));
+            if (passCenter) return res;
+            var hitUp = level.clip(new ClipContext(start, endUp, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
+            boolean passUp = !(hitUp.getType() == HitResult.Type.BLOCK && !hitUp.getBlockPos().equals(query));
+            var hitDown = level.clip(new ClipContext(start, endDown, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
+            boolean passDown = !(hitDown.getType() == HitResult.Type.BLOCK && !hitDown.getBlockPos().equals(query));
+            if (passUp || passDown) return res * 0.6;
+        } catch (Exception e) {
+            // Safeguard: level.clip() may trigger other mods' mixins (e.g. Sable's sable$getPose)
+            // that are not thread-safe on Sodium chunk-builder threads.
+            return res;
+        }
         return 0.0;
     }
 
