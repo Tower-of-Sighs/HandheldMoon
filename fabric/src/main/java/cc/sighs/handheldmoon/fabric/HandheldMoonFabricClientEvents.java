@@ -2,6 +2,7 @@ package cc.sighs.handheldmoon.fabric;
 
 import cc.sighs.handheldmoon.HandheldMoon;
 import cc.sighs.handheldmoon.client.HandheldMoonClient;
+import cc.sighs.handheldmoon.client.renderer.FullMoonRenderer;
 import cc.sighs.handheldmoon.client.renderer.MoonlightLampRenderer;
 import cc.sighs.handheldmoon.client.renderer.item.MoonlightLampPoweredProperty;
 import cc.sighs.handheldmoon.event.handler.EffectManager;
@@ -11,13 +12,12 @@ import cc.sighs.handheldmoon.event.handler.RayEvent;
 import cc.sighs.handheldmoon.registry.ModBlockEntities;
 import cc.sighs.handheldmoon.registry.ModEntities;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
+import net.minecraft.client.renderer.entity.EntityRenderers;
 import net.minecraft.client.renderer.item.properties.conditional.ConditionalItemModelProperties;
 import net.minecraft.resources.Identifier;
-import net.minecraft.client.renderer.entity.ThrownItemRenderer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 
@@ -44,7 +44,7 @@ public final class HandheldMoonFabricClientEvents {
         ));
         LevelRenderEvents.AFTER_TRANSLUCENT_FEATURES.register(context -> EffectManager.onLevelRender());
 
-        EntityRendererRegistry.register(ModEntities.MOONLIGHT.get(), ThrownItemRenderer::new);
+        EntityRenderers.register(ModEntities.MOONLIGHT.get(), FullMoonRenderer::new);
         BlockEntityRenderers.register(ModBlockEntities.MOONLIGHT_LAMP.get(), MoonlightLampRenderer::new);
         ConditionalItemModelProperties.ID_MAPPER.put(
                 Identifier.fromNamespaceAndPath(HandheldMoon.MOD_ID, "powered"),

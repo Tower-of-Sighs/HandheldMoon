@@ -2,6 +2,7 @@ package cc.sighs.handheldmoon.neoforge;
 
 import cc.sighs.handheldmoon.HandheldMoon;
 import cc.sighs.handheldmoon.client.HandheldMoonClient;
+import cc.sighs.handheldmoon.client.renderer.FullMoonRenderer;
 import cc.sighs.handheldmoon.client.renderer.MoonlightLampRenderer;
 import cc.sighs.handheldmoon.client.renderer.item.MoonlightLampPoweredProperty;
 import cc.sighs.handheldmoon.event.handler.EffectManager;
@@ -11,7 +12,6 @@ import cc.sighs.handheldmoon.event.handler.RayEvent;
 import cc.sighs.handheldmoon.registry.ModBlockEntities;
 import cc.sighs.handheldmoon.registry.ModEntities;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.entity.ThrownItemRenderer;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionHand;
 import net.neoforged.api.distmarker.Dist;
@@ -81,7 +81,7 @@ public final class HandheldMoonNeoForgeClientEvents {
 
     @SubscribeEvent
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
-        event.registerEntityRenderer(ModEntities.MOONLIGHT.get(), ThrownItemRenderer::new);
+        event.registerEntityRenderer(ModEntities.MOONLIGHT.get(), FullMoonRenderer::new);
         event.registerBlockEntityRenderer(ModBlockEntities.MOONLIGHT_LAMP.get(), MoonlightLampRenderer::new);
     }
 

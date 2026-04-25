@@ -4,6 +4,10 @@ import cc.sighs.handheldmoon.block.FullMoonBlock;
 import cc.sighs.handheldmoon.registry.ModEntities;
 import cc.sighs.handheldmoon.registry.ModItems;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrowableItemProjectile;
 import net.minecraft.world.item.Item;
@@ -12,7 +16,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
-public class FullMoonEntity extends ThrowableItemProjectile {
+public class FullMoonEntity extends Entity {
     private int radius = 16;
     private BlockPos anchorPos;
 
@@ -30,6 +34,10 @@ public class FullMoonEntity extends ThrowableItemProjectile {
     }
 
     @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+    }
+
+    @Override
     public void tick() {
         super.tick();
         if (!level().isClientSide()) {
@@ -42,13 +50,12 @@ public class FullMoonEntity extends ThrowableItemProjectile {
     }
 
     @Override
-    protected Item getDefaultItem() {
-        return ModItems.FULL_MOON.get();
+    public boolean hurtServer(ServerLevel serverLevel, DamageSource damageSource, float v) {
+        return false;
     }
 
     @Override
     protected void readAdditionalSaveData(ValueInput input) {
-        super.readAdditionalSaveData(input);
         radius = input.getIntOr("radius", 16);
         if (input.getInt("ax").isPresent() && input.getInt("ay").isPresent() && input.getInt("az").isPresent()) {
             anchorPos = new BlockPos(
@@ -63,7 +70,6 @@ public class FullMoonEntity extends ThrowableItemProjectile {
 
     @Override
     protected void addAdditionalSaveData(ValueOutput output) {
-        super.addAdditionalSaveData(output);
         output.putInt("radius", radius);
         if (anchorPos != null) {
             output.putInt("ax", anchorPos.getX());
