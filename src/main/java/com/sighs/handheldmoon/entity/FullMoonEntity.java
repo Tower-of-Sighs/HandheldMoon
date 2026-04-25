@@ -9,6 +9,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
 import net.minecraft.world.item.Item;
@@ -16,7 +17,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
-public class FullMoonEntity extends ThrowableItemProjectile {
+public class FullMoonEntity extends Entity {
     private int radius = 16;
     private BlockPos anchorPos;
     private static final EntityDataAccessor<Boolean> LAMP_BOUND = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.BOOLEAN);
@@ -35,7 +36,6 @@ public class FullMoonEntity extends ThrowableItemProjectile {
 
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
         builder.define(LAMP_BOUND, false);
         builder.define(LAMP_LUMINANCE, 15);
         builder.define(LAMP_X_ROT, 0.0f);
@@ -98,11 +98,6 @@ public class FullMoonEntity extends ThrowableItemProjectile {
                 discard();
             }
         }
-    }
-
-    @Override
-    protected Item getDefaultItem() {
-        return ModItems.FULL_MOON.get();
     }
 
     @Override

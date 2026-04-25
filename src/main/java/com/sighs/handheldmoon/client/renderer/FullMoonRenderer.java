@@ -1,20 +1,59 @@
 package com.sighs.handheldmoon.client.renderer;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
 import com.sighs.handheldmoon.entity.FullMoonEntity;
-import net.minecraft.client.renderer.MultiBufferSource;
+import com.sighs.handheldmoon.registry.ModItems;
+import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.client.renderer.entity.ThrownItemRenderer;
+import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemDisplayContext;
+import com.mojang.blaze3d.vertex.PoseStack;
 
-public class FullMoonRenderer extends ThrownItemRenderer<FullMoonEntity> {
+public class FullMoonRenderer extends EntityRenderer<FullMoonEntity> {
+    private final ItemRenderer itemRenderer;
+
     public FullMoonRenderer(EntityRendererProvider.Context context) {
-        super(context, 1.0F, true);
+        super(context);
+        this.itemRenderer = context.getItemRenderer();
     }
 
     @Override
-    public void render(FullMoonEntity entity, float f1, float f2, PoseStack poseStack, MultiBufferSource bufferSource, int i) {
-        if (entity.level().getBlockEntity(entity.blockPosition()) instanceof MoonlightLampBlockEntity) return;
-        super.render(entity, f1, f2, poseStack, bufferSource, i);
+    public void render(FullMoonEntity entity, float entityYaw, float partialTicks, PoseStack poseStack, MultiBufferSource buffer, int packedLight) {
+        if (entity.level().getBlockEntity(entity.blockPosition()) instanceof MoonlightLampBlockEntity) {
+            return;
+        }
+
+        poseStack.pushPose();
+        float scale = 1.0F;
+        poseStack.scale(scale, scale, scale);
+        poseStack.mulPose(this.entityRenderDispatcher.cameraOrientation());
+
+        this.itemRenderer.renderStatic(
+                ModItems.FULL_MOON.get().getDefaultInstance(),
+                ItemDisplayContext.GROUND,
+                packedLight,
+                OverlayTexture.NO_OVERLAY,
+                poseStack,
+                buffer,
+                entity.level(),
+                entity.getId()
+        );
+        poseStack.popPose();
+
+        super.render(entity, entityYaw, partialTicks, poseStack, buffer, packedLight);
+    }
+
+    @Override
+    public ResourceLocation getTextureLocation(FullMoonEntity entity) {
+        return TextureAtlas.LOCATION_BLOCKS;
+    }
+
+    @Override
+    protected int getBlockLightLevel(FullMoonEntity entity, net.minecraft.core.BlockPos pos) {
+        return 15;
     }
 }
