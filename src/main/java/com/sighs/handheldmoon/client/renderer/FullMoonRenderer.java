@@ -8,7 +8,6 @@ import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlas;
-import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemDisplayContext;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -36,7 +35,7 @@ public class FullMoonRenderer extends EntityRenderer<FullMoonEntity> {
         this.itemRenderer.renderStatic(
                 new ItemStack(ModItems.FULL_MOON.get()),
                 ItemDisplayContext.GROUND,
-                packedLight,
+                15728880,
                 OverlayTexture.NO_OVERLAY,
                 poseStack,
                 buffer,
@@ -51,10 +50,5 @@ public class FullMoonRenderer extends EntityRenderer<FullMoonEntity> {
     @Override
     public ResourceLocation getTextureLocation(FullMoonEntity entity) {
         return TextureAtlas.LOCATION_BLOCKS;
-    }
-
-    @Override
-    protected int getBlockLightLevel(FullMoonEntity entity, BlockPos pos) {
-        return 15;
     }
 }

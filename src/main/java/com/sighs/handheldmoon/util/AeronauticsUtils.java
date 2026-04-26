@@ -5,6 +5,7 @@ import dev.ryanhcode.sable.companion.math.JOMLConversion;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
@@ -60,6 +61,11 @@ public class AeronauticsUtils {
     public static boolean isPhysicalized(final BlockEntity blockEntity) {
         if (!isAvailable()) return false;
         return SableInternal.isInsideSubLevel(blockEntity);
+    }
+
+    public static boolean isPhysicalized(final Entity entity) {
+        if (!isAvailable()) return false;
+        return SableInternal.isInsideSubLevel(entity);
     }
 
     public static Vec3 getPhysicalizedRenderPosition(final Level level, final Vector3dc localPosition) {
@@ -160,6 +166,10 @@ public class AeronauticsUtils {
 
         private static boolean isInsideSubLevel(final BlockEntity blockEntity) {
             return Sable.HELPER.getContaining(blockEntity) != null;
+        }
+
+        private static boolean isInsideSubLevel(final Entity entity) {
+            return Sable.HELPER.getContaining(entity) != null;
         }
 
         private static Vec3 projectOutOfSubLevel(final Level level, final Vector3dc localPosition) {
