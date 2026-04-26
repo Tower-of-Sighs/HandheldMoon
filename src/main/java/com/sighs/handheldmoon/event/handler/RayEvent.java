@@ -25,7 +25,9 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import org.joml.Matrix4f;
+import org.joml.Matrix4fStack;
 import org.joml.Quaterniond;
+import org.joml.Quaternionf;
 import org.joml.Vector3d;
 
 import java.util.*;
@@ -38,7 +40,7 @@ public class RayEvent {
     @SubscribeEvent
     public static void renderPlayerViewConesWithRadialGradient(RenderLevelStageEvent event) {
         if (!Config.PLAYER_RAY.get()) return;
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return;
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL) return;
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
@@ -46,16 +48,22 @@ public class RayEvent {
         float partialTick = event.getPartialTick().getGameTimeDeltaPartialTick(true);
         PoseStack poseStack = event.getPoseStack();
 
+        mc.getMainRenderTarget().bindWrite(false);
+
+        Camera camera = event.getCamera();
+        Vec3 cameraPos = camera.getPosition();
+        Matrix4fStack mvStack = RenderSystem.getModelViewStack();
+        mvStack.pushMatrix();
+        mvStack.set(new Matrix4f(event.getModelViewMatrix())
+                .translate((float) -cameraPos.x, (float) -cameraPos.y, (float) -cameraPos.z));
+        RenderSystem.applyModelViewMatrix();
+
         RenderSystem.enableBlend();
         RenderSystem.enableDepthTest();
         RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
         RenderSystem.disableCull();
 
         poseStack.pushPose();
-
-        Camera camera = event.getCamera();
-        Vec3 cameraPos = camera.getPosition();
-        poseStack.translate(-cameraPos.x, -cameraPos.y, -cameraPos.z);
 
         List<AbstractClientPlayer> players = mc.level.players();
 
@@ -92,6 +100,9 @@ public class RayEvent {
         }
 
         poseStack.popPose();
+
+        mvStack.popMatrix();
+        RenderSystem.applyModelViewMatrix();
 
         RenderSystem.disableBlend();
         RenderSystem.disableDepthTest();
