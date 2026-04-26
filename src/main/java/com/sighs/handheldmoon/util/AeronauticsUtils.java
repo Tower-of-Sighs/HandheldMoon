@@ -32,7 +32,7 @@ public class AeronauticsUtils {
     static {
         boolean flag = false;
         try {
-            Class.forName("Sable");
+            Class.forName("dev.ryanhcode.sable.Sable");
             flag = true;
         } catch (ClassNotFoundException e) {
             flag = false;

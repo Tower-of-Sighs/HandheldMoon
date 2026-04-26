@@ -1,6 +1,5 @@
 package com.sighs.handheldmoon.client.renderer;
 
-import com.sighs.handheldmoon.block.MoonlightLampBlockEntity;
 import com.sighs.handheldmoon.entity.FullMoonEntity;
 import com.sighs.handheldmoon.registry.ModItems;
 import net.minecraft.client.renderer.entity.EntityRenderer;
@@ -9,6 +8,7 @@ import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemDisplayContext;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -54,7 +54,7 @@ public class FullMoonRenderer extends EntityRenderer<FullMoonEntity> {
     }
 
     @Override
-    protected int getBlockLightLevel(FullMoonEntity entity, net.minecraft.core.BlockPos pos) {
+    protected int getBlockLightLevel(FullMoonEntity entity, BlockPos pos) {
         return 15;
     }
 }

@@ -25,7 +25,6 @@ public class SpatialLookupDeferredEntryMixin {
     @Inject(method = "getDynamicLightLevel", at = @At("HEAD"), cancellable = true)
     private void handheldmoon$scaleFalloff(BlockPos pos, CallbackInfoReturnable<Double> cir) {
         if (behavior instanceof PlayerFlashlightLineLightBehavior
-                || behavior instanceof MoonLampLineLightBehavior
                 || behavior instanceof FullMoonEntityLightBehavior) {
             double scaled = (Config.REAL_LIGHT_LUMINANCE.get() / DynamicLightingEngine.MAX_RADIUS) * 0.45643546458763845;
             double luminance = this.behavior.lightAtPos(pos, scaled);

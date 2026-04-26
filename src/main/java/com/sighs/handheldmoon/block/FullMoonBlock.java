@@ -1,11 +1,8 @@
 package com.sighs.handheldmoon.block;
 
 import com.mojang.serialization.MapCodec;
-import com.sighs.handheldmoon.entity.FullMoonEntity;
 import com.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
@@ -16,7 +13,6 @@ import net.minecraft.world.level.storage.loot.LootParams;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.UUID;
 
 public class FullMoonBlock extends BaseEntityBlock {
     public FullMoonBlock() {
