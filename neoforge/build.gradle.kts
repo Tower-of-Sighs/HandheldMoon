@@ -55,6 +55,8 @@ dependencies {
         exclude(group = "net.fabricmc")
         exclude(group = "net.fabricmc.fabric-api")
     }
+    implementation("curse.maven:irisshaders-455508:7867946")
+    implementation("curse.maven:sodium-394468:7867828")
     implementation("cc.sighs.oelib:OELib-neoforge-26.1:0.2.3-dev2")
 }
 

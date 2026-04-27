@@ -65,11 +65,13 @@ public final class HandheldMoonNeoForgeClientEvents {
     }
 
     @SubscribeEvent
-    public static void onAfterTranslucentBlocks(RenderLevelStageEvent.AfterTranslucentBlocks event) {
+    public static void onAfterTranslucentBlocks(RenderLevelStageEvent.AfterWeather event) {
         Minecraft mc = Minecraft.getInstance();
+
         RayEvent.renderPlayerViewConesWithRadialGradient(
                 event.getPoseStack(),
                 event.getLevelRenderState().cameraRenderState.pos,
+                event.getModelViewMatrix(),
                 mc.getDeltaTracker().getGameTimeDeltaPartialTick(true)
         );
     }

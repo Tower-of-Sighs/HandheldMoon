@@ -11,6 +11,7 @@ import cc.sighs.handheldmoon.event.handler.OperationEventHandler;
 import cc.sighs.handheldmoon.event.handler.RayEvent;
 import cc.sighs.handheldmoon.registry.ModBlockEntities;
 import cc.sighs.handheldmoon.registry.ModEntities;
+import net.minecraft.client.Minecraft;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
@@ -37,12 +38,17 @@ public final class HandheldMoonFabricClientEvents {
             return InteractionResult.PASS;
         });
 
-        LevelRenderEvents.AFTER_TRANSLUCENT_FEATURES.register(context -> RayEvent.renderPlayerViewConesWithRadialGradient(
-                context.poseStack(),
-                context.levelState().cameraRenderState.pos,
-                1.0f
-        ));
-        LevelRenderEvents.AFTER_TRANSLUCENT_FEATURES.register(context -> EffectManager.onLevelRender());
+        LevelRenderEvents.END_MAIN.register(context -> {
+            Minecraft mc = Minecraft.getInstance();
+
+            RayEvent.renderPlayerViewConesWithRadialGradient(
+                    context.poseStack(),
+                    context.levelState().cameraRenderState.pos,
+                    context.levelState().cameraRenderState.viewRotationMatrix,
+                    mc.getDeltaTracker().getGameTimeDeltaPartialTick(true)
+            );
+        });
+        LevelRenderEvents.END_MAIN.register(context -> EffectManager.onLevelRender());
 
         EntityRenderers.register(ModEntities.MOONLIGHT.get(), FullMoonRenderer::new);
         BlockEntityRenderers.register(ModBlockEntities.MOONLIGHT_LAMP.get(), MoonlightLampRenderer::new);

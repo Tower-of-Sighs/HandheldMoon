@@ -60,5 +60,10 @@
   "config.handheldmoon.client_settings.enableLightOcclusion": "Enable Light Occlusion",
   "config.handheldmoon.client_settings.enableLightOcclusion.tooltip": "Compute occlusion for beams. Performance-sensitive in complex terrain.",
   "config.handheldmoon.client_settings.enableConeRaycast": "Enable Cone Raycast",
-  "config.handheldmoon.client_settings.enableConeRaycast.tooltip": "Clip cone to blocks via ray casts; improves realism but may jitter and impact performance."
+  "config.handheldmoon.client_settings.enableConeRaycast.tooltip": "Clip cone to blocks via ray casts; improves realism but may jitter and impact performance.",
+
+  "trinkets.slot.shoulder.shoulder": "Shoulder",
+
+  "curios.identifier.shoulder": "Shoulder",
+  "curios.modifiers.shoulder": "When on shoulder："
 }

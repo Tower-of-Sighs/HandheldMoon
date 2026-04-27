@@ -26,6 +26,7 @@ dependencies {
     compileOnly("cc.sighs.oelib:OELib-common-26.1:0.2.3-dev2")
     compileOnly("dev.lambdaurora.lambdynamiclights:lambdynamiclights-api:$ldl_version")
     compileOnly("dev.lambdaurora.lambdynamiclights:lambdynamiclights-runtime:$ldl_version")
+    compileOnly("curse.maven:irisshaders-455508:7867943")
 }
 
 // Whitelist entries control which dependencies are kept/added in generated maven POM.

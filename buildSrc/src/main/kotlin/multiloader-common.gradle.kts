@@ -52,6 +52,18 @@ repositories {
         }
     }
     maven {
+        // Add curse maven to repositories
+        name = "Curse Maven"
+        url = uri("https://www.cursemaven.com")
+        content {
+            includeGroup("curse.maven")
+        }
+    }
+    maven {
+        name = "Modrinth"
+        url = uri("https://api.modrinth.com/maven")
+    }
+    maven {
         name = "BlameJared"
         url = uri("https://maven.blamejared.com")
     }

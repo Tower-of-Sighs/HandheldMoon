@@ -60,5 +60,10 @@
   "config.handheldmoon.client_settings.enableLightOcclusion": "启用光照遮挡",
   "config.handheldmoon.client_settings.enableLightOcclusion.tooltip": "计算光照遮挡，在复杂地形下更耗性能。",
   "config.handheldmoon.client_settings.enableConeRaycast": "启用光锥射线检测",
-  "config.handheldmoon.client_settings.enableConeRaycast.tooltip": "用射线截断光锥可提升真实感，但可能带来抖动与性能开销。"
+  "config.handheldmoon.client_settings.enableConeRaycast.tooltip": "用射线截断光锥可提升真实感，但可能带来抖动与性能开销。",
+
+  "trinkets.slot.shoulder.shoulder": "肩饰",
+
+  "curios.identifier.shoulder": "肩饰",
+  "curios.modifiers.shoulder": "佩戴肩饰时: "
 }

@@ -1,24 +1,41 @@
 package cc.sighs.handheldmoon.event.handler;
 
+import cc.sighs.handheldmoon.HandheldMoon;
 import cc.sighs.handheldmoon.block.MoonlightLampBlockEntity;
 import cc.sighs.handheldmoon.config.LampDeviceConfig;
 import cc.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import cc.sighs.handheldmoon.registry.Config;
 import cc.sighs.handheldmoon.util.ColorUtils;
+import cc.sighs.handheldmoon.util.IrisCompat;
 import cc.sighs.handheldmoon.util.Utils;
+import com.mojang.blaze3d.pipeline.BlendFunction;
+import com.mojang.blaze3d.pipeline.ColorTargetState;
+import com.mojang.blaze3d.pipeline.DepthStencilState;
+import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.platform.CompareOp;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.ByteBufferBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.rendertype.RenderSetup;
+import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
+import org.joml.Matrix4f;
+import org.joml.Matrix4fStack;
+import org.joml.Matrix4fc;
 
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +46,34 @@ public final class RayEvent {
     private static final Map<UUID, Vec3> LAST_DIR = new HashMap<>();
     private static final int SEGMENTS = 24;
     private static final CollisionContext EMPTY_COLLISION = CollisionContext.empty();
+    private static final RenderPipeline RAY_CONE_PIPELINE = RenderPipeline.builder(RenderPipelines.MATRICES_FOG_SNIPPET)
+            .withLocation(Identifier.fromNamespaceAndPath(HandheldMoon.MOD_ID, "pipeline/ray_cone"))
+            .withVertexShader("core/position_color")
+            .withFragmentShader("core/position_color")
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+            .withCull(false)
+            .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.TRIANGLE_FAN)
+            .build();
+    private static final RenderType RAY_CONE_RENDER_TYPE = RenderType.create(
+            "handheldmoon_ray_cone",
+            RenderSetup.builder(RAY_CONE_PIPELINE).sortOnUpload().createRenderSetup()
+    );
+    private static final RenderPipeline IRIS_RAY_CONE_PIPELINE = RenderPipeline.builder(RenderPipelines.MATRICES_FOG_SNIPPET)
+            .withLocation(Identifier.fromNamespaceAndPath(HandheldMoon.MOD_ID, "pipeline/ray_cone_iris"))
+            .withVertexShader("core/position_color")
+            .withFragmentShader("core/position_color")
+            .withSampler("Sampler1")
+            .withSampler("Sampler2")
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+            .withCull(false)
+            .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.TRIANGLE_FAN)
+            .build();
+    private static final RenderType IRIS_RAY_CONE_RENDER_TYPE = RenderType.create(
+            "handheldmoon_ray_cone_iris",
+            RenderSetup.builder(IRIS_RAY_CONE_PIPELINE).useOverlay().useLightmap().sortOnUpload().createRenderSetup()
+    );
 
     private record ConeRenderConfig(
             double range,
@@ -51,7 +96,7 @@ public final class RayEvent {
     private RayEvent() {
     }
 
-    public static void renderPlayerViewConesWithRadialGradient(PoseStack poseStack, Vec3 cameraPos, float partialTick) {
+    public static void renderPlayerViewConesWithRadialGradient(PoseStack poseStack, Vec3 cameraPos, Matrix4fc modelViewMatrix, float partialTick) {
         if (!Config.PLAYER_RAY.get()) {
             return;
         }
@@ -61,8 +106,16 @@ public final class RayEvent {
             return;
         }
 
+        boolean irisShaderPackInUse = IrisCompat.isShaderPackInUse();
+        if (irisShaderPackInUse) {
+            IrisCompat.assignRayConePipeline(IRIS_RAY_CONE_PIPELINE);
+        }
+
+        Matrix4fStack mvStack = RenderSystem.getModelViewStack();
+        mvStack.pushMatrix();
+        mvStack.set(new Matrix4f(modelViewMatrix)).translate((float) -cameraPos.x, (float) -cameraPos.y, (float) -cameraPos.z);
+
         poseStack.pushPose();
-        poseStack.translate(-cameraPos.x, -cameraPos.y, -cameraPos.z);
 
         List<AbstractClientPlayer> players = mc.level.players();
         for (Player player : players) {
@@ -72,13 +125,12 @@ public final class RayEvent {
             if (!Utils.isUsingFlashlight(player)) {
                 continue;
             }
-
             Vec3 eyePos = player.getEyePosition(partialTick);
             Vec3 viewVecRaw = player.getViewVector(partialTick).normalize();
             Vec3 previous = LAST_DIR.getOrDefault(player.getUUID(), viewVecRaw);
             Vec3 viewVec = previous.scale(0.7).add(viewVecRaw.scale(0.3)).normalize();
             LAST_DIR.put(player.getUUID(), viewVec);
-            renderCones(poseStack, eyePos, viewVec, buildGlobalConeConfig(), false);
+            renderCones(poseStack, eyePos, viewVec, buildGlobalConeConfig(), false, irisShaderPackInUse);
         }
 
         for (BlockPos pos : HandheldMoonDynamicLightsInitializer.getActiveLampPositions()) {
@@ -88,11 +140,13 @@ public final class RayEvent {
                 Vec3 viewVec = lamp.getViewVec().normalize().scale(-1);
                 // Move apex slightly to the lamp muzzle so raycast clipping is visible for placed lamps too.
                 Vec3 eyePos = pos.getCenter().add(viewVec.scale(0.24));
-                renderCones(poseStack, eyePos, viewVec, buildLampConeConfig(cfg), true);
+                renderCones(poseStack, eyePos, viewVec, buildLampConeConfig(cfg), true, irisShaderPackInUse);
             }
         }
 
         poseStack.popPose();
+
+        mvStack.popMatrix();
     }
 
     private static void renderCones(
@@ -100,7 +154,8 @@ public final class RayEvent {
             Vec3 apex,
             Vec3 direction,
             ConeRenderConfig config,
-            boolean raycastAllLayers
+            boolean raycastAllLayers,
+            boolean irisShaderPackInUse
     ) {
         List<float[]> stops = config.stops();
         List<String> sizeScales = config.sizeScales();
@@ -131,7 +186,8 @@ public final class RayEvent {
                     edgeAlpha,
                     layerColor,
                     (float) noiseAmplitude,
-                    config.coneRaycast() && (raycastAllLayers || i == 0)
+                    config.coneRaycast() && (raycastAllLayers || i == 0),
+                    irisShaderPackInUse
             );
         }
 
@@ -150,7 +206,8 @@ public final class RayEvent {
                     (float) config.fogEdgeAlpha(),
                     fogColor,
                     0.0f,
-                    false
+                    false,
+                    irisShaderPackInUse
             );
         }
     }
@@ -206,7 +263,8 @@ public final class RayEvent {
             float edgeAlpha,
             float[] layerColorOverride,
             float noiseAmplitude,
-            boolean doRaycast
+            boolean doRaycast,
+            boolean irisShaderPackInUse
     ) {
         float scaledRange = baseRange * sizeScale;
         float scaledHalfAngleRad = (float) Math.toRadians(baseAngleDeg * sizeScale / 2.0f);
@@ -222,11 +280,6 @@ public final class RayEvent {
 
         float[] centerColor = layerColorOverride != null ? layerColorOverride : ColorUtils.colorAt(colorStops, 0.0f);
 
-        MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
-        VertexConsumer vertexConsumer = bufferSource.getBuffer(RenderTypes.debugTriangleFan());
-        PoseStack.Pose pose = poseStack.last();
-        vertexConsumer.addVertex(pose, (float) apex.x, (float) apex.y, (float) apex.z).setColor(toArgb(centerColor, centerAlpha));
-
         long seed = Double.doubleToLongBits(apex.x)
                 ^ Double.doubleToLongBits(apex.y)
                 ^ Double.doubleToLongBits(apex.z)
@@ -234,30 +287,38 @@ public final class RayEvent {
                 ^ Double.doubleToLongBits(direction.y)
                 ^ Double.doubleToLongBits(direction.z);
 
-        Minecraft mc = Minecraft.getInstance();
-        for (int i = 0; i <= SEGMENTS; i++) {
-            double theta = 2.0 * Math.PI * i / SEGMENTS;
-            double cos = Math.cos(theta);
-            double sin = Math.sin(theta);
-            Vec3 basePoint = baseCenter.add(rightVec.scale(scaledRadius * cos)).add(orthoUp.scale(scaledRadius * sin));
+        RenderType renderType = irisShaderPackInUse ? IRIS_RAY_CONE_RENDER_TYPE : RAY_CONE_RENDER_TYPE;
+        try (ByteBufferBuilder byteBuffer = new ByteBufferBuilder(renderType.bufferSize())) {
+            MultiBufferSource.BufferSource bufferSource = MultiBufferSource.immediate(byteBuffer);
+            VertexConsumer vertexConsumer = bufferSource.getBuffer(renderType);
+            PoseStack.Pose pose = poseStack.last();
+            vertexConsumer.addVertex(pose, (float) apex.x, (float) apex.y, (float) apex.z).setColor(toArgb(centerColor, centerAlpha));
 
-            if (doRaycast && mc.level != null) {
-                HitResult hitResult = mc.level.clip(
-                        new ClipContext(apex, basePoint, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, EMPTY_COLLISION)
-                );
-                if (hitResult.getType() == HitResult.Type.BLOCK) {
-                    basePoint = hitResult.getLocation();
+            Minecraft mc = Minecraft.getInstance();
+            for (int i = 0; i <= SEGMENTS; i++) {
+                double theta = 2.0 * Math.PI * i / SEGMENTS;
+                double cos = Math.cos(theta);
+                double sin = Math.sin(theta);
+                Vec3 basePoint = baseCenter.add(rightVec.scale(scaledRadius * cos)).add(orthoUp.scale(scaledRadius * sin));
+
+                if (doRaycast && mc.level != null) {
+                    HitResult hitResult = mc.level.clip(
+                            new ClipContext(apex, basePoint, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, EMPTY_COLLISION)
+                    );
+                    if (hitResult.getType() == HitResult.Type.BLOCK) {
+                        basePoint = hitResult.getLocation();
+                    }
                 }
+
+                float thetaNorm = (float) (i / (double) SEGMENTS);
+                float baseT = Math.min(1.0f, 0.8f + (sizeScale - 1.0f) * 0.6f);
+                float[] edgeColor = ColorUtils.colorAtWithNoise(colorStops, baseT, thetaNorm, seed, noiseAmplitude);
+                float alphaLocal = edgeAlpha * (0.85f + 0.15f * ((float) Math.sin(thetaNorm * 11.0 + seed * 0.001) * 0.5f + 0.5f));
+                vertexConsumer.addVertex(pose, (float) basePoint.x, (float) basePoint.y, (float) basePoint.z).setColor(toArgb(edgeColor, alphaLocal));
             }
 
-            float thetaNorm = (float) (i / (double) SEGMENTS);
-            float baseT = Math.min(1.0f, 0.8f + (sizeScale - 1.0f) * 0.6f);
-            float[] edgeColor = ColorUtils.colorAtWithNoise(colorStops, baseT, thetaNorm, seed, noiseAmplitude);
-            float alphaLocal = edgeAlpha * (0.85f + 0.15f * ((float) Math.sin(thetaNorm * 11.0 + seed * 0.001) * 0.5f + 0.5f));
-            vertexConsumer.addVertex(pose, (float) basePoint.x, (float) basePoint.y, (float) basePoint.z).setColor(toArgb(edgeColor, alphaLocal));
+            bufferSource.endBatch(renderType);
         }
-
-        bufferSource.endBatch(RenderTypes.debugTriangleFan());
     }
 
     private static int toArgb(float[] rgb, float alpha) {

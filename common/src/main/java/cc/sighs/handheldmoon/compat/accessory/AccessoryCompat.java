@@ -8,7 +8,7 @@ import net.minecraft.world.item.ItemStack;
 import java.util.ServiceLoader;
 
 public final class AccessoryCompat {
-    private static final String MOD_ID = "curios";
+    private static final String[] MOD_IDS = {"curios", "trinkets"};
     private static final IAccessoryCompat NOOP = new IAccessoryCompat() {
         @Override
         public boolean isUsingAccessoryFlashlight(Player player) {
@@ -37,7 +37,13 @@ public final class AccessoryCompat {
     }
 
     public static void init() {
-        installed = Platform.isModLoaded(MOD_ID);
+        installed = false;
+        for (String modId : MOD_IDS) {
+            if (Platform.isModLoaded(modId)) {
+                installed = true;
+                break;
+            }
+        }
         if (installed) {
             provider = ServiceLoader.load(IAccessoryCompat.class).findFirst().orElse(NOOP);
             provider.initClient();
