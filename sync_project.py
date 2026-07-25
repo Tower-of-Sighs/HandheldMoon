@@ -15,7 +15,12 @@ from typing import Iterable
 
 
 ROOT = Path(__file__).resolve().parent
-MODULES = ("common", "fabric", "neoforge")
+MODULE_PATHS = {
+    "common": ROOT / "common",
+    "fabric": ROOT / "targets" / "fabric-26.1",
+    "neoforge": ROOT / "targets" / "neoforge-26.1",
+}
+MODULES = tuple(MODULE_PATHS)
 TEXT_SUFFIXES = {
     ".java",
     ".kt",
@@ -562,7 +567,7 @@ def clean_empty_dirs(path: Path, stop: Path) -> None:
 
 
 def ensure_meta_inf() -> None:
-    resources = ROOT / "common" / "src" / "main" / "resources"
+    resources = MODULE_PATHS["common"] / "src" / "main" / "resources"
     meat = resources / "MEAT-INF"
     meta = resources / "META-INF"
     if meat.exists() and not meta.exists():
@@ -573,7 +578,7 @@ def detect_state(default_mod_id: str, default_mod_name: str, default_common_main
     package_name = ""
     fabric_main = ""
 
-    fabric_mod_json = ROOT / "fabric" / "src" / "main" / "resources" / "fabric.mod.json"
+    fabric_mod_json = MODULE_PATHS["fabric"] / "src" / "main" / "resources" / "fabric.mod.json"
     if fabric_mod_json.exists():
         content = read_text(fabric_mod_json)
         match = re.search(r'"main"\s*:\s*\[\s*"([A-Za-z0-9_$.]+)"', content)
@@ -608,7 +613,7 @@ def detect_state(default_mod_id: str, default_mod_name: str, default_common_main
 
 def _detect_any_package() -> str | None:
     for module in MODULES:
-        java_root = ROOT / module / "src" / "main" / "java"
+        java_root = MODULE_PATHS[module] / "src" / "main" / "java"
         if not java_root.exists():
             continue
         for file in java_root.rglob("*.java"):
@@ -625,7 +630,7 @@ def _detect_common_main_and_constants(
     default_mod_name: str,
     default_common_main: str,
 ) -> tuple[str, str, str]:
-    pkg_dir = ROOT / "common" / "src" / "main" / "java" / Path(*package_name.split("."))
+    pkg_dir = MODULE_PATHS["common"] / "src" / "main" / "java" / Path(*package_name.split("."))
     if not pkg_dir.exists():
         return default_common_main, default_mod_id, default_mod_name
 
@@ -653,7 +658,7 @@ def _detect_common_main_and_constants(
 
 
 def _detect_neoforge_main(package_name: str) -> str | None:
-    pkg_dir = ROOT / "neoforge" / "src" / "main" / "java" / Path(*package_name.split("."))
+    pkg_dir = MODULE_PATHS["neoforge"] / "src" / "main" / "java" / Path(*package_name.split("."))
     if not pkg_dir.exists():
         return None
 
@@ -678,7 +683,7 @@ def rename_package_dirs(old_package: str, new_package: str) -> None:
     new_rel = Path(*new_package.split("."))
 
     for module in MODULES:
-        base = ROOT / module / "src" / "main" / "java"
+        base = MODULE_PATHS[module] / "src" / "main" / "java"
         old_dir = base / old_rel
         new_dir = base / new_rel
         if old_dir.exists():
@@ -690,7 +695,7 @@ def rename_main_class_file(module: str, package_name: str, old_name: str, new_na
     if old_name == new_name:
         return
 
-    base = ROOT / module / "src" / "main" / "java" / Path(*package_name.split("."))
+    base = MODULE_PATHS[module] / "src" / "main" / "java" / Path(*package_name.split("."))
     if not base.exists():
         return
 
@@ -707,7 +712,7 @@ def rename_modid_files(old_mod_id: str, new_mod_id: str) -> None:
         return
 
     for module in MODULES:
-        resources_root = ROOT / module / "src" / "main" / "resources"
+        resources_root = MODULE_PATHS[module] / "src" / "main" / "resources"
         if not resources_root.exists():
             continue
 
@@ -726,7 +731,7 @@ def rename_service_filename(old_package: str, new_package: str) -> None:
         return
 
     for module in ("fabric", "neoforge"):
-        services_dir = ROOT / module / "src" / "main" / "resources" / "META-INF" / "services"
+        services_dir = MODULE_PATHS[module] / "src" / "main" / "resources" / "META-INF" / "services"
         if not services_dir.exists():
             continue
 
@@ -742,7 +747,7 @@ def rename_service_filename(old_package: str, new_package: str) -> None:
 
 def iter_text_files() -> Iterable[Path]:
     for module in MODULES:
-        module_root = ROOT / module
+        module_root = MODULE_PATHS[module]
         if not module_root.exists():
             continue
 
@@ -756,7 +761,7 @@ def iter_text_files() -> Iterable[Path]:
 
 
 def update_main_constants(package_name: str, main_class: str, mod_id: str, mod_name: str) -> None:
-    main_path = ROOT / "common" / "src" / "main" / "java" / Path(*package_name.split(".")) / f"{main_class}.java"
+    main_path = MODULE_PATHS["common"] / "src" / "main" / "java" / Path(*package_name.split(".")) / f"{main_class}.java"
     if not main_path.exists():
         return
 
@@ -792,7 +797,7 @@ def rewrite_contents(
         (old_state.neoforge_main, new_neoforge_main),
     ]
 
-    legacy_constants = ROOT / "common" / "src" / "main" / "java" / Path(*new_package.split(".")) / "Constants.java"
+    legacy_constants = MODULE_PATHS["common"] / "src" / "main" / "java" / Path(*new_package.split(".")) / "Constants.java"
     if not legacy_constants.exists() and new_common_main != "Constants":
         replacements[f"{new_package}.Constants"] = f"{new_package}.{new_common_main}"
         simple_name_replacements.append(("Constants", new_common_main))
@@ -954,7 +959,7 @@ def convert_at_line_to_aw(
 
 
 def find_vanilla_sources_jar() -> Path | None:
-    artifact_dir = ROOT / "common" / "build" / "moddev" / "artifacts"
+    artifact_dir = MODULE_PATHS["common"] / "build" / "moddev" / "artifacts"
     if not artifact_dir.exists():
         return None
 
@@ -968,7 +973,7 @@ def find_vanilla_sources_jar() -> Path | None:
 
 def generate_classtweaker(mod_id: str) -> None:
     ensure_meta_inf()
-    resources_root = ROOT / "common" / "src" / "main" / "resources"
+    resources_root = MODULE_PATHS["common"] / "src" / "main" / "resources"
     at_path = resources_root / "META-INF" / "accesstransformer.cfg"
     if not at_path.exists():
         at_path = resources_root / "MEAT-INF" / "accesstransformer.cfg"

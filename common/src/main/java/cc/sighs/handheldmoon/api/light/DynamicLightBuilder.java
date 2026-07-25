@@ -1,43 +1,25 @@
 package cc.sighs.handheldmoon.api.light;
 
 import cc.sighs.handheldmoon.api.light.impl.RayLightConfigImpl;
-import cc.sighs.handheldmoon.api.light.impl.RayLightBehavior;
-
-import java.util.function.BooleanSupplier;
-import java.util.function.Supplier;
-
-import net.minecraft.world.phys.Vec3;
-import org.jetbrains.annotations.ApiStatus;
 
 /**
- * Builder for {@link IRayLightConfig} and its associated
- * {@link RayLightBehavior}.
+ * Builder for immutable dynamic-light configuration.
  * <p>
  * Start with a factory method ({@link #cone()}, {@link #point()},
- * or {@link #area()}), then chain setters, and finally call
- * {@link #build(Supplier, Supplier, BooleanSupplier)} to create a
- * managed light behaviour.
+ * or {@link #area()}), chain setters, and call {@link #buildConfig()}.
  *
  * <pre>{@code
  * // Player flashlight
- * RayLightBehavior light = DynamicLightBuilder.cone()
+ * IRayLightConfig light = DynamicLightBuilder.cone()
  *     .range(24.0).angle(0.5, 0.7)
  *     .luminance(12.0).occlusion(true)
- *     .build(
- *         () -> player.getEyePosition(1.0f),
- *         () -> player.getViewVector(1.0f),
- *         () -> Utils.isUsingFlashlight(player)
- *     );
+ *     .buildConfig();
  *
  * // Block lamp
- * RayLightBehavior lamp = DynamicLightBuilder.cone()
+ * IRayLightConfig lamp = DynamicLightBuilder.cone()
  *     .range(cfg.lightRange()).angle(cfg.innerAngle(), cfg.outerAngle())
  *     .luminance(cfg.luminance()).occlusion(cfg.lightOcclusion())
- *     .build(
- *         () -> pos.getCenter(),
- *         () -> lamp.getViewVec().normalize().scale(-1),
- *         () -> lamp.getPowered()
- *     );
+ *     .buildConfig();
  * }</pre>
  */
 public final class DynamicLightBuilder {
@@ -63,7 +45,6 @@ public final class DynamicLightBuilder {
      * Create a builder for an omni-directional point light.
      * {@code angle()} and {@code innerAngle} / {@code outerAngle} are unused.
      */
-    @ApiStatus.Experimental
     public static DynamicLightBuilder point() {
         return new DynamicLightBuilder(IRayLightConfig.LightType.POINT);
     }
@@ -71,7 +52,6 @@ public final class DynamicLightBuilder {
     /**
      * Create a builder for a directional area light.
      */
-    @ApiStatus.Experimental
     public static DynamicLightBuilder area() {
         return new DynamicLightBuilder(IRayLightConfig.LightType.AREA);
     }
@@ -116,22 +96,4 @@ public final class DynamicLightBuilder {
         return new RayLightConfigImpl(range, innerAngle, outerAngle, luminance, occlusion, type);
     }
 
-    /**
-     * Build a managed {@link RayLightBehavior} that reads position,
-     * direction, and active state from the given suppliers each frame.
-     *
-     * @param position   supplier for the light origin in world space
-     * @param direction  supplier for the normalised light direction
-     * @param active     supplier for whether the light is currently on
-     * @return a new light behaviour (not yet registered with any manager)
-     */
-    public RayLightBehavior build(
-            Supplier<Vec3> position,
-            Supplier<Vec3> direction,
-            BooleanSupplier active
-    ) {
-        return new RayLightBehavior(
-                buildConfig(), position, direction, active
-        );
-    }
 }

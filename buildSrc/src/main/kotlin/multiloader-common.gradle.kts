@@ -2,6 +2,7 @@ import groovy.util.Node
 import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.create
@@ -27,8 +28,12 @@ val neoforge_version: String by project
 val neoforge_loader_version_range: String by project
 val credits: String by project
 
+val archiveTarget = project.name.removePrefix("$mod_name-").let { target ->
+    if (target.endsWith("-$minecraft_version")) target else "$target-$minecraft_version"
+}
+
 base {
-    archivesName.set("$mod_name-${project.name}-$minecraft_version")
+    archivesName.set("$mod_name-$archiveTarget")
 }
 
 java {
@@ -37,8 +42,23 @@ java {
     withJavadocJar()
 }
 
+tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
+}
+
 repositories {
     mavenCentral()
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Fabric"
+                url = uri("https://maven.fabricmc.net")
+            }
+        }
+        filter {
+            includeGroupAndSubgroups("net.fabricmc")
+        }
+    }
     // https://docs.gradle.org/current/userguide/declaring_repositories.html#declaring_content_exclusively_found_in_one_repository
     exclusiveContent {
         forRepository {
@@ -83,16 +103,23 @@ repositories {
     }
 }
 
+val licenseFile = sequenceOf(
+    rootProject.file("LICENSE.md"),
+    rootProject.file("LICENSE"),
+    rootProject.file("../../LICENSE.md"),
+    rootProject.file("../../LICENSE"),
+).firstOrNull { it.isFile }
+
 tasks.named<Jar>("sourcesJar") {
-    from(rootProject.file("LICENSE")) {
+    licenseFile?.let { license -> from(license) {
         rename { "${it}_$mod_name" }
-    }
+    } }
 }
 
 tasks.named<Jar>("jar") {
-    from(rootProject.file("LICENSE")) {
+    licenseFile?.let { license -> from(license) {
         rename { "${it}_$mod_name" }
-    }
+    } }
 
     manifest {
         attributes(

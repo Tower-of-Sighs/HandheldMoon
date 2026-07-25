@@ -1,76 +1,28 @@
-import org.gradle.api.attributes.Attribute
-
 plugins {
-    id("multiloader-common")
-    id("net.neoforged.moddev")
+    `java-library`
 }
 
-val neo_form_version: String by project
-val ldl_version: String by project
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    withSourcesJar()
+    withJavadocJar()
+}
 
-neoForge {
-    neoFormVersion = neo_form_version
+tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
+}
 
-    // Automatically enable AccessTransformers if the file exists
-    val at = file("src/main/resources/META-INF/accesstransformer.cfg")
-    if (at.exists()) {
-        accessTransformers.from(at.absolutePath)
-    }
+repositories {
+    mavenCentral()
 }
 
 dependencies {
-    compileOnly("org.spongepowered:mixin:0.8.5")
-    // fabric and neoforge both bundle mixinextras, so it is safe to use it in common
-    compileOnly("io.github.llamalad7:mixinextras-common:0.3.5")
-    annotationProcessor("io.github.llamalad7:mixinextras-common:0.3.5")
-    compileOnly("cc.sighs.oelib:OELib-common-26.1:0.2.3-dev2")
-    compileOnly("dev.lambdaurora.lambdynamiclights:lambdynamiclights-api:$ldl_version")
-    compileOnly("dev.lambdaurora.lambdynamiclights:lambdynamiclights-runtime:$ldl_version")
-    compileOnly("curse.maven:irisshaders-455508:7867943")
+    testImplementation(platform("org.junit:junit-bom:5.11.4"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-// Whitelist entries control which dependencies are kept/added in generated maven POM.
-// Use listOf(...) when you need to publish selected dependencies, e.g.:
-// extra["mavenDependencyWhitelist"] = listOf(
-//     "org.spongepowered",              // by groupId
-//     "mixin",                          // by artifactId
-//     "io.github.llamalad7:mixinextras-common", // by full coordinate: groupId:artifactId
-// )
-extra["mavenDependencyWhitelist"] = listOf(
-    "cc.sighs.oelib",
-    "dev.lambdaurora.lambdynamiclights"
-)
-
-val commonJava by configurations.creating {
-    isCanBeResolved = false
-    isCanBeConsumed = true
-}
-
-val commonResources by configurations.creating {
-    isCanBeResolved = false
-    isCanBeConsumed = true
-}
-
-artifacts {
-    add("commonJava", sourceSets.main.get().java.sourceDirectories.singleFile)
-    add("commonResources", sourceSets.main.get().resources.sourceDirectories.singleFile)
-}
-
-// Implement mcgradleconventions loader attribute
-val loaderAttribute = Attribute.of("io.github.mcgradleconventions.loader", String::class.java)
-listOf("apiElements", "runtimeElements", "sourcesElements", "javadocElements").forEach { variant ->
-    configurations.named(variant) {
-        attributes {
-            attribute(loaderAttribute, "common")
-        }
-    }
-}
-sourceSets.configureEach {
-    listOf(compileClasspathConfigurationName, runtimeClasspathConfigurationName).forEach { variant ->
-        configurations.named(variant) {
-            attributes {
-                attribute(loaderAttribute, "common")
-            }
-        }
-    }
+tasks.test {
+    useJUnitPlatform()
 }

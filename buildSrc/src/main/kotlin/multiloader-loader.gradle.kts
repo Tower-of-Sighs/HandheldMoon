@@ -1,54 +1,31 @@
-import org.gradle.api.attributes.Attribute
-import org.gradle.api.tasks.compile.JavaCompile
-import org.gradle.api.tasks.javadoc.Javadoc
+import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.jvm.tasks.Jar
-import org.gradle.kotlin.dsl.creating
+import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.named
-import org.gradle.language.jvm.tasks.ProcessResources
 
 plugins {
     id("multiloader-common")
 }
 
-val commonJava by configurations.creating {
-    isCanBeResolved = true
-    isCanBeConsumed = false
-}
-
-val commonResources by configurations.creating {
-    isCanBeResolved = true
-    isCanBeConsumed = false
-}
+val commonProject = project(":common")
+val loaderProject = project
 
 dependencies {
-    compileOnly(project(":common")) {
-        val loaderAttribute = Attribute.of("io.github.mcgradleconventions.loader", String::class.java)
-        attributes {
-            attribute(loaderAttribute, "common")
-        }
+    implementation(commonProject)
+}
+
+val loaderSourceSets = extensions.getByType<SourceSetContainer>()
+loaderSourceSets.named("main") {
+    resources.srcDir(commonProject.file("src/main/resources"))
+}
+
+commonProject.afterEvaluate {
+    val commonSourceSets = extensions.getByType<SourceSetContainer>()
+    loaderProject.tasks.named<Jar>("jar") {
+        dependsOn(commonProject.tasks.named("classes"))
+        from(commonSourceSets.named("main").map { it.output.classesDirs })
     }
-    add("commonJava", project(mapOf("path" to ":common", "configuration" to "commonJava")))
-    add("commonResources", project(mapOf("path" to ":common", "configuration" to "commonResources")))
-}
-
-tasks.named<JavaCompile>("compileJava") {
-    dependsOn(commonJava)
-    source(commonJava)
-}
-
-tasks.named<ProcessResources>("processResources") {
-    dependsOn(commonResources)
-    from(commonResources)
-}
-
-tasks.named<Javadoc>("javadoc") {
-    dependsOn(commonJava)
-    source(commonJava)
-}
-
-tasks.named<Jar>("sourcesJar") {
-    dependsOn(commonJava)
-    from(commonJava)
-    dependsOn(commonResources)
-    from(commonResources)
+    loaderProject.tasks.named<Jar>("sourcesJar") {
+        from(commonSourceSets.named("main").map { it.java })
+    }
 }

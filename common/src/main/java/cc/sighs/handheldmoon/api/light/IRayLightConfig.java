@@ -1,7 +1,5 @@
 package cc.sighs.handheldmoon.api.light;
 
-import org.jetbrains.annotations.ApiStatus;
-
 /**
  * Configuration for a dynamic ray light source.
  * <p>
@@ -51,10 +49,8 @@ public interface IRayLightConfig {
         /** Directional cone (flashlight, lamp). */
         CONE,
         /** Omni-directional point light. */
-        @ApiStatus.Experimental
         POINT,
         /** Directional area light. */
-        @ApiStatus.Experimental
         AREA
     }
 }

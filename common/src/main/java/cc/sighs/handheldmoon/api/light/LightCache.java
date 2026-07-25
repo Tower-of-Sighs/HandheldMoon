@@ -23,7 +23,7 @@ public interface LightCache {
     /**
      * Retrieve a cached light value or compute and store it.
      *
-     * @param blockPosKey  {@link net.minecraft.core.BlockPos#asLong()} of the query position
+     * @param blockPosKey  stable packed key of the query position
      * @param computer     supplier to compute the value on cache miss
      * @return the light value for the given position
      */

@@ -28,7 +28,7 @@ public final class ColorUtils {
 
     public static float[] colorAt(List<float[]> stops, float t) {
         if (stops.isEmpty()) return new float[]{1.0f, 1.0f, 1.0f};
-        if (stops.size() == 1) return stops.getFirst();
+        if (stops.size() == 1) return stops.get(0);
         float tt = Math.max(0.0f, Math.min(1.0f, t));
         float pos = tt * (stops.size() - 1);
         int i0 = (int) Math.floor(pos);

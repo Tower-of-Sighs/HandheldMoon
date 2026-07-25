@@ -12,6 +12,7 @@
 
 # Package Files #
 *.jar
+!**/gradle/wrapper/gradle-wrapper.jar
 *.war
 *.nar
 *.ear
@@ -25,6 +26,9 @@ replay_pid*
 
 .gradle
 .idea
+.tmp/
 build
 run
 runs
+out
+*.iml

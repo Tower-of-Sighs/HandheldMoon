@@ -1,0 +1,13 @@
+accessWidener v2 official
+# Generated from common/src/main/resources/META-INF/accesstransformer.cfg
+# Only Minecraft vanilla (net.minecraft.*) access widening is auto-converted.
+# For non-vanilla entries or unsupported directives, handle manually.
+# Descriptor inference source: common\build\moddev\artifacts\vanilla-26.1-1-sources.jar
+
+accessible field net/minecraft/client/renderer/PostChain passes Ljava/util/List;
+accessible field net/minecraft/client/renderer/item/properties/conditional/ConditionalItemModelProperties ID_MAPPER Lnet/minecraft/util/ExtraCodecs$LateBoundIdMapper;
+accessible class net/minecraft/world/item/CreativeModeTab$Output
+accessible class net/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier
+accessible method net/minecraft/world/level/block/entity/BlockEntityType <init> (Lnet/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier;Ljava/util/Set;)V
+accessible field net/minecraft/client/renderer/RenderPipelines MATRICES_PROJECTION_SNIPPET Lcom/mojang/blaze3d/pipeline/RenderPipeline$Snippet;
+accessible method net/minecraft/client/renderer/rendertype/RenderType create (Ljava/lang/String;Lnet/minecraft/client/renderer/rendertype/RenderSetup;)Lnet/minecraft/client/renderer/rendertype/RenderType;

@@ -3,6 +3,7 @@ package cc.sighs.handheldmoon.api.raycone;
 import cc.sighs.handheldmoon.api.raycone.impl.RayConeConfigImpl;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -233,8 +234,8 @@ public final class RayConeBuilder {
     /** Build the immutable configuration. */
     public IRayConeConfig build() {
         List<float[]> stops = colorStops.isEmpty()
-                ? List.of(new float[]{1, 1, 1})
-                : List.copyOf(colorStops);
+                ? Collections.singletonList(new float[]{1, 1, 1})
+                : Collections.unmodifiableList(new ArrayList<>(colorStops));
         int count = Math.min(sizeScales.size(), Math.min(centerAlphas.size(), edgeAlphas.size()));
         float[] ss = new float[count];
         float[] ca = new float[count];
@@ -260,7 +261,7 @@ public final class RayConeBuilder {
     // ---- internal helpers ----
 
     static float[] parseHexColor(String s) {
-        if (s == null || s.isBlank()) return new float[]{1, 1, 1};
+        if (s == null || s.trim().isEmpty()) return new float[]{1, 1, 1};
         String t = s.trim();
         if (t.startsWith("#")) t = t.substring(1);
         if (t.length() == 6) t = "FF" + t;
@@ -276,9 +277,25 @@ public final class RayConeBuilder {
         }
     }
 
-    private record FogConfigImpl(
-            boolean enabled, double sizeScale, double centerAlpha,
-            double edgeAlpha, float[] color
-    ) implements IRayConeConfig.FogConfig {
+    private static final class FogConfigImpl implements IRayConeConfig.FogConfig {
+        private final boolean enabled;
+        private final double sizeScale;
+        private final double centerAlpha;
+        private final double edgeAlpha;
+        private final float[] color;
+
+        private FogConfigImpl(boolean enabled, double sizeScale, double centerAlpha, double edgeAlpha, float[] color) {
+            this.enabled = enabled;
+            this.sizeScale = sizeScale;
+            this.centerAlpha = centerAlpha;
+            this.edgeAlpha = edgeAlpha;
+            this.color = color;
+        }
+
+        @Override public boolean enabled() { return enabled; }
+        @Override public double sizeScale() { return sizeScale; }
+        @Override public double centerAlpha() { return centerAlpha; }
+        @Override public double edgeAlpha() { return edgeAlpha; }
+        @Override public float[] color() { return color; }
     }
 }

@@ -3,14 +3,33 @@ plugins {
     id("net.fabricmc.fabric-loom") version "1.15-SNAPSHOT" apply false
     // see https://projects.neoforged.net/neoforged/moddevgradle for new versions
     id("net.neoforged.moddev") version "2.0.141" apply false
-    id("com.modrinth.minotaur") version "2.+" apply false
+    id("com.modrinth.minotaur") version "2.9.0" apply false
     id("net.darkhax.curseforgegradle") version "1.1.24" apply false
 }
 
-tasks.register("publishLoaderReleases") {
-    group = "publishing"
-    description = "Publish Fabric and NeoForge artifacts to configured platforms."
-    dependsOn(":fabric:publishToPlatformServices", ":neoforge:publishToPlatformServices")
+val targetBuilds = mapOf(
+    "fabric-26.1" to "buildFabric261",
+    "neoforge-1.21.1" to "buildNeoForge1211",
+    "neoforge-26.1" to "buildNeoForge261",
+)
+
+targetBuilds.forEach { (target, taskName) ->
+    tasks.register<Exec>(taskName) {
+        group = "build"
+        description = "Build $target in its independent Gradle project."
+        workingDir(rootDir.resolve("targets/$target"))
+        if (System.getProperty("os.name").lowercase().contains("windows")) {
+            commandLine("cmd", "/c", "gradlew.bat", "build", "--console", "plain", "--no-daemon")
+        } else {
+            commandLine("./gradlew", "build", "--console", "plain", "--no-daemon")
+        }
+    }
+}
+
+tasks.register("buildCommon") {
+    group = "build"
+    description = "Build the shared common project only."
+    dependsOn(":common:build")
 }
 
 tasks.register<Exec>("syncProjectFromProperties") {

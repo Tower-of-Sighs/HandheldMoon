@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "cc.sighs.handheldmoon.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "cc.sighs.handheldmoon.compat.tacz.ModMixinPlugin",
+  "mixins": [
+    "lamb.DynamicLightingEngineMixin",
+    "lamb.LambDynLightsMixin",
+    "lamb.SpatialLookupDeferredEntryMixin"
+  ],
+  "client": [
+    "client.EntityRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
