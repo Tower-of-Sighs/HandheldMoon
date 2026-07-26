@@ -3,12 +3,13 @@ package cc.sighs.handheldmoon.block;
 import cc.sighs.handheldmoon.config.FullMoonDeviceConfig;
 import cc.sighs.handheldmoon.registry.ModDataComponent;
 import com.mojang.serialization.MapCodec;
-import cc.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.LootParams;
@@ -24,22 +25,6 @@ public class FullMoonBlock extends BaseEntityBlock {
     @Override
     protected MapCodec<? extends BaseEntityBlock> codec() {
         return simpleCodec(props -> new FullMoonBlock());
-    }
-
-    @Override
-    public void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean isMoving) {
-        super.onPlace(state, level, pos, oldState, isMoving);
-        if (level.isClientSide) {
-            HandheldMoonDynamicLightsInitializer.ensureFullMoonBehaviorAt(pos);
-        }
-    }
-
-    @Override
-    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
-        if (level.isClientSide) {
-            HandheldMoonDynamicLightsInitializer.removeFullMoonBehaviorAt(pos);
-        }
-        super.onRemove(state, level, pos, newState, isMoving);
     }
 
     @Override
@@ -64,5 +49,17 @@ public class FullMoonBlock extends BaseEntityBlock {
             FullMoonDeviceConfig config = stack.get(ModDataComponent.FULL_MOON_CONFIG);
             moon.setFullMoonConfig(config != null ? config : FullMoonDeviceConfig.fromGlobalConfig(), config != null);
         }
+    }
+
+    @Override
+    public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(
+            Level level, BlockState state, BlockEntityType<T> blockEntityType
+    ) {
+        if (level.isClientSide) return null;
+        return (tickerLevel, pos, tickerState, blockEntity) -> {
+            if (blockEntity instanceof FullMoonBlockEntity moon) {
+                moon.serverTick();
+            }
+        };
     }
 }

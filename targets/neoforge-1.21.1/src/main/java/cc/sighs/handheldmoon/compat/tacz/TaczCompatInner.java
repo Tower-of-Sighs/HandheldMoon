@@ -9,34 +9,39 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 public class TaczCompatInner {
+    private static final ResourceLocation MOONLIGHT_LASER = ResourceLocation.fromNamespaceAndPath("handheldmoon", "handheldmoon_laser");
+    private static final ResourceLocation MOONLIGHT_MUZZLE = ResourceLocation.fromNamespaceAndPath("handheldmoon", "handheldmoon_muzzle");
 
     public static boolean isUsingAttachmentFlashlight(Player player) {
-        return isLampAttachment(player.getMainHandItem());
+        return isLampAttachment(player.getMainHandItem()) || isLampAttachment(player.getOffhandItem());
     }
 
     public static void toggleAttachmentFlashlight(Player player) {
-        var mainHand = player.getMainHandItem();
-        if (mainHand.isEmpty()) return;
-
-        var iGun = IGun.getIGunOrNull(mainHand);
-        if (iGun == null) return;
-
-        if (!hasMoonlightAttachment(mainHand, iGun)) return;
-
-        boolean currentlyOn = mainHand.getOrDefault(TaczCompat.POWERED__TACZ, false);
-        mainHand.set(TaczCompat.POWERED__TACZ, !currentlyOn);
-        if (player.level().isClientSide) {
+        boolean changed = toggleAttachment(player.getMainHandItem())
+                | toggleAttachment(player.getOffhandItem());
+        if (changed && player.level().isClientSide) {
             PacketDistributor.sendToServer(new ServerToggleAttachmentLampPacket());
         }
     }
 
+    private static boolean toggleAttachment(ItemStack gunStack) {
+        if (!hasMoonlightAttachment(gunStack)) return false;
+        boolean currentlyOn = gunStack.getOrDefault(TaczCompat.POWERED__TACZ, false);
+        gunStack.set(TaczCompat.POWERED__TACZ, !currentlyOn);
+        return true;
+    }
+
+    public static boolean hasMoonlightAttachment(ItemStack gunStack) {
+        if (gunStack.isEmpty()) return false;
+        var iGun = IGun.getIGunOrNull(gunStack);
+        return iGun != null && hasMoonlightAttachment(gunStack, iGun);
+    }
 
     public static boolean hasMoonlightAttachment(ItemStack gunStack, IGun iGun) {
         var laser = iGun.getAttachmentId(gunStack, AttachmentType.LASER);
         var muzzle = iGun.getAttachmentId(gunStack, AttachmentType.MUZZLE);
 
-        return laser.equals(ResourceLocation.parse("handheldmoon:handheldmoon_laser")) ||
-                muzzle.equals(ResourceLocation.parse("handheldmoon:handheldmoon_muzzle"));
+        return MOONLIGHT_LASER.equals(laser) || MOONLIGHT_MUZZLE.equals(muzzle);
     }
 
     public static boolean isLampAttachment(ItemStack itemStack) {

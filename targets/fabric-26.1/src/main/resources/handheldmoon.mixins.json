@@ -5,7 +5,9 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [],
   "client": [
-    "client.EntityRendererMixin"
+    "client.EntityRendererMixin",
+    "dynamiclight.DynamicLightBrightnessGetterMixin",
+    "dynamiclight.DynamicLightEntityRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

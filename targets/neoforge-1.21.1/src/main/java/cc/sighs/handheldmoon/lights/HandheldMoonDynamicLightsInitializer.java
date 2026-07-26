@@ -1,153 +1,71 @@
 package cc.sighs.handheldmoon.lights;
 
-import cc.sighs.handheldmoon.block.FullMoonBlockEntity;
-import cc.sighs.handheldmoon.block.MoonlightLampBlockEntity;
+import cc.sighs.handheldmoon.dynamiclight.DynamicLightManager;
 import cc.sighs.handheldmoon.entity.FullMoonEntity;
 import cc.sighs.handheldmoon.registry.Config;
-import cc.sighs.handheldmoon.util.Utils;
-import dev.lambdaurora.lambdynlights.api.DynamicLightsContext;
-import dev.lambdaurora.lambdynlights.api.DynamicLightsInitializer;
-import dev.lambdaurora.lambdynlights.api.behavior.DynamicLightBehaviorManager;
-import dev.lambdaurora.lambdynlights.api.item.ItemLightSourceManager;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.Entity;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
-public class HandheldMoonDynamicLightsInitializer implements DynamicLightsInitializer {
-    private static DynamicLightBehaviorManager MANAGER;
-    private static final Map<BlockPos, MoonLampLineLightBehavior> LAMP_BEHAVIORS = new HashMap<>();
-    private static final Map<UUID, PlayerFlashlightLineLightBehavior> PLAYER_BEHAVIORS = new HashMap<>();
+/** Keeps the client-side dynamic-light manager synchronized with entity state. */
+public final class HandheldMoonDynamicLightsInitializer {
     private static final Map<UUID, FullMoonEntityLightBehavior> FULL_MOON_ENTITY_BEHAVIORS = new HashMap<>();
 
-    public static Set<BlockPos> getActiveLampPositions() {
-        return new HashSet<>(LAMP_BEHAVIORS.keySet());
+    private HandheldMoonDynamicLightsInitializer() {
     }
 
-    private static final Map<BlockPos, FullMoonBlockBehavior> FULL_MOON_BEHAVIORS = new HashMap<>();
-
-    @Override
-    public void onInitializeDynamicLights(DynamicLightsContext context) {
-        MANAGER = context.dynamicLightBehaviorManager();
-    }
-
-    @SuppressWarnings({"removal", "UnstableApiUsage"})
-    @Override
-    public void onInitializeDynamicLights(ItemLightSourceManager itemLightSourceManager) {
-
-    }
-
-    public static void syncLampBehavior(MoonlightLampBlockEntity lamp) {
-        if (MANAGER == null) return;
-        if (!Config.REAL_LIGHT.get()) return;
-        var pos = lamp.getBlockPos();
-        var existing = LAMP_BEHAVIORS.get(pos);
-        if (lamp.getPowered()) {
-            if (existing == null) {
-                MoonLampLineLightBehavior behavior = new MoonLampLineLightBehavior(pos);
-                LAMP_BEHAVIORS.put(pos, behavior);
-                MANAGER.add(behavior);
-                behavior.hasChanged();
-            }
-        } else {
-            if (existing != null) {
-                MANAGER.remove(existing);
-                LAMP_BEHAVIORS.remove(pos);
-            }
-        }
+    public static void reset() {
+        FULL_MOON_ENTITY_BEHAVIORS.values().forEach(DynamicLightManager::remove);
+        FULL_MOON_ENTITY_BEHAVIORS.clear();
+        EntityDynamicLightTracker.reset();
     }
 
     public static void updatePlayerBehaviors() {
-        if (MANAGER == null) return;
-        var mc = Minecraft.getInstance();
-        if (mc.level == null) return;
-        if (!Config.REAL_LIGHT.get()) return;
-        for (Player p : mc.level.players()) {
-            var id = p.getUUID();
-            var existing = PLAYER_BEHAVIORS.get(id);
-            boolean on = Utils.isUsingFlashlight(p);
-            if (on) {
-                if (existing == null) {
-                    PlayerFlashlightLineLightBehavior b = new PlayerFlashlightLineLightBehavior(p);
-                    PLAYER_BEHAVIORS.put(id, b);
-                    MANAGER.add(b);
-                }
-            } else {
-                if (existing != null) {
-                    MANAGER.remove(existing);
-                    PLAYER_BEHAVIORS.remove(id);
-                }
-            }
-        }
+        EntityDynamicLightTracker.updatePlayerBehaviors();
     }
 
     public static void updateFullMoonEntityBehaviors() {
-        if (MANAGER == null) return;
-        var mc = Minecraft.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
-        if (!Config.REAL_LIGHT.get()) return;
+        if (!Config.REAL_LIGHT.get()) {
+            FULL_MOON_ENTITY_BEHAVIORS.values().forEach(DynamicLightManager::remove);
+            FULL_MOON_ENTITY_BEHAVIORS.clear();
+            return;
+        }
 
         Set<UUID> seen = new HashSet<>();
-        for (var entity : mc.level.entitiesForRendering()) {
-            if (!(entity instanceof FullMoonEntity fullMoon) || !fullMoon.isLampBound()) continue;
+        for (Entity entity : mc.level.entitiesForRendering()) {
+            if (!(entity instanceof FullMoonEntity fullMoon) || fullMoon.getAnchorPos() == null) continue;
             UUID id = fullMoon.getUUID();
             seen.add(id);
             if (!FULL_MOON_ENTITY_BEHAVIORS.containsKey(id)) {
                 FullMoonEntityLightBehavior behavior = new FullMoonEntityLightBehavior(fullMoon);
                 FULL_MOON_ENTITY_BEHAVIORS.put(id, behavior);
-                MANAGER.add(behavior);
+                DynamicLightManager.add(behavior);
             }
         }
+        removeUnseen(FULL_MOON_ENTITY_BEHAVIORS, seen);
+    }
 
-        Iterator<Map.Entry<UUID, FullMoonEntityLightBehavior>> iterator = FULL_MOON_ENTITY_BEHAVIORS.entrySet().iterator();
+    public static void updateItemBehaviors() {
+        EntityDynamicLightTracker.updateItemBehaviors();
+    }
+
+    private static <T> void removeUnseen(Map<UUID, T> behaviors, Set<UUID> seen) {
+        Iterator<Map.Entry<UUID, T>> iterator = behaviors.entrySet().iterator();
         while (iterator.hasNext()) {
-            Map.Entry<UUID, FullMoonEntityLightBehavior> entry = iterator.next();
+            Map.Entry<UUID, T> entry = iterator.next();
             if (seen.contains(entry.getKey())) continue;
-            MANAGER.remove(entry.getValue());
+            if (entry.getValue() instanceof cc.sighs.handheldmoon.dynamiclight.DynamicLightBehavior behavior) {
+                DynamicLightManager.remove(behavior);
+            }
             iterator.remove();
-        }
-    }
-
-    public static void addFullMoonBehavior(FullMoonBlockEntity moon) {
-        if (MANAGER == null) return;
-        var pos = moon.getBlockPos();
-        var existing = FULL_MOON_BEHAVIORS.get(pos);
-
-        if (existing == null) {
-            FullMoonBlockBehavior b = new FullMoonBlockBehavior(pos);
-            FULL_MOON_BEHAVIORS.put(pos, b);
-            MANAGER.add(b);
-        }
-    }
-
-    public static void ensureFullMoonBehaviorAt(BlockPos pos) {
-        if (MANAGER == null) return;
-        var existing = FULL_MOON_BEHAVIORS.get(pos);
-        if (existing == null) {
-            FullMoonBlockBehavior b = new FullMoonBlockBehavior(pos);
-            FULL_MOON_BEHAVIORS.put(pos, b);
-            MANAGER.add(b);
-        }
-    }
-
-    public static void removeFullMoonBehavior(FullMoonBlockEntity moon) {
-        if (MANAGER == null) return;
-        var pos = moon.getBlockPos();
-        var existing = FULL_MOON_BEHAVIORS.get(pos);
-
-        if (existing != null) {
-            MANAGER.remove(existing);
-            FULL_MOON_BEHAVIORS.remove(pos);
-        }
-    }
-
-    public static void removeFullMoonBehaviorAt(BlockPos pos) {
-        if (MANAGER == null) return;
-        var existing = FULL_MOON_BEHAVIORS.get(pos);
-        if (existing != null) {
-            MANAGER.remove(existing);
-            FULL_MOON_BEHAVIORS.remove(pos);
         }
     }
 }

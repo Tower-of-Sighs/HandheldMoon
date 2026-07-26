@@ -3,13 +3,13 @@ package cc.sighs.handheldmoon.block;
 import cc.sighs.handheldmoon.entity.FullMoonEntity;
 import cc.sighs.handheldmoon.config.DeviceConfigCodecs;
 import cc.sighs.handheldmoon.config.FullMoonDeviceConfig;
-import cc.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import cc.sighs.handheldmoon.registry.ModBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -32,7 +32,6 @@ public class FullMoonBlockEntity extends BlockEntity {
 
     public FullMoonBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.FULL_MOON.get(), pos, state);
-        this.uuid = UUID.randomUUID();
     }
 
     public FullMoonDeviceConfig getFullMoonConfig() {
@@ -47,12 +46,8 @@ public class FullMoonBlockEntity extends BlockEntity {
         this.fullMoonConfig = config;
         this.fullMoonConfigCustomized = customized;
         setChanged();
-        if (level != null) {
-            if (level.isClientSide) {
-                HandheldMoonDynamicLightsInitializer.addFullMoonBehavior(this);
-            } else {
-                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
-            }
+        if (level != null && !level.isClientSide) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
         }
     }
 
@@ -60,36 +55,24 @@ public class FullMoonBlockEntity extends BlockEntity {
     public void setLevel(Level level) {
         super.setLevel(level);
 
-        if (level.isClientSide) {
-            HandheldMoonDynamicLightsInitializer.addFullMoonBehavior(this);
-        }
-
         if (!level.isClientSide) {
-            BlockPos pos = getBlockPos();
-            AABB box = new AABB(
-                    pos.getX() + 0.5 - 0.25, pos.getY() + 0.5 - 0.25, pos.getZ() + 0.5 - 0.25,
-                    pos.getX() + 0.5 + 0.25, pos.getY() + 0.5 + 0.25, pos.getZ() + 0.5 + 0.25
-            );
-            if (level.getEntitiesOfClass(FullMoonEntity.class, box).isEmpty()) {
-                FullMoonEntity entity = new FullMoonEntity(level);
-                entity.setPos(pos.getX() + 0.5, pos.getY() + 0.4, pos.getZ() + 0.5);
-                entity.setAnchor(pos);
-                level.addFreshEntity(entity);
-            }
+            ensureBoundEntity();
         }
     }
 
-    @Override
-    public void setRemoved() {
-        super.setRemoved();
-
-        HandheldMoonDynamicLightsInitializer.removeFullMoonBehavior(this);
+    public void serverTick() {
+        FullMoonEntity entity = ensureBoundEntity();
+        if (entity != null) {
+            entity.setAnchor(getBlockPos());
+        }
     }
 
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider provider) {
         super.saveAdditional(tag, provider);
-        tag.putUUID("uuid", uuid);
+        if (uuid != null) {
+            tag.putUUID("uuid", uuid);
+        }
         tag.putBoolean("fullMoonConfigCustomized", fullMoonConfigCustomized);
         DeviceConfigCodecs.FULL_MOON.encodeStart(NbtOps.INSTANCE, fullMoonConfig)
                 .result()
@@ -99,7 +82,7 @@ public class FullMoonBlockEntity extends BlockEntity {
     @Override
     public void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {
         super.loadAdditional(tag, provider);
-        uuid = tag.getUUID("uuid");
+        uuid = tag.hasUUID("uuid") ? tag.getUUID("uuid") : null;
         fullMoonConfigCustomized = tag.getBoolean("fullMoonConfigCustomized");
         if (tag.contains("fullMoonConfig")) {
             DeviceConfigCodecs.FULL_MOON.parse(NbtOps.INSTANCE, tag.get("fullMoonConfig"))
@@ -118,5 +101,41 @@ public class FullMoonBlockEntity extends BlockEntity {
         CompoundTag tag = new CompoundTag();
         saveAdditional(tag, provider);
         return tag;
+    }
+
+    private FullMoonEntity ensureBoundEntity() {
+        if (!(level instanceof ServerLevel serverLevel)) return null;
+        if (uuid != null && serverLevel.getEntity(uuid) instanceof FullMoonEntity entity && !entity.isLampBound()) {
+            return entity;
+        }
+
+        FullMoonEntity nearby = findNearbyBoundEntity();
+        if (nearby != null) {
+            uuid = nearby.getUUID();
+            setChanged();
+            return nearby;
+        }
+
+        FullMoonEntity entity = new FullMoonEntity(serverLevel);
+        entity.setAnchor(getBlockPos());
+        serverLevel.addFreshEntity(entity);
+        uuid = entity.getUUID();
+        setChanged();
+        return entity;
+    }
+
+    private FullMoonEntity findNearbyBoundEntity() {
+        if (level == null) return null;
+        BlockPos pos = getBlockPos();
+        AABB box = new AABB(
+                pos.getX() + 0.5 - 0.25, pos.getY() + 0.4 - 0.25, pos.getZ() + 0.5 - 0.25,
+                pos.getX() + 0.5 + 0.25, pos.getY() + 0.4 + 0.25, pos.getZ() + 0.5 + 0.25
+        );
+        for (FullMoonEntity entity : level.getEntitiesOfClass(FullMoonEntity.class, box)) {
+            if (!entity.isLampBound() && pos.equals(entity.getAnchorPos())) {
+                return entity;
+            }
+        }
+        return null;
     }
 }

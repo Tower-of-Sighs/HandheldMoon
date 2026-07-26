@@ -1,111 +1,100 @@
 package cc.sighs.handheldmoon.lights;
 
+import cc.sighs.handheldmoon.api.light.DynamicLightBuilder;
+import cc.sighs.handheldmoon.api.light.impl.RayLightBehavior;
+import cc.sighs.handheldmoon.config.FullMoonDeviceConfig;
+import cc.sighs.handheldmoon.config.LampDeviceConfig;
+import cc.sighs.handheldmoon.dynamiclight.DynamicLightBehavior;
+import cc.sighs.handheldmoon.dynamiclight.DynamicLightDefaults;
 import cc.sighs.handheldmoon.entity.FullMoonEntity;
-import cc.sighs.handheldmoon.registry.Config;
-import cc.sighs.handheldmoon.util.LineLightMath;
-import dev.lambdaurora.lambdynlights.api.behavior.DynamicLightBehavior;
-import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 
-public class FullMoonEntityLightBehavior implements DynamicLightBehavior {
+/**
+ * Entity-backed light for both placed full moons and placed moonlight lamps.
+ * The entity carries the projected world position, so physicalized blocks do
+ * not leave a second light behind at their local block coordinates.
+ */
+public final class FullMoonEntityLightBehavior implements DynamicLightBehavior {
     private final FullMoonEntity entity;
-    private static final double RANGE = 32.0;
-    private static final double INNER = 0.5;
-    private static final double OUTER = 0.7;
-    private static final double LUMINANCE_THRESHOLD = 0.5;
-    private Vec3 lastPos;
-    private int lastLuminance;
-    private float lastXRot;
-    private float lastYRot;
-    private double sX, sY, sZ;
-    private double dX, dY, dZ;
+    private RayLightBehavior delegate;
+    private boolean lastLampBound;
+    private int lastLampLuminance;
+    private Object lastDeviceConfig;
 
     public FullMoonEntityLightBehavior(FullMoonEntity entity) {
         this.entity = entity;
-        this.lastPos = entity.position();
-        this.lastLuminance = entity.getLampLuminance();
-        this.lastXRot = entity.getLampXRot();
-        this.lastYRot = entity.getLampYRot();
-        refreshState();
+        refreshDelegate();
     }
 
     @Override
-    public double lightAtPos(BlockPos query, double falloffRatio) {
-        int luminance = entity.getLampLuminance();
-        if (luminance <= 0) return 0.0;
-        if (Config.LIGHT_OCCLUSION.get()) {
-            return LineLightMath.computeLightOccluded(
-                    entity.level(),
-                    sX, sY, sZ,
-                    dX, dY, dZ,
-                    luminance,
-                    query,
-                    RANGE, INNER, OUTER
-            );
-        }
-        return LineLightMath.computeLight(
-                sX, sY, sZ,
-                dX, dY, dZ,
-                luminance,
-                query,
-                RANGE, INNER, OUTER
-        );
+    public double lightAt(int blockX, int blockY, int blockZ, double falloffRatio) {
+        return delegate.lightAt(blockX, blockY, blockZ, falloffRatio);
     }
 
     @Override
-    public BoundingBox getBoundingBox() {
-        double eff = LineLightMath.effectiveRange(entity.getLampLuminance(), RANGE, LUMINANCE_THRESHOLD);
-        double ex = sX + dX * eff;
-        double ey = sY + dY * eff;
-        double ez = sZ + dZ * eff;
-        double r = LineLightMath.conePadding(eff, OUTER, 1.0, 12.0);
-        int minX = Mth.floor(Math.min(sX, ex) - r);
-        int minY = Mth.floor(Math.min(sY, ey) - r);
-        int minZ = Mth.floor(Math.min(sZ, ez) - r);
-        int maxX = Mth.floor(Math.max(sX, ex) + r);
-        int maxY = Mth.floor(Math.max(sY, ey) + r);
-        int maxZ = Mth.floor(Math.max(sZ, ez) + r);
-        return new BoundingBox(minX, minY, minZ, maxX, maxY, maxZ);
+    public Bounds getBounds() {
+        return delegate.getBounds();
     }
 
     @Override
     public boolean hasChanged() {
-        Vec3 pos = entity.position();
-        int luminance = entity.getLampLuminance();
-        float xRot = entity.getLampXRot();
-        float yRot = entity.getLampYRot();
-        boolean changed = entity.isRemoved()
-                || pos.distanceToSqr(lastPos) > 1.0E-4
-                || luminance != lastLuminance
-                || Math.abs(xRot - lastXRot) > 0.01f
-                || Math.abs(yRot - lastYRot) > 0.01f;
-        if (changed) {
-            refreshState();
+        boolean lampBound = entity.isLampBound();
+        int lampLuminance = entity.getLampLuminance();
+        Object deviceConfig = currentDeviceConfig();
+        if (lampBound != lastLampBound
+                || lampLuminance != lastLampLuminance
+                || !deviceConfig.equals(lastDeviceConfig)) {
+            refreshDelegate();
+            return true;
         }
-        lastPos = pos;
-        lastLuminance = luminance;
-        lastXRot = xRot;
-        lastYRot = yRot;
-        return changed;
+        return delegate.hasChanged();
     }
 
     @Override
     public boolean isRemoved() {
-        return entity.isRemoved() || !entity.isLampBound();
+        return entity.isRemoved() || entity.getAnchorPos() == null;
     }
 
-    private void refreshState() {
-        Vec3 pos = entity.position();
-        sX = pos.x;
-        sY = pos.y;
-        sZ = pos.z;
+    private void refreshDelegate() {
+        lastLampBound = entity.isLampBound();
+        lastLampLuminance = entity.getLampLuminance();
+        lastDeviceConfig = currentDeviceConfig();
+        delegate = lastLampBound ? createLampDelegate((LampDeviceConfig) lastDeviceConfig)
+                : createFullMoonDelegate((FullMoonDeviceConfig) lastDeviceConfig);
+    }
 
-        float yaw = entity.getLampYRot();
-        float pitch = entity.getLampXRot() - 90.0f;
-        Vec3 direction = LineLightMath.computeDirection(yaw, pitch, true);
-        dX = -direction.x;
-        dY = -direction.y;
-        dZ = -direction.z;
+    private Object currentDeviceConfig() {
+        return entity.isLampBound() ? entity.getLampConfig() : entity.getFullMoonConfig();
+    }
+
+    private RayLightBehavior createLampDelegate(LampDeviceConfig config) {
+        double outerAngle = config.lightAngle() * 0.5 * Mth.DEG_TO_RAD;
+        double innerAngle = outerAngle * 0.7;
+        double luminance = entity.getLampLuminance() > 0 ? config.realLightLuminance() : 0.0;
+        return new RayLightBehavior(
+                DynamicLightBuilder.cone()
+                        .range(DynamicLightDefaults.FLASHLIGHT_RANGE)
+                        .angle(innerAngle, outerAngle)
+                        .luminance(luminance)
+                        .occlusion(config.lightOcclusion())
+                        .buildConfig(),
+                entity::position,
+                entity::getLampDirection,
+                () -> config.realLight() && entity.getLampLuminance() > 0
+        );
+    }
+
+    private RayLightBehavior createFullMoonDelegate(FullMoonDeviceConfig config) {
+        return new RayLightBehavior(
+                DynamicLightBuilder.point()
+                        .range(18.0)
+                        .luminance(config.realLightLuminance())
+                        .occlusion(config.lightOcclusion())
+                        .buildConfig(),
+                entity::position,
+                () -> Vec3.ZERO,
+                config::realLight
+        );
     }
 }

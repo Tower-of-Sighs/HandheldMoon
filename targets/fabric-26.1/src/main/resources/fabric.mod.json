@@ -21,9 +21,6 @@
         "client": [
             "cc.sighs.handheldmoon.fabric.HandheldMoonFabricClient"
         ],
-        "dynamiclights": [
-            "cc.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer"
-        ],
         "modmenu": [
             "cc.sighs.handheldmoon.fabric.compat.ModMenuCompat"
         ]
@@ -37,8 +34,7 @@
         "fabric-api": "*",
         "minecraft": "~${minecraft_version}",
         "java": ">=${java_version}",
-        "oelib": ">=0.0.1",
-        "lambdynlights": "*"
+        "oelib": ">=0.0.1"
     },
     "suggests": {
         "another-mod": "*"

@@ -32,6 +32,14 @@ public class HandheldMoon {
                     TaczCompat.toggleAttachmentFlashlight(player);
                 }
         );
+        FlashlightCompatHooks.installItemLuminance(player -> {
+            if ((TaczCompat.hasMoonlightAttachment(player.getMainHandItem())
+                    || TaczCompat.hasMoonlightAttachment(player.getOffhandItem()))
+                    && !TaczCompat.isUsingAttachmentFlashlight(player)) {
+                return 15;
+            }
+            return 0;
+        });
         TaczCompat.init(modEventBus);
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
         ModBlocks.BLOCKS.register(modEventBus);

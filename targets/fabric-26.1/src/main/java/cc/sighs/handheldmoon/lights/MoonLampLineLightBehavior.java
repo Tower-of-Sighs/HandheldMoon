@@ -4,8 +4,9 @@ import cc.sighs.handheldmoon.api.light.DynamicLightBuilder;
 import cc.sighs.handheldmoon.api.light.impl.RayLightBehavior;
 import cc.sighs.handheldmoon.block.MoonlightLampBlockEntity;
 import cc.sighs.handheldmoon.config.LampDeviceConfig;
+import cc.sighs.handheldmoon.dynamiclight.DynamicLightBehavior;
+import cc.sighs.handheldmoon.dynamiclight.DynamicLightDefaults;
 import cc.sighs.handheldmoon.util.LineLightMath;
-import dev.lambdaurora.lambdynlights.api.behavior.DynamicLightBehavior;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -16,7 +17,7 @@ import net.minecraft.world.phys.Vec3;
  * <p>
  * Delegates to {@link RayLightBehavior} internally via
  * the {@link cc.sighs.handheldmoon.api.light} API.
- * Lazily initialises from the block entity on first {@link #lightAtPos} call.
+ * Lazily initialises from the block entity on the first light query.
  */
 public class MoonLampLineLightBehavior implements DynamicLightBehavior {
     private final BlockPos pos;
@@ -45,7 +46,7 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
 
         this.delegate = new RayLightBehavior(
                 DynamicLightBuilder.cone()
-                        .range(cfg.lightRange())
+                        .range(DynamicLightDefaults.FLASHLIGHT_RANGE)
                         .angle(INNER, OUTER)
                         .luminance(cfg.realLightLuminance())
                         .occlusion(cfg.lightOcclusion())
@@ -69,17 +70,17 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
     }
 
     @Override
-    public double lightAtPos(BlockPos query, double falloffRatio) {
+    public double lightAt(int blockX, int blockY, int blockZ, double falloffRatio) {
         ensureInitialized();
         if (delegate == null) return 0.0;
-        return delegate.lightAtPos(query, falloffRatio);
+        return delegate.lightAt(blockX, blockY, blockZ, falloffRatio);
     }
 
     @Override
-    public BoundingBox getBoundingBox() {
+    public Bounds getBounds() {
         ensureInitialized();
-        if (delegate == null) return new BoundingBox(0, 0, 0, 0, 0, 0);
-        return delegate.getBoundingBox();
+        if (delegate == null) return Bounds.empty();
+        return delegate.getBounds();
     }
 
     @Override

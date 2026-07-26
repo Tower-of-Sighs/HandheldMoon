@@ -2,20 +2,17 @@ package cc.sighs.handheldmoon.util;
 
 /** Pure light geometry shared by Minecraft-version adapters. */
 public final class SharedLightMath {
-    private static final double DEGREES_TO_RADIANS = Math.PI / 180.0;
-
     private SharedLightMath() {
     }
 
-    public static Direction direction(float yawDegrees, float pitchDegrees, boolean lampMode) {
-        double yaw = yawDegrees * DEGREES_TO_RADIANS;
-        double pitch = pitchDegrees * DEGREES_TO_RADIANS;
-        double horizontal = Math.cos(pitch);
-        double x = Math.sin(yaw) * horizontal;
+    public static Direction direction(double sinYaw, double cosYaw,
+                                      double sinPitch, double cosPitch,
+                                      boolean lampMode) {
+        double x = sinYaw * cosPitch;
         if (!lampMode) {
             x = -x;
         }
-        return new Direction(x, -Math.sin(pitch), Math.cos(yaw) * horizontal);
+        return new Direction(x, -sinPitch, cosYaw * cosPitch);
     }
 
     public static double effectiveRange(double luminance, double range, double threshold) {
@@ -26,8 +23,24 @@ public final class SharedLightMath {
         return range * Math.sqrt(Math.max(0.0, factor));
     }
 
-    public static double conePadding(double distance, double outerAngleRadians, double minimum, double maximum) {
-        double padding = distance * Math.tan(outerAngleRadians);
+    /**
+     * Quadratic distance attenuation for Minecraft's discrete 0-15 light levels.
+     * This stays visibly bright through the middle of the configured range and
+     * matches the inverse used by {@link #effectiveRange(double, double, double)}.
+     */
+    public static double distanceAttenuation(double distance, double range) {
+        if (range <= 0.0 || distance >= range) {
+            return 0.0;
+        }
+        if (distance <= 0.0) {
+            return 1.0;
+        }
+        double t = distance / range;
+        return 1.0 - t * t;
+    }
+
+    public static double conePadding(double distance, double outerAngleTangent, double minimum, double maximum) {
+        double padding = distance * outerAngleTangent;
         return Math.max(minimum, Math.min(maximum, padding));
     }
 

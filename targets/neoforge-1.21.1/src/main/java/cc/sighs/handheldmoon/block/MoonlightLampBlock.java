@@ -119,13 +119,7 @@ public class MoonlightLampBlock extends BaseEntityBlock {
 
     @Override
     public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState blockState, BlockEntityType<T> blockEntityType) {
-        if (level.isClientSide) {
-            return (lvl, pos, st, be) -> {
-                if (be instanceof MoonlightLampBlockEntity acEntity) {
-                    acEntity.clientTick();
-                }
-            };
-        }
+        if (level.isClientSide) return null;
         return (lvl, pos, st, be) -> {
             if (be instanceof MoonlightLampBlockEntity lamp) {
                 lamp.serverTick();

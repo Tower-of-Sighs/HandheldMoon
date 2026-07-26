@@ -10,9 +10,6 @@ logoFile = "assets/handheldmoon/icon.png"
 displayURL = "https://github.com/Tower-of-Sighs/HandheldMoon"
 issueTrackerURL = "https://github.com/Tower-of-Sighs/HandheldMoon/issues"
 description = '''${description}'''
-[modproperties.handheldmoon."yumi:entrypoints"]
-"lambdynlights:initializer" = "cc.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer"
-
 [[mixins]]
 config = "${mod_id}.mixins.json"
 
@@ -27,13 +24,6 @@ side = "BOTH"
 modId = "minecraft"
 type = "required"
 versionRange = "${minecraft_version_range}"
-ordering = "NONE"
-side = "BOTH"
-
-[[dependencies."${mod_id}"]]
-modId = "lambdynlights_runtime"
-type = "required"
-versionRange = "[1.0,)"
 ordering = "NONE"
 side = "BOTH"
 

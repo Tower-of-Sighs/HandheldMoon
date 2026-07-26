@@ -39,7 +39,6 @@ val curseforgeProjectId = providers.provider {
     val loaderSpecific = providers.gradleProperty("curseforge_project_neoforge").orNull?.trim().orEmpty()
     if (loaderSpecific.isNotEmpty()) loaderSpecific else providers.gradleProperty("curseforge_project").orNull?.trim().orEmpty()
 }
-val ldl_version: String by project
 val curios_version: String by project
 
 // Optional POM dependency whitelist for Maven publication.
@@ -50,16 +49,11 @@ val curios_version: String by project
 //     "group.id:artifact-id",
 // )
 extra["mavenDependencyWhitelist"] = listOf(
-    "cc.sighs.oelib",
-    "dev.lambdaurora.lambdynamiclights"
+    "cc.sighs.oelib"
 )
 
 dependencies {
     implementation ("top.theillusivec4.curios:curios-neoforge:$curios_version")
-    implementation("dev.lambdaurora.lambdynamiclights:lambdynamiclights-runtime:$ldl_version") {
-        exclude(group = "net.fabricmc")
-        exclude(group = "net.fabricmc.fabric-api")
-    }
     implementation("curse.maven:irisshaders-455508:7867946")
     implementation("curse.maven:sodium-394468:7867828")
     implementation("cc.sighs.oelib:OELib-neoforge-26.1:0.2.3-dev2")

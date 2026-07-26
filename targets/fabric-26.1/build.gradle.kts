@@ -43,8 +43,6 @@ val curseforgeProjectId = providers.provider {
 val publishArtifact = provider {
     tasks.findByName("remapJar") ?: tasks.named("jar").get()
 }
-val ldl_version: String by project
-
 // Optional POM dependency whitelist for Maven publication.
 // Example:
 // extra["mavenDependencyWhitelist"] = listOf(
@@ -53,8 +51,7 @@ val ldl_version: String by project
 //     "group.id:artifact-id",
 // )
 extra["mavenDependencyWhitelist"] = listOf(
-    "cc.sighs.oelib",
-    "dev.lambdaurora.lambdynamiclights"
+    "cc.sighs.oelib"
 )
 
 repositories {
@@ -68,7 +65,6 @@ dependencies {
     implementation("net.fabricmc:fabric-loader:$fabric_loader_version")
     implementation("net.fabricmc.fabric-api:fabric-api:$fabric_version")
     implementation("cc.sighs.oelib:OELib-fabric-26.1:0.2.3-dev2")
-    implementation("dev.lambdaurora.lambdynamiclights:lambdynamiclights-runtime:$ldl_version")
     implementation("com.terraformersmc:modmenu:18.0.0-alpha.8")
     implementation("curse.maven:irisshaders-455508:7867943")
     implementation("curse.maven:sodium-394468:7867826")

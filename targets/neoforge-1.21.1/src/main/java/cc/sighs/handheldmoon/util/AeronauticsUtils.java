@@ -1,8 +1,5 @@
 package cc.sighs.handheldmoon.util;
 
-import dev.ryanhcode.sable.Sable;
-import dev.ryanhcode.sable.companion.math.JOMLConversion;
-import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.entity.Entity;
@@ -41,7 +38,7 @@ public class AeronauticsUtils {
         AVAILABLE = flag;
     }
 
-    private static boolean isAvailable() {
+    public static boolean isAvailable() {
         return AVAILABLE;
     }
 
@@ -134,6 +131,15 @@ public class AeronauticsUtils {
         return getPhysicalizedRenderTransform(level, blockEntity.getBlockPos());
     }
 
+    public static Vec3 transformDirection(final BlockEntity blockEntity, final Vec3 localDirection) {
+        if (!isPhysicalized(blockEntity)) return localDirection;
+        Quaterniond orientation = getPhysicalizedRenderOrientation(blockEntity);
+        if (orientation == null) return localDirection;
+        Vector3d transformed = new Vector3d(localDirection.x, localDirection.y, localDirection.z);
+        orientation.transform(transformed);
+        return new Vec3(transformed.x, transformed.y, transformed.z).normalize();
+    }
+
     // ==============================================================
     //  Internal helpers (JOML only — no Sable dependency)
     // ==============================================================
@@ -158,31 +164,31 @@ public class AeronauticsUtils {
     private static class SableInternal {
 
         private static boolean isInsideSubLevel(final Level level, final Vec3 localPosition) {
-            return Sable.HELPER.getContaining(
+            return dev.ryanhcode.sable.Sable.HELPER.getContaining(
                     level,
                     new Vec3i((int) localPosition.x, (int) localPosition.y, (int) localPosition.z)
             ) != null;
         }
 
         private static boolean isInsideSubLevel(final BlockEntity blockEntity) {
-            return Sable.HELPER.getContaining(blockEntity) != null;
+            return dev.ryanhcode.sable.Sable.HELPER.getContaining(blockEntity) != null;
         }
 
         private static boolean isInsideSubLevel(final Entity entity) {
-            return Sable.HELPER.getContaining(entity) != null;
+            return dev.ryanhcode.sable.Sable.HELPER.getContaining(entity) != null;
         }
 
         private static Vec3 projectOutOfSubLevel(final Level level, final Vector3dc localPosition) {
-            final var projected = Sable.HELPER.projectOutOfSubLevel(level, localPosition, new Vector3d());
-            return JOMLConversion.toMojang(projected);
+            final var projected = dev.ryanhcode.sable.Sable.HELPER.projectOutOfSubLevel(level, localPosition, new Vector3d());
+            return dev.ryanhcode.sable.companion.math.JOMLConversion.toMojang(projected);
         }
 
         private static Quaterniond getOrientation(final Level level, final Vec3 localPosition) {
-            final var raw = Sable.HELPER.getContaining(
+            final var raw = dev.ryanhcode.sable.Sable.HELPER.getContaining(
                     level,
                     new Vec3i((int) localPosition.x, (int) localPosition.y, (int) localPosition.z)
             );
-            if (raw instanceof SubLevel sl) {
+            if (raw instanceof dev.ryanhcode.sable.sublevel.SubLevel sl) {
                 final var pose = sl.logicalPose();
                 return new Quaterniond(pose.orientation());
             }

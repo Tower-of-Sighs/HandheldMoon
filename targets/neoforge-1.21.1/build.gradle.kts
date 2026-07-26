@@ -36,9 +36,11 @@ val curseforgeProjectId = providers.provider {
     val loaderSpecific = providers.gradleProperty("curseforge_project_neoforge").orNull?.trim().orEmpty()
     if (loaderSpecific.isNotEmpty()) loaderSpecific else providers.gradleProperty("curseforge_project").orNull?.trim().orEmpty()
 }
-val ldl_version: String by project
 val curios_version: String by project
 val cloth_config_version: String by project
+val jei_version: String by project
+val iris_version: String by project
+val sodium_version: String by project
 val sable_version: String by project
 val sable_companion_version: String by project
 
@@ -49,9 +51,7 @@ val sable_companion_version: String by project
 //     "artifact-id",
 //     "group.id:artifact-id",
 // )
-extra["mavenDependencyWhitelist"] = listOf(
-    "dev.lambdaurora.lambdynamiclights"
-)
+extra["mavenDependencyWhitelist"] = emptyList<String>()
 
 repositories {
     maven {
@@ -67,31 +67,32 @@ repositories {
 evaluationDependsOn(":common")
 val commonMainSourceSet = project(":common").extensions.getByType<SourceSetContainer>().named("main")
 
-val mappingsAttribute = Attribute.of("net.minecraft.mappings", String::class.java)
-
 dependencies {
-    attributesSchema {
-        attribute(mappingsAttribute)
-    }
-    compileOnly("dev.lambdaurora.lambdynamiclights:lambdynamiclights-api:$ldl_version") {
-        attributes {
-            attribute(mappingsAttribute, "mojmap")
-        }
-    }
-    implementation("dev.lambdaurora.lambdynamiclights:lambdynamiclights-runtime:$ldl_version") {
-        attributes {
-            attribute(mappingsAttribute, "mojmap")
-        }
-    }
+    implementation("curse.maven:carry-on-274259:7393892")
+    implementation("maven.modrinth:jei:$jei_version")
     implementation("maven.modrinth:curios:$curios_version")
+
+    implementation("maven.modrinth:sodium:$sodium_version")
+    implementation("curse.maven:sodium-extra-447673:5913377")
+    implementation("maven.modrinth:iris:$iris_version")
+
     implementation("me.shedaniel.cloth:cloth-config-neoforge:$cloth_config_version")
-    compileOnly("curse.maven:tacz-1-21-1-1353462:7295633")
-    compileOnly("maven.modrinth:sable:$sable_version")
+    implementation("curse.maven:tacz-1-21-1-1353462:7295633")
+
+    implementation("curse.maven:mafglib-910766:6895587")
+    implementation("curse.maven:tweakerge-915857:7123684")
+
+    implementation("maven.modrinth:sable:$sable_version")
     compileOnly("dev.ryanhcode.sable-companion:sable-companion-common-1.21.1:$sable_companion_version") {
         attributes {
             attribute(Attribute.of("io.github.mcgradleconventions.loader", String::class.java), "common")
         }
     }
+
+    implementation("maven.modrinth:create-aeronautics:1.1.3+mc1.21.1")
+    implementation("curse.maven:create-328085:7963363")
+    implementation("curse.maven:architectury-api-419699:5786327")
+
     compileOnly("io.github.llamalad7:mixinextras-common:0.3.5")
 }
 

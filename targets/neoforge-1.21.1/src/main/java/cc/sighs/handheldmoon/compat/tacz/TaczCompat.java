@@ -2,7 +2,6 @@ package cc.sighs.handheldmoon.compat.tacz;
 
 import com.mojang.serialization.Codec;
 import cc.sighs.handheldmoon.HandheldMoon;
-import com.tacz.guns.api.item.IGun;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -56,9 +55,7 @@ public class TaczCompat {
 
     public static boolean hasMoonlightAttachment(ItemStack itemStack) {
         if (INSTALLED) {
-            var iGun = IGun.getIGunOrNull(itemStack);
-            if (iGun == null) return false;
-            return TaczCompatInner.hasMoonlightAttachment(itemStack, iGun);
+            return TaczCompatInner.hasMoonlightAttachment(itemStack);
         }
         return false;
     }

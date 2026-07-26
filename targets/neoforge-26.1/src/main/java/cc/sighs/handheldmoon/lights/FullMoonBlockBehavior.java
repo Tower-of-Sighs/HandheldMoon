@@ -5,8 +5,8 @@ import cc.sighs.handheldmoon.api.light.impl.RayLightBehavior;
 import cc.sighs.handheldmoon.block.FullMoonBlock;
 import cc.sighs.handheldmoon.block.FullMoonBlockEntity;
 import cc.sighs.handheldmoon.config.FullMoonDeviceConfig;
+import cc.sighs.handheldmoon.dynamiclight.DynamicLightBehavior;
 import cc.sighs.handheldmoon.registry.Config;
-import dev.lambdaurora.lambdynlights.api.behavior.DynamicLightBehavior;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -52,14 +52,14 @@ public class FullMoonBlockBehavior implements DynamicLightBehavior {
     }
 
     @Override
-    public double lightAtPos(BlockPos query, double falloffRatio) {
+    public double lightAt(int blockX, int blockY, int blockZ, double falloffRatio) {
         refreshEpoch();
-        return delegate.lightAtPos(query, falloffRatio);
+        return delegate.lightAt(blockX, blockY, blockZ, falloffRatio);
     }
 
     @Override
-    public BoundingBox getBoundingBox() {
-        return delegate.getBoundingBox();
+    public Bounds getBounds() {
+        return delegate.getBounds();
     }
 
     @Override

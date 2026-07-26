@@ -20,6 +20,6 @@ public record ServerToggleAttachmentLampPacket() implements CustomPacketPayload 
     }
 
     public static void handle(ServerToggleAttachmentLampPacket msg, IPayloadContext context) {
-        TaczCompat.toggleAttachmentFlashlight(context.player());
+        context.enqueueWork(() -> TaczCompat.toggleAttachmentFlashlight(context.player()));
     }
 }

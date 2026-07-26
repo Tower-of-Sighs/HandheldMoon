@@ -30,13 +30,6 @@ ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.${mod_id}]]
-modId = "lambdynlights"
-type = "required"
-versionRange = "[0.0.1,)"
-ordering = "NONE"
-side = "CLIENT"
-
-[[dependencies.${mod_id}]]
 modId = "oelib"
 type = "required"
 versionRange = "[0.2.3,)"
@@ -48,5 +41,3 @@ side = "BOTH"
 # stop your mod loading on the server for example.
 #[features.${mod_id}]
 #openGLVersion="[3.2,)"
-[modproperties.handheldmoon."yumi:entrypoints"]
-"lambdynlights:initializer" = "cc.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer"

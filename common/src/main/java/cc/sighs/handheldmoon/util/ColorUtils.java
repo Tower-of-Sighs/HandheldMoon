@@ -55,10 +55,9 @@ public final class ColorUtils {
         return new float[]{r * inv, g * inv, b * inv};
     }
 
-    public static float[] colorAtWithNoise(List<float[]> stops, float baseT, float thetaNorm, long seed, float amplitude) {
-        float n1 = (float) Math.sin(thetaNorm * 7.23 + seed * 0.001);
-        float n2 = (float) Math.sin(thetaNorm * 13.69 + seed * 0.002);
-        float n3 = (float) Math.sin(thetaNorm * 19.41 + seed * 0.0007);
+    public static float[] colorAtWithNoise(List<float[]> stops, float baseT,
+                                           float n1, float n2, float n3,
+                                           float amplitude) {
         float n = 0.5f + 0.20f * n1 + 0.20f * n2 + 0.10f * n3;
         float wobble = (n - 0.5f) * 2f * amplitude;
         float t = Math.max(0.0f, Math.min(1.0f, baseT + wobble));

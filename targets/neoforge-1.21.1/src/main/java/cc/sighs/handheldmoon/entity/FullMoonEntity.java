@@ -1,14 +1,20 @@
 package cc.sighs.handheldmoon.entity;
 
 import cc.sighs.handheldmoon.block.FullMoonBlock;
+import cc.sighs.handheldmoon.block.FullMoonBlockEntity;
+import cc.sighs.handheldmoon.block.MoonlightLampBlockEntity;
+import cc.sighs.handheldmoon.config.FullMoonDeviceConfig;
+import cc.sighs.handheldmoon.config.LampDeviceConfig;
 import cc.sighs.handheldmoon.lights.MoonlightLampEntityHeartbeatCenter;
 import cc.sighs.handheldmoon.registry.ModEntities;
 import cc.sighs.handheldmoon.util.AeronauticsUtils;
+import cc.sighs.handheldmoon.util.LineLightMath;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
@@ -48,6 +54,11 @@ public class FullMoonEntity extends Entity {
 
     public void setAnchor(BlockPos pos) {
         this.entityData.set(ANCHOR_POS, Optional.ofNullable(pos));
+        syncToAnchor();
+    }
+
+    public BlockPos getAnchorPos() {
+        return this.entityData.get(ANCHOR_POS).orElse(null);
     }
 
     public void bindToLamp(BlockPos pos) {
@@ -101,15 +112,45 @@ public class FullMoonEntity extends Entity {
     }
 
     public static float getXRotFromVec3(Vec3 vec) {
-        return (float) Math.toDegrees(Math.asin(-vec.y));
+        double horizontal = Math.sqrt(vec.x * vec.x + vec.z * vec.z);
+        return (float) (Mth.atan2(-vec.y, horizontal) * Mth.RAD_TO_DEG);
     }
 
     public static float getYRotFromVec3(Vec3 vec) {
-        return (float) Math.toDegrees(Math.atan2(-vec.x, vec.z));
+        return (float) (Mth.atan2(-vec.x, vec.z) * Mth.RAD_TO_DEG);
     }
 
     public int getLampLuminance() {
         return this.entityData.get(LAMP_LUMINANCE);
+    }
+
+    public Vec3 getLampDirection() {
+        Vec3 direction = LineLightMath.computeDirection(
+                this.entityData.get(LAMP_Y_ROT),
+                this.entityData.get(LAMP_X_ROT) - 90.0f,
+                true
+        ).normalize().scale(-1.0);
+        BlockEntity anchor = getAnchorBlockEntity();
+        return anchor != null ? AeronauticsUtils.transformDirection(anchor, direction) : direction;
+    }
+
+    public LampDeviceConfig getLampConfig() {
+        BlockEntity anchor = getAnchorBlockEntity();
+        return anchor instanceof MoonlightLampBlockEntity lamp
+                ? lamp.getLampConfig()
+                : LampDeviceConfig.fromGlobalConfig();
+    }
+
+    public FullMoonDeviceConfig getFullMoonConfig() {
+        BlockEntity anchor = getAnchorBlockEntity();
+        return anchor instanceof FullMoonBlockEntity moon
+                ? moon.getFullMoonConfig()
+                : FullMoonDeviceConfig.fromGlobalConfig();
+    }
+
+    private BlockEntity getAnchorBlockEntity() {
+        BlockPos anchor = getAnchorPos();
+        return anchor != null ? level().getBlockEntity(anchor) : null;
     }
 
     private void syncToAnchor() {
@@ -136,7 +177,8 @@ public class FullMoonEntity extends Entity {
                 }
                 return;
             }
-            BlockPos anchor = this.entityData.get(ANCHOR_POS).orElse(null);
+            syncToAnchor();
+            BlockPos anchor = getAnchorPos();
             BlockPos checkPos = anchor != null ? anchor : blockPosition();
             BlockState state = level().getBlockState(checkPos);
             if (!(state.getBlock() instanceof FullMoonBlock)) {

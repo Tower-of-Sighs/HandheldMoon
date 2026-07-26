@@ -16,6 +16,7 @@ dependencies {
 
 val loaderSourceSets = extensions.getByType<SourceSetContainer>()
 loaderSourceSets.named("main") {
+    java.srcDir(commonProject.file("src/minecraft/java"))
     resources.srcDir(commonProject.file("src/main/resources"))
 }
 

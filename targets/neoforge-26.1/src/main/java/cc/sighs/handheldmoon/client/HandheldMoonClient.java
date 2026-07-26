@@ -3,6 +3,10 @@ package cc.sighs.handheldmoon.client;
 import cc.sighs.handheldmoon.api.raycone.RayConeRenderer;
 import cc.sighs.handheldmoon.api.raycone.impl.RayConeRendererImpl;
 import cc.sighs.handheldmoon.compat.accessory.AccessoryCompat;
+import cc.sighs.handheldmoon.dynamiclight.DynamicLightManager;
+import cc.sighs.handheldmoon.event.handler.BlockEntityLampConeSources;
+import cc.sighs.handheldmoon.event.handler.LampConeSourceHooks;
+import cc.sighs.handheldmoon.event.handler.LampInteractionHooks;
 import cc.sighs.handheldmoon.event.handler.ShaderEventHandler;
 import cc.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import cc.sighs.handheldmoon.registry.ModKeyBindings;
@@ -12,6 +16,7 @@ import cc.sighs.handheldmoon.network.ServerHeldFullMoonConfigSyncPacket;
 import cc.sighs.handheldmoon.network.ServerHeldMoonlightLampConfigSyncPacket;
 import cc.sighs.handheldmoon.network.ServerMoonLightLampSyncPacket;
 import cc.sighs.handheldmoon.network.ServerMoonlightLampConfigSyncPacket;
+import net.minecraft.client.Minecraft;
 
 public final class HandheldMoonClient {
     private HandheldMoonClient() {
@@ -19,6 +24,10 @@ public final class HandheldMoonClient {
 
     public static void initClient() {
         RayConeRenderer.installBackend(RayConeRendererImpl::render);
+        LampConeSourceHooks.install((minecraft, sources) -> BlockEntityLampConeSources.append(
+                minecraft, HandheldMoonDynamicLightsInitializer.getActiveLampPositions(), sources
+        ));
+        LampInteractionHooks.install(HandheldMoonDynamicLightsInitializer::syncLampBehavior);
         ClientNetworkHooks.installLampState(lamp ->
                 new ServerMoonLightLampSyncPacket(lamp.getBlockPos(), lamp.getXRot(), lamp.getYRot(), lamp.getPowered()).sendToServer()
         );
@@ -33,7 +42,13 @@ public final class HandheldMoonClient {
     }
 
     public static void onClientTick() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (DynamicLightManager.syncLevel(minecraft)) {
+            HandheldMoonDynamicLightsInitializer.reset();
+        }
         HandheldMoonDynamicLightsInitializer.updatePlayerBehaviors();
+        HandheldMoonDynamicLightsInitializer.updateItemBehaviors();
+        DynamicLightManager.tick(minecraft);
         ShaderEventHandler.onClientTick();
     }
 }
