@@ -7,7 +7,9 @@
   "mixins": [],
   "client": [
     "KeyboardHandlerMixin",
-    "MouseHandlerMixin"
+    "MouseHandlerMixin",
+    "PostChainAccessor",
+    "PostPassAccessor"
   ],
   "server": [],
   "injectors": {

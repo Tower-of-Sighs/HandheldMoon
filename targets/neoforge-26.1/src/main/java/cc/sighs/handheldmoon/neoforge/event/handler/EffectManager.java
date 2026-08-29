@@ -21,6 +21,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class EffectManager {
     private static final String FLASHLIGHT_NAME = "flashlight";
+    private static final String FLASHLIGHT_UNIFORM_NAME = "FlashlightParams";
+    private static final int FLASHLIGHT_UNIFORM_SIZE = 32;
     private static final Identifier FLASHLIGHT_EFFECT_ID = Identifier.fromNamespaceAndPath(HandheldMoon.MOD_ID, FLASHLIGHT_NAME);
     private static boolean flashlightEnabled = false;
     private static final Map<String, String> EFFECT_PATHS = new ConcurrentHashMap<>();
@@ -28,6 +30,7 @@ public final class EffectManager {
     private static float offsetY;
     private static float radiusRatio = 0.48f;
     private static float intensity = 1.0f;
+    private static GpuBuffer flashlightUniformBuffer;
 
     private EffectManager() {
     }
@@ -88,6 +91,10 @@ public final class EffectManager {
     public static void cleanup() {
         flashlightEnabled = false;
         EFFECT_PATHS.clear();
+        if (flashlightUniformBuffer != null && !flashlightUniformBuffer.isClosed()) {
+            flashlightUniformBuffer.close();
+        }
+        flashlightUniformBuffer = null;
     }
 
     /** Updates the 26.1 std140 uniform block used by the flashlight pass. */
@@ -103,15 +110,34 @@ public final class EffectManager {
         if (chain == null || chain.passes.isEmpty()) return;
         PostPass pass = chain.passes.get(0);
         Map<String, GpuBuffer> uniforms = ((PostPassAccessor) pass).handheldmoon$getCustomUniforms();
-        GpuBuffer previous = uniforms.get("FlashlightParams");
+        GpuBuffer previous = uniforms.get(FLASHLIGHT_UNIFORM_NAME);
         if (previous == null) return;
-        ByteBuffer data = ByteBuffer.allocateDirect(32);
-        Std140Builder builder = Std140Builder.intoBuffer(data);
-        builder.putFloat(intensity).align(8).putVec2(offsetX, offsetY).putFloat(radiusRatio);
-        GpuBuffer replacement = RenderSystem.getDevice().createBuffer(
-                () -> "HandheldMoon flashlight uniforms", GpuBuffer.USAGE_UNIFORM, data);
-        uniforms.put("FlashlightParams", replacement);
-        previous.close();
+
+        if (flashlightUniformBuffer == null || flashlightUniformBuffer.isClosed()
+                || flashlightUniformBuffer != previous) {
+            GpuBuffer oldManagedBuffer = flashlightUniformBuffer;
+            flashlightUniformBuffer = RenderSystem.getDevice().createBuffer(
+                    () -> "HandheldMoon flashlight uniforms",
+                    GpuBuffer.USAGE_UNIFORM | GpuBuffer.USAGE_MAP_WRITE | GpuBuffer.USAGE_COPY_DST,
+                    FLASHLIGHT_UNIFORM_SIZE);
+            uniforms.put(FLASHLIGHT_UNIFORM_NAME, flashlightUniformBuffer);
+
+            // PostPass creates an immutable buffer for values from JSON. It is no longer
+            // referenced once the writable replacement is installed.
+            if (oldManagedBuffer != null && oldManagedBuffer != previous && !oldManagedBuffer.isClosed()) {
+                oldManagedBuffer.close();
+            }
+            if (previous != flashlightUniformBuffer && !previous.isClosed()) {
+                previous.close();
+            }
+        }
+
+        try (GpuBuffer.MappedView view = RenderSystem.getDevice().createCommandEncoder()
+                .mapBuffer(flashlightUniformBuffer, false, true)) {
+            ByteBuffer data = view.data();
+            Std140Builder builder = Std140Builder.intoBuffer(data);
+            builder.putFloat(intensity).align(8).putVec2(offsetX, offsetY).putFloat(radiusRatio);
+        }
     }
 
     public static void onLevelRender() {
