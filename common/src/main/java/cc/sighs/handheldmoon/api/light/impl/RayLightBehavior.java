@@ -52,6 +52,7 @@ public class RayLightBehavior implements DynamicLightBehavior {
     private boolean lastOcclusion;
     private Vec3 lastPos = Vec3.ZERO;
     private Vec3 lastDir = Vec3.ZERO;
+    private Bounds boundsCache;
 
     // ---- caches ----
     private static final LightCache NO_LIGHT_CACHE = LightCache.none();
@@ -175,6 +176,11 @@ public class RayLightBehavior implements DynamicLightBehavior {
 
     @Override
     public Bounds getBounds() {
+        Bounds cached = boundsCache;
+        if (cached != null) {
+            return cached;
+        }
+
         Vec3 pos = lastPos;
         Vec3 dir = lastDir;
         double eff = effectiveRange();
@@ -185,7 +191,7 @@ public class RayLightBehavior implements DynamicLightBehavior {
             double ez = pos.z + dir.z * eff;
             double pad = LineLightMath.conePadding(eff, config.outerAngle(),
                     ACTIVE_MIN_PADDING, ACTIVE_MAX_PADDING);
-            return new Bounds(
+            cached = new Bounds(
                     Mth.floor(Math.min(pos.x, ex) - pad),
                     Mth.floor(Math.min(pos.y, ey) - pad),
                     Mth.floor(Math.min(pos.z, ez) - pad),
@@ -195,11 +201,13 @@ public class RayLightBehavior implements DynamicLightBehavior {
             );
         } else {
             int r = (int) Math.ceil(lastRange);
-            return new Bounds(
+            cached = new Bounds(
                     Mth.floor(pos.x - r), Mth.floor(pos.y - r), Mth.floor(pos.z - r),
                     Mth.floor(pos.x + r), Mth.floor(pos.y + r), Mth.floor(pos.z + r)
             );
         }
+        boundsCache = cached;
+        return cached;
     }
 
     @Override
@@ -227,6 +235,7 @@ public class RayLightBehavior implements DynamicLightBehavior {
             lastRange = config.range();
             lastLuminance = config.luminance();
             lastOcclusion = config.occlusionEnabled();
+            boundsCache = null;
             lightCache.clear();
             occlusionCache.clear();
         }

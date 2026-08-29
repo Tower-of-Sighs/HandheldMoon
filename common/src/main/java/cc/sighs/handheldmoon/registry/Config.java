@@ -60,6 +60,8 @@ public final class Config {
 
         public void set(T value) {
             current = value;
+            LampDeviceConfig.invalidateGlobalConfig();
+            FullMoonDeviceConfig.invalidateGlobalConfig();
         }
 
         public void save() {

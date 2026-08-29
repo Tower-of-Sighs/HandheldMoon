@@ -36,7 +36,7 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import cc.sighs.handheldmoon.api.raycone.RayConeRenderer;
-import cc.sighs.handheldmoon.event.handler.BlockEntityLampConeSources;
+import cc.sighs.handheldmoon.event.handler.PlacedLampConeSources;
 import cc.sighs.handheldmoon.event.handler.LampConeSourceHooks;
 import cc.sighs.handheldmoon.event.handler.LampInteractionHooks;
 import cc.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
@@ -125,7 +125,7 @@ public final class NeoForgePlatformService implements PlatformService {
     private static final class NeoForgeClientPlatformService implements ClientPlatformService {
         @Override public void initializeClient() {
             RayConeRenderer.installBackend(cc.sighs.handheldmoon.neoforge.api.raycone.impl.RayConeRendererImpl::render);
-            LampConeSourceHooks.install((minecraft, sources) -> BlockEntityLampConeSources.append(
+            LampConeSourceHooks.install((minecraft, sources) -> PlacedLampConeSources.append(
                     minecraft, java.util.List.of(), sources));
             LampInteractionHooks.install(HandheldMoonDynamicLightsInitializer::syncLampBehavior);
             registerKeyBindings();

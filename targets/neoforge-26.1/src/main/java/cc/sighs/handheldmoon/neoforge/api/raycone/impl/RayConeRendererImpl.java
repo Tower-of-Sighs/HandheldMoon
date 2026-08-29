@@ -42,12 +42,15 @@ public final class RayConeRendererImpl {
             .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
             .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
             .withCull(false)
-            .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.TRIANGLE_FAN)
+            .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.TRIANGLES)
             .build();
 
     private static final RenderType RAY_CONE_RENDER_TYPE = RenderType.create(
             "handheldmoon_ray_cone",
-            RenderSetup.builder(RAY_CONE_PIPELINE).sortOnUpload().createRenderSetup()
+            RenderSetup.builder(RAY_CONE_PIPELINE).createRenderSetup()
+    );
+    private static final ThreadLocal<ByteBufferBuilder> CONE_BUFFERS = ThreadLocal.withInitial(
+            () -> new ByteBufferBuilder(RAY_CONE_RENDER_TYPE.bufferSize())
     );
 
     private static final RenderPipeline IRIS_RAY_CONE_PIPELINE = RenderPipeline.builder(RenderPipelines.MATRICES_FOG_SNIPPET)
@@ -59,12 +62,12 @@ public final class RayConeRendererImpl {
             .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
             .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
             .withCull(false)
-            .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.TRIANGLE_FAN)
+            .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.TRIANGLES)
             .build();
 
     private static final RenderType IRIS_RAY_CONE_RENDER_TYPE = RenderType.create(
             "handheldmoon_ray_cone_iris",
-            RenderSetup.builder(IRIS_RAY_CONE_PIPELINE).useOverlay().useLightmap().sortOnUpload().createRenderSetup()
+            RenderSetup.builder(IRIS_RAY_CONE_PIPELINE).useOverlay().useLightmap().createRenderSetup()
     );
 
     private RayConeRendererImpl() {
@@ -97,19 +100,26 @@ public final class RayConeRendererImpl {
 
         RenderType renderType = irisActive ? IRIS_RAY_CONE_RENDER_TYPE : RAY_CONE_RENDER_TYPE;
 
-        for (RayConeRenderer.ConeSource source : sources) {
-            renderSingleCone(poseStack, source, renderType);
+        ByteBufferBuilder byteBuffer = CONE_BUFFERS.get();
+        try {
+            MultiBufferSource.BufferSource bufferSource = MultiBufferSource.immediate(byteBuffer);
+            VertexConsumer vertexConsumer = bufferSource.getBuffer(renderType);
+            VertexEmitter emitter = new VertexEmitter(vertexConsumer, poseStack.last());
+            for (RayConeRenderer.ConeSource source : sources) {
+                renderSingleCone(source, emitter);
+            }
+            bufferSource.endBatch(renderType);
+        } finally {
+            // MeshData closes its result after upload; discard clears any
+            // leftover bytes while retaining the native allocation.
+            byteBuffer.discard();
         }
 
         poseStack.popPose();
         mvStack.popMatrix();
     }
 
-    private static void renderSingleCone(
-            PoseStack poseStack,
-            RayConeRenderer.ConeSource source,
-            RenderType renderType
-    ) {
+    private static void renderSingleCone(RayConeRenderer.ConeSource source, VertexEmitter emitter) {
         IRayConeConfig config = source.config();
         Vec3 apex = source.apex();
         Vec3 direction = source.direction();
@@ -127,29 +137,27 @@ public final class RayConeRendererImpl {
             float edgeAlpha = RayConeGeometry.clamp01(config.layerEdgeAlpha(i));
             boolean doRaycast = config.coneRaycast() && (source.raycastAllLayers() || i == 0);
 
-            renderConeLayer(poseStack, apex, direction,
+            renderConeLayer(apex, direction,
                     baseRange, baseAngleDeg, stops,
                     sizeScale, centerAlpha, edgeAlpha,
                     config.layerColor(i),
-                    (float) noiseAmp, doRaycast, renderType);
+                    (float) noiseAmp, doRaycast, emitter);
         }
 
         // ---- fog layer ----
         IRayConeConfig.FogConfig fog = config.fog();
         if (fog.enabled()) {
-            List<float[]> fogStops = List.of(fog.color());
-            renderConeLayer(poseStack, apex, direction,
-                    baseRange, baseAngleDeg, fogStops,
+            renderConeLayer(apex, direction,
+                    baseRange, baseAngleDeg, List.of(),
                     (float) fog.sizeScale(),
                     (float) fog.centerAlpha(),
                     (float) fog.edgeAlpha(),
                     fog.color(),
-                    0f, false, renderType);
+                    0f, false, emitter);
         }
     }
 
     private static void renderConeLayer(
-            PoseStack poseStack,
             Vec3 apex,
             Vec3 direction,
             float baseRange,
@@ -161,31 +169,39 @@ public final class RayConeRendererImpl {
             float[] layerColorOverride,
             float noiseAmplitude,
             boolean doRaycast,
-            RenderType renderType
+            VertexEmitter emitter
     ) {
-        try (ByteBufferBuilder byteBuffer = new ByteBufferBuilder(renderType.bufferSize())) {
-            MultiBufferSource.BufferSource bufferSource = MultiBufferSource.immediate(byteBuffer);
-            VertexConsumer vertexConsumer = bufferSource.getBuffer(renderType);
-            PoseStack.Pose pose = poseStack.last();
-            RayConeGeometry.emitLayer(
-                    Minecraft.getInstance(), apex, direction, baseRange, baseAngleDeg,
-                    colorStops, sizeScale, centerAlpha, edgeAlpha, layerColorOverride,
-                    noiseAmplitude, doRaycast, SEGMENTS,
-                    (position, color, alpha) -> vertexConsumer
-                            .addVertex(pose, (float) position.x, (float) position.y, (float) position.z)
-                            .setColor(toArgb(color, alpha))
-            );
+        RayConeGeometry.emitLayerTriangles(
+                Minecraft.getInstance(), apex, direction, baseRange, baseAngleDeg,
+                colorStops, sizeScale, centerAlpha, edgeAlpha, layerColorOverride,
+                noiseAmplitude, doRaycast, SEGMENTS, emitter.colorScratch, emitter
+        );
+    }
 
-            bufferSource.endBatch(renderType);
+    private static final class VertexEmitter implements RayConeGeometry.PrimitiveVertexSink {
+        private final VertexConsumer vertexConsumer;
+        private final PoseStack.Pose pose;
+        private final float[] colorScratch = new float[3];
+
+        private VertexEmitter(VertexConsumer vertexConsumer, PoseStack.Pose pose) {
+            this.vertexConsumer = vertexConsumer;
+            this.pose = pose;
+        }
+
+        @Override
+        public void vertex(double x, double y, double z,
+                           float r, float g, float b, float alpha) {
+            vertexConsumer.addVertex(pose, (float) x, (float) y, (float) z)
+                    .setColor(toArgb(r, g, b, alpha));
         }
     }
 
-    static int toArgb(float[] rgb, float alpha) {
+    static int toArgb(float r, float g, float b, float alpha) {
         return ARGB.color(
                 clampToByte(alpha * 255f),
-                clampToByte(rgb[0] * 255f),
-                clampToByte(rgb[1] * 255f),
-                clampToByte(rgb[2] * 255f)
+                clampToByte(r * 255f),
+                clampToByte(g * 255f),
+                clampToByte(b * 255f)
         );
     }
 

@@ -6,6 +6,8 @@ import java.util.function.Supplier;
 public final class FullMoonDeviceConfig {
     private static volatile Supplier<FullMoonDeviceConfig> globalConfigSupplier =
             () -> new FullMoonDeviceConfig(true, 15.0, false);
+    private static final Object GLOBAL_CONFIG_LOCK = new Object();
+    private static volatile FullMoonDeviceConfig globalConfigCache;
 
     private final boolean realLight;
     private final double realLightLuminance;
@@ -29,12 +31,34 @@ public final class FullMoonDeviceConfig {
         return lightOcclusion;
     }
 
+    /** Returns the memoized global config; invalidate it after live values change. */
     public static FullMoonDeviceConfig fromGlobalConfig() {
-        return globalConfigSupplier.get();
+        FullMoonDeviceConfig cached = globalConfigCache;
+        if (cached != null) {
+            return cached;
+        }
+        synchronized (GLOBAL_CONFIG_LOCK) {
+            cached = globalConfigCache;
+            if (cached == null) {
+                cached = globalConfigSupplier.get();
+                globalConfigCache = cached;
+            }
+            return cached;
+        }
     }
 
     public static void setGlobalConfigSupplier(Supplier<FullMoonDeviceConfig> supplier) {
-        globalConfigSupplier = Objects.requireNonNull(supplier);
+        synchronized (GLOBAL_CONFIG_LOCK) {
+            globalConfigSupplier = Objects.requireNonNull(supplier);
+            globalConfigCache = null;
+        }
+    }
+
+    /** Invalidates the memoized global config after a live config value changes. */
+    public static void invalidateGlobalConfig() {
+        synchronized (GLOBAL_CONFIG_LOCK) {
+            globalConfigCache = null;
+        }
     }
 
     @Override

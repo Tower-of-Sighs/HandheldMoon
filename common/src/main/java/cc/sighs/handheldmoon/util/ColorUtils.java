@@ -27,8 +27,26 @@ public final class ColorUtils {
     }
 
     public static float[] colorAt(List<float[]> stops, float t) {
-        if (stops.isEmpty()) return new float[]{1.0f, 1.0f, 1.0f};
-        if (stops.size() == 1) return stops.get(0);
+        float[] result = new float[3];
+        colorAtInto(stops, t, result);
+        return result;
+    }
+
+    /** Samples a gradient into a caller-owned RGB buffer. */
+    public static void colorAtInto(List<float[]> stops, float t, float[] result) {
+        if (stops.isEmpty()) {
+            result[0] = 1.0f;
+            result[1] = 1.0f;
+            result[2] = 1.0f;
+            return;
+        }
+        if (stops.size() == 1) {
+            float[] color = stops.get(0);
+            result[0] = color[0];
+            result[1] = color[1];
+            result[2] = color[2];
+            return;
+        }
         float tt = Math.max(0.0f, Math.min(1.0f, t));
         float pos = tt * (stops.size() - 1);
         int i0 = (int) Math.floor(pos);
@@ -36,11 +54,9 @@ public final class ColorUtils {
         float w = pos - i0;
         float[] a = stops.get(i0);
         float[] b = stops.get(i1);
-        return new float[]{
-                a[0] + (b[0] - a[0]) * w,
-                a[1] + (b[1] - a[1]) * w,
-                a[2] + (b[2] - a[2]) * w
-        };
+        result[0] = a[0] + (b[0] - a[0]) * w;
+        result[1] = a[1] + (b[1] - a[1]) * w;
+        result[2] = a[2] + (b[2] - a[2]) * w;
     }
 
     public static float[] averageColor(List<float[]> stops) {
@@ -60,8 +76,18 @@ public final class ColorUtils {
                                            float amplitude) {
         float n = 0.5f + 0.20f * n1 + 0.20f * n2 + 0.10f * n3;
         float wobble = (n - 0.5f) * 2f * amplitude;
-        float t = Math.max(0.0f, Math.min(1.0f, baseT + wobble));
-        return colorAt(stops, t);
+        float[] result = new float[3];
+        colorAtInto(stops, baseT + wobble, result);
+        return result;
+    }
+
+    /** Samples a noisy gradient into a caller-owned RGB buffer. */
+    public static void colorAtWithNoiseInto(List<float[]> stops, float baseT,
+                                             float n1, float n2, float n3,
+                                             float amplitude, float[] result) {
+        float n = 0.5f + 0.20f * n1 + 0.20f * n2 + 0.10f * n3;
+        float wobble = (n - 0.5f) * 2f * amplitude;
+        colorAtInto(stops, baseT + wobble, result);
     }
 
     public static float[] parseColorARGB(String s) {

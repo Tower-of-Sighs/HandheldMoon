@@ -9,6 +9,8 @@ import java.util.function.Supplier;
 
 public final class LampDeviceConfig {
     private static volatile Supplier<LampDeviceConfig> globalConfigSupplier = LampDeviceConfig::builtInDefaults;
+    private static final Object GLOBAL_CONFIG_LOCK = new Object();
+    private static volatile LampDeviceConfig globalConfigCache;
 
     private final double lightRange;
     private final double lightAngle;
@@ -113,12 +115,34 @@ public final class LampDeviceConfig {
         return fog;
     }
 
+    /** Returns the memoized global config; invalidate it after live values change. */
     public static LampDeviceConfig fromGlobalConfig() {
-        return globalConfigSupplier.get();
+        LampDeviceConfig cached = globalConfigCache;
+        if (cached != null) {
+            return cached;
+        }
+        synchronized (GLOBAL_CONFIG_LOCK) {
+            cached = globalConfigCache;
+            if (cached == null) {
+                cached = globalConfigSupplier.get();
+                globalConfigCache = cached;
+            }
+            return cached;
+        }
     }
 
     public static void setGlobalConfigSupplier(Supplier<LampDeviceConfig> supplier) {
-        globalConfigSupplier = Objects.requireNonNull(supplier);
+        synchronized (GLOBAL_CONFIG_LOCK) {
+            globalConfigSupplier = Objects.requireNonNull(supplier);
+            globalConfigCache = null;
+        }
+    }
+
+    /** Invalidates the memoized global config after a live config value changes. */
+    public static void invalidateGlobalConfig() {
+        synchronized (GLOBAL_CONFIG_LOCK) {
+            globalConfigCache = null;
+        }
     }
 
     @Override

@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -32,6 +33,7 @@ import java.util.UUID;
  */
 public final class RayEvent {
     private static final Map<UUID, Vec3> LAST_DIR = new HashMap<>();
+    private static final GlobalConeConfigCache GLOBAL_CONFIG_CACHE = new GlobalConeConfigCache();
 
     private RayEvent() {
     }
@@ -49,6 +51,7 @@ public final class RayEvent {
         if (mc.level == null || mc.player == null) return;
 
         List<RayConeRenderer.ConeSource> sources = new ArrayList<>();
+        IRayConeConfig globalConfig = buildGlobalConeConfig();
 
         // ---- player cones ----
         for (Player player : mc.level.players()) {
@@ -62,7 +65,7 @@ public final class RayEvent {
             LAST_DIR.put(player.getUUID(), smoothedDir);
 
             sources.add(new RayConeRenderer.ConeSource(
-                    eyePos, smoothedDir, buildGlobalConeConfig()
+                    eyePos, smoothedDir, globalConfig
             ));
         }
 
@@ -72,16 +75,35 @@ public final class RayEvent {
     }
 
     private static IRayConeConfig buildGlobalConeConfig() {
-        RayConeBuilder builder = RayConeBuilder.create()
-                .range(Config.LIGHT_RANGE.get())
-                .angle(Config.LIGHT_ANGLE.get())
-                .colorStops(ColorUtils.parseColorStops(Config.LIGHT_COLORS_ARGB.get()));
-
-        // layers
+        double range = Config.LIGHT_RANGE.get();
+        double angle = Config.LIGHT_ANGLE.get();
+        List<? extends String> colors = Config.LIGHT_COLORS_ARGB.get();
         List<? extends String> sizeScales = Config.LAYER_SIZE_SCALES.get();
         List<? extends String> centerAlphas = Config.LAYER_CENTER_ALPHAS.get();
         List<? extends String> edgeAlphas = Config.LAYER_EDGE_ALPHAS.get();
         List<? extends String> layerColors = Config.LAYER_COLORS_ARGB.get();
+        double noiseAmplitude = Config.COLOR_NOISE_AMPLITUDE.get();
+        boolean coneRaycast = Config.CONE_RAYCAST.get();
+        boolean fogEnabled = Config.FOG_ENABLED.get();
+        double fogSizeScale = Config.FOG_SIZE_SCALE.get();
+        double fogCenterAlpha = Config.FOG_CENTER_ALPHA.get();
+        double fogEdgeAlpha = Config.FOG_EDGE_ALPHA.get();
+        String fogColor = Config.FOG_COLOR_ARGB.get();
+
+        if (GLOBAL_CONFIG_CACHE.matches(
+                range, angle, colors, sizeScales, centerAlphas, edgeAlphas,
+                layerColors, noiseAmplitude, coneRaycast, fogEnabled,
+                fogSizeScale, fogCenterAlpha, fogEdgeAlpha, fogColor
+        )) {
+            return GLOBAL_CONFIG_CACHE.value;
+        }
+
+        RayConeBuilder builder = RayConeBuilder.create()
+                .range(range)
+                .angle(angle)
+                .colorStops(ColorUtils.parseColorStops(colors));
+
+        // layers
         int count = Math.min(sizeScales.size(), Math.min(centerAlphas.size(), edgeAlphas.size()));
         for (int i = 0; i < count; i++) {
             float ss = parseFloat(sizeScales.get(i), 1.0f);
@@ -94,21 +116,94 @@ public final class RayEvent {
             builder.addLayer(ss, ca, ea, lc);
         }
 
-        builder.noiseAmplitude(Config.COLOR_NOISE_AMPLITUDE.get())
-                .raycast(Config.CONE_RAYCAST.get());
+        builder.noiseAmplitude(noiseAmplitude).raycast(coneRaycast);
 
         // fog
-        if (Config.FOG_ENABLED.get()) {
+        if (fogEnabled) {
             builder.fog()
                     .enabled(true)
-                    .sizeScale(Config.FOG_SIZE_SCALE.get())
-                    .centerAlpha(Config.FOG_CENTER_ALPHA.get())
-                    .edgeAlpha(Config.FOG_EDGE_ALPHA.get())
-                    .color(Config.FOG_COLOR_ARGB.get())
+                    .sizeScale(fogSizeScale)
+                    .centerAlpha(fogCenterAlpha)
+                    .edgeAlpha(fogEdgeAlpha)
+                    .color(fogColor)
                     .end();
         }
 
-        return builder.build();
+        GLOBAL_CONFIG_CACHE.update(
+                range, angle, colors, sizeScales, centerAlphas, edgeAlphas,
+                layerColors, noiseAmplitude, coneRaycast, fogEnabled,
+                fogSizeScale, fogCenterAlpha, fogEdgeAlpha, fogColor,
+                builder.build()
+        );
+        return GLOBAL_CONFIG_CACHE.value;
+    }
+
+    private static final class GlobalConeConfigCache {
+        private IRayConeConfig value;
+        private double range;
+        private double angle;
+        private List<? extends String> colors;
+        private List<? extends String> sizeScales;
+        private List<? extends String> centerAlphas;
+        private List<? extends String> edgeAlphas;
+        private List<? extends String> layerColors;
+        private double noiseAmplitude;
+        private boolean coneRaycast;
+        private boolean fogEnabled;
+        private double fogSizeScale;
+        private double fogCenterAlpha;
+        private double fogEdgeAlpha;
+        private String fogColor;
+
+        private boolean matches(
+                double range, double angle, List<? extends String> colors,
+                List<? extends String> sizeScales, List<? extends String> centerAlphas,
+                List<? extends String> edgeAlphas, List<? extends String> layerColors,
+                double noiseAmplitude, boolean coneRaycast, boolean fogEnabled,
+                double fogSizeScale, double fogCenterAlpha, double fogEdgeAlpha,
+                String fogColor
+        ) {
+            return value != null
+                    && this.range == range
+                    && this.angle == angle
+                    && this.colors == colors
+                    && this.sizeScales == sizeScales
+                    && this.centerAlphas == centerAlphas
+                    && this.edgeAlphas == edgeAlphas
+                    && this.layerColors == layerColors
+                    && this.noiseAmplitude == noiseAmplitude
+                    && this.coneRaycast == coneRaycast
+                    && this.fogEnabled == fogEnabled
+                    && this.fogSizeScale == fogSizeScale
+                    && this.fogCenterAlpha == fogCenterAlpha
+                    && this.fogEdgeAlpha == fogEdgeAlpha
+                    && Objects.equals(this.fogColor, fogColor);
+        }
+
+        private void update(
+                double range, double angle, List<? extends String> colors,
+                List<? extends String> sizeScales, List<? extends String> centerAlphas,
+                List<? extends String> edgeAlphas, List<? extends String> layerColors,
+                double noiseAmplitude, boolean coneRaycast, boolean fogEnabled,
+                double fogSizeScale, double fogCenterAlpha, double fogEdgeAlpha,
+                String fogColor, IRayConeConfig value
+        ) {
+            this.range = range;
+            this.angle = angle;
+            this.colors = colors;
+            this.sizeScales = sizeScales;
+            this.centerAlphas = centerAlphas;
+            this.edgeAlphas = edgeAlphas;
+            this.layerColors = layerColors;
+            this.noiseAmplitude = noiseAmplitude;
+            this.coneRaycast = coneRaycast;
+            this.fogEnabled = fogEnabled;
+            this.fogSizeScale = fogSizeScale;
+            this.fogCenterAlpha = fogCenterAlpha;
+            this.fogEdgeAlpha = fogEdgeAlpha;
+            this.fogColor = fogColor;
+            this.value = value;
+        }
     }
 
     public static IRayConeConfig buildLampConeConfig(LampDeviceConfig cfg) {

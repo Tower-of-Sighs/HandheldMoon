@@ -77,5 +77,29 @@ public interface DynamicLightBehavior {
         public int maxZ() {
             return maxZ;
         }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Bounds bounds)) return false;
+            return minX == bounds.minX && minY == bounds.minY && minZ == bounds.minZ
+                    && maxX == bounds.maxX && maxY == bounds.maxY && maxZ == bounds.maxZ;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = minX;
+            result = 31 * result + minY;
+            result = 31 * result + minZ;
+            result = 31 * result + maxX;
+            result = 31 * result + maxY;
+            return 31 * result + maxZ;
+        }
+
+        @Override
+        public String toString() {
+            return "Bounds[" + minX + "," + minY + "," + minZ
+                    + " -> " + maxX + "," + maxY + "," + maxZ + "]";
+        }
     }
 }
