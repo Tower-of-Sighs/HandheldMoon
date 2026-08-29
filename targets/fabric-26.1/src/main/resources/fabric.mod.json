@@ -20,9 +20,6 @@
         ],
         "client": [
             "cc.sighs.handheldmoon.fabric.HandheldMoonFabricClient"
-        ],
-        "modmenu": [
-            "cc.sighs.handheldmoon.fabric.compat.ModMenuCompat"
         ]
     },
     "mixins": [
@@ -33,8 +30,7 @@
         "fabricloader": ">=${fabric_loader_version}",
         "fabric-api": "*",
         "minecraft": "~${minecraft_version}",
-        "java": ">=${java_version}",
-        "oelib": ">=0.0.1"
+        "java": ">=${java_version}"
     },
     "suggests": {
         "another-mod": "*"

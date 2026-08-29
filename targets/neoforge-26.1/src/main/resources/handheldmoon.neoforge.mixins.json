@@ -1,10 +1,13 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "cc.sighs.handheldmoon.mixin",
+  "package": "cc.sighs.handheldmoon.neoforge.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [],
   "client": [
+    "client.EntityRendererMixin",
+    "client.PostPassAccessor",
+    "dynamiclight.DynamicLightBrightnessGetterMixin"
   ],
   "server": [],
   "injectors": {

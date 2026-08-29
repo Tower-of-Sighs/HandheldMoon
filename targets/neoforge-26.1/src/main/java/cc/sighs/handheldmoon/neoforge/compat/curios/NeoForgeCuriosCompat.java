@@ -1,17 +1,23 @@
 package cc.sighs.handheldmoon.neoforge.compat.curios;
 
 import cc.sighs.handheldmoon.compat.accessory.IAccessoryCompat;
-import cc.sighs.handheldmoon.item.MoonlightLampItem;
+import cc.sighs.handheldmoon.neoforge.item.MoonlightLampItem;
 import cc.sighs.handheldmoon.registry.ModItems;
 import cc.sighs.handheldmoon.util.Utils;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.fml.ModList;
 import top.theillusivec4.curios.api.CuriosApi;
 import top.theillusivec4.curios.api.SlotResult;
 
 import java.util.List;
 
 public class NeoForgeCuriosCompat implements IAccessoryCompat {
+    @Override
+    public boolean isAvailable() {
+        return ModList.get().isLoaded("curios");
+    }
+
     @Override
     public void initClient() {
         FlashlightRender.register();

@@ -1,11 +1,12 @@
 package cc.sighs.handheldmoon.fabric.compat.trinkets;
 
 import cc.sighs.handheldmoon.compat.accessory.IAccessoryCompat;
-import cc.sighs.handheldmoon.item.MoonlightLampItem;
+import cc.sighs.handheldmoon.fabric.item.MoonlightLampItem;
 import cc.sighs.handheldmoon.registry.ModItems;
 import cc.sighs.handheldmoon.util.Utils;
 import eu.pb4.trinkets.api.TrinketSlotAccess;
 import eu.pb4.trinkets.api.TrinketsApi;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -13,6 +14,11 @@ import net.minecraft.world.item.ItemStack;
 import java.util.List;
 
 public class FabricTrinketsCompat implements IAccessoryCompat {
+    @Override
+    public boolean isAvailable() {
+        return FabricLoader.getInstance().isModLoaded("trinkets");
+    }
+
     @Override
     public void initClient() {
         FlashlightRender.register();

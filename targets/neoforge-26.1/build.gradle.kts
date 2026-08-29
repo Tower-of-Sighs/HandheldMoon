@@ -1,22 +1,84 @@
 import net.darkhax.curseforgegradle.TaskPublishCurseForge
 import org.gradle.api.attributes.Attribute
+import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.kotlin.dsl.getByType
+import org.gradle.jvm.tasks.Jar
+import org.gradle.language.jvm.tasks.ProcessResources
 
 plugins {
-    id("multiloader-loader")
+    id("java-library")
     id("net.neoforged.moddev")
     id("com.modrinth.minotaur")
     id("net.darkhax.curseforgegradle")
 }
 
 evaluationDependsOn(":common")
-val commonMainSourceSet = project(":common").extensions.getByType<SourceSetContainer>().named("main")
+val commonProject = project(":common")
+val commonMainSourceSet = commonProject.extensions.getByType<SourceSetContainer>().named("main").get()
+commonProject.extensions.configure<JavaPluginExtension> {
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+    withSourcesJar()
+    withJavadocJar()
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
+}
+
+sourceSets.named("main") {
+    resources.srcDir("../../common/src/main/resources")
+}
+
+tasks.named<ProcessResources>("processResources") {
+    val expandProps = mapOf(
+        "version" to project.version,
+        "minecraft_version" to minecraft_version,
+        "minecraft_version_range" to project.property("minecraft_version_range"),
+        "mod_name" to mod_name,
+        "mod_id" to mod_id,
+        "neoforge_version" to neoforge_version,
+        "neoforge_loader_version_range" to project.property("neoforge_loader_version_range"),
+        "license" to project.property("license"),
+        "mod_author" to project.property("mod_author"),
+        "credits" to project.property("credits"),
+        "description" to project.description.orEmpty(),
+    )
+    val jsonExpandProps = expandProps.mapValues { (_, value) ->
+        if (value is String) value.replace("\n", "\\\\n") else value
+    }
+    filesMatching(listOf("META-INF/neoforge.mods.toml", "*.mixins.json", "pack.mcmeta")) {
+        expand(jsonExpandProps)
+    }
+    inputs.properties(expandProps)
+}
 
 val neoforge_version: String by project
 val mod_id: String by project
 val minecraft_version: String by project
 val mod_name: String by project
+
+repositories {
+    maven {
+        name = "Shedaniel"
+        url = uri("https://maven.shedaniel.me")
+    }
+    maven {
+        name = "Curse Maven"
+        url = uri("https://www.cursemaven.com")
+        content { includeGroup("curse.maven") }
+    }
+    maven { name = "Modrinth"; url = uri("https://api.modrinth.com/maven") }
+    maven { name = "Curios Api"; url = uri("https://maven.theillusivec4.top/") }
+}
 
 val releaseType = providers.gradleProperty("release_type").orElse("release")
 val releaseDist = providers.gradleProperty("release_dist").orElse("both").map { value ->
@@ -40,6 +102,7 @@ val curseforgeProjectId = providers.provider {
     if (loaderSpecific.isNotEmpty()) loaderSpecific else providers.gradleProperty("curseforge_project").orNull?.trim().orEmpty()
 }
 val curios_version: String by project
+val cloth_config_version: String by project
 
 // Optional POM dependency whitelist for Maven publication.
 // Example:
@@ -48,22 +111,21 @@ val curios_version: String by project
 //     "artifact-id",
 //     "group.id:artifact-id",
 // )
-extra["mavenDependencyWhitelist"] = listOf(
-    "cc.sighs.oelib"
-)
+extra["mavenDependencyWhitelist"] = emptySet<String>()
 
 dependencies {
+    implementation(commonProject)
     implementation ("top.theillusivec4.curios:curios-neoforge:$curios_version")
+    implementation("me.shedaniel.cloth:cloth-config-neoforge:$cloth_config_version")
     implementation("curse.maven:irisshaders-455508:7867946")
     implementation("curse.maven:sodium-394468:7867828")
-    implementation("cc.sighs.oelib:OELib-neoforge-26.1:0.2.3-dev2")
 }
 
 neoForge {
     version = neoforge_version
 
     // Automatically enable neoforge AccessTransformers if the file exists
-    val at = project(":common").file("src/main/resources/META-INF/accesstransformer.cfg")
+    val at = file("../../common/src/main/resources/META-INF/accesstransformer.cfg")
     if (at.exists()) {
         accessTransformers.from(at.absolutePath)
     }
@@ -101,9 +163,29 @@ neoForge {
     mods {
         create(mod_id) {
             sourceSet(sourceSets.main.get())
-            sourceSet(commonMainSourceSet.get())
+            sourceSet(commonMainSourceSet)
         }
     }
+}
+
+tasks.named("compileJava") {
+    dependsOn(commonProject.tasks.named("classes"))
+}
+
+val commonMinecraftCompileClasspath = configurations.create("commonMinecraftCompileClasspath") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    extendsFrom(configurations.getByName("modDevCompileDependencies"))
+}
+commonProject.dependencies.add("compileOnly", files(commonMinecraftCompileClasspath))
+
+tasks.named<Jar>("jar") {
+    dependsOn(commonProject.tasks.named("classes"))
+    from(commonProject.extensions.getByType<org.gradle.api.tasks.SourceSetContainer>().named("main").map { it.output.classesDirs })
+}
+
+tasks.named<Jar>("sourcesJar") {
+    from(commonProject.extensions.getByType<org.gradle.api.tasks.SourceSetContainer>().named("main").map { it.java })
 }
 
 sourceSets.named("main") {

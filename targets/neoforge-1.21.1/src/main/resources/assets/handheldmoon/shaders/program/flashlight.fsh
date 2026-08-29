@@ -3,7 +3,7 @@
 uniform sampler2D DiffuseSampler;
 uniform float IntensityAmount;
 uniform vec2 Offset;
-uniform float Radius;
+uniform float RadiusRatio;
 
 in vec2 texCoord;
 
@@ -22,10 +22,11 @@ void main() {
     float dist = distance(pixelCoord, center);
 
     // 边缘过渡
-    float edge = Radius / 3;
+    float radius = min(texSize.x, texSize.y) * RadiusRatio;
+    float edge = radius / 3;
 
     // 平滑过渡
-    float factor = smoothstep(Radius, Radius - edge, dist);
+    float factor = smoothstep(radius, radius - edge, dist);
 
     if (factor > 0.0) {
         float brightness = dot(finalColor.rgb, vec3(0.299, 0.587, 0.114));

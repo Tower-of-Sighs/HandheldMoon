@@ -18,7 +18,7 @@ import top.theillusivec4.curios.api.client.ICurioRenderer;
 
 public class FlashlightRender implements ICurioRenderer {
     public static void register() {
-        ModItems.MOONLIGHT_LAMP.listen(item -> ICurioRenderer.register(item, FlashlightRender::new));
+        ICurioRenderer.register(ModItems.MOONLIGHT_LAMP.get(), FlashlightRender::new);
     }
 
     @Override

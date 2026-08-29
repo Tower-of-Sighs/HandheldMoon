@@ -18,7 +18,7 @@ import net.minecraft.world.item.ItemStack;
 
 public class FlashlightRender implements TrinketRenderer {
     public static void register() {
-        ModItems.MOONLIGHT_LAMP.listen(item -> TrinketRendererRegistry.registerRenderer(item, new FlashlightRender()));
+        TrinketRendererRegistry.registerRenderer(ModItems.MOONLIGHT_LAMP.get(), new FlashlightRender());
     }
 
     @Override

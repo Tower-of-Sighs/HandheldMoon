@@ -1,10 +1,13 @@
 import net.darkhax.curseforgegradle.TaskPublishCurseForge
 import org.gradle.api.attributes.Attribute
+import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.kotlin.dsl.getByType
+import org.gradle.jvm.tasks.Jar
+import org.gradle.language.jvm.tasks.ProcessResources
 
 plugins {
-    id("multiloader-loader")
+    id("java-library")
     id("net.neoforged.moddev")
     id("com.modrinth.minotaur")
     id("net.darkhax.curseforgegradle")
@@ -44,6 +47,25 @@ val sodium_version: String by project
 val sable_version: String by project
 val sable_companion_version: String by project
 
+repositories {
+    maven {
+        name = "Curse Maven"
+        url = uri("https://www.cursemaven.com")
+        content { includeGroup("curse.maven") }
+    }
+    maven { name = "Modrinth"; url = uri("https://api.modrinth.com/maven") }
+    maven { name = "Curios Api"; url = uri("https://maven.theillusivec4.top/") }
+}
+
+evaluationDependsOn(":common")
+val commonProject = project(":common")
+val commonMainSourceSet = commonProject.extensions.getByType<SourceSetContainer>().named("main").get()
+commonProject.extensions.configure<JavaPluginExtension> {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
 // Optional POM dependency whitelist for Maven publication.
 // Example:
 // extra["mavenDependencyWhitelist"] = listOf(
@@ -64,10 +86,43 @@ repositories {
     }
 }
 
-evaluationDependsOn(":common")
-val commonMainSourceSet = project(":common").extensions.getByType<SourceSetContainer>().named("main")
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+    withSourcesJar()
+    withJavadocJar()
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
+}
+
+sourceSets.named("main") {
+    resources.srcDir("../../common/src/main/resources")
+}
+
+tasks.named<ProcessResources>("processResources") {
+    val expandProps = mapOf(
+        "version" to project.version,
+        "minecraft_version" to minecraft_version,
+        "minecraft_version_range" to project.property("minecraft_version_range"),
+        "mod_name" to mod_name,
+        "mod_id" to mod_id,
+        "neoforge_version" to neoforge_version,
+        "neoforge_loader_version_range" to project.property("neoforge_loader_version_range"),
+        "license" to project.property("license"),
+        "mod_author" to project.property("mod_author"),
+        "description" to project.description.orEmpty(),
+    )
+    filesMatching(listOf("META-INF/neoforge.mods.toml", "*.mixins.json")) {
+        expand(expandProps)
+    }
+    inputs.properties(expandProps)
+}
 
 dependencies {
+    implementation(commonProject)
     implementation("curse.maven:carry-on-274259:7393892")
     implementation("maven.modrinth:jei:$jei_version")
     implementation("maven.modrinth:curios:$curios_version")
@@ -94,6 +149,19 @@ dependencies {
     implementation("curse.maven:architectury-api-419699:5786327")
 
     compileOnly("io.github.llamalad7:mixinextras-common:0.3.5")
+}
+
+tasks.named("compileJava") {
+    dependsOn(commonProject.tasks.named("classes"))
+}
+
+tasks.named<Jar>("jar") {
+    dependsOn(commonProject.tasks.named("classes"))
+    from(commonProject.extensions.getByType<org.gradle.api.tasks.SourceSetContainer>().named("main").map { it.output.classesDirs })
+}
+
+tasks.named<Jar>("sourcesJar") {
+    from(commonProject.extensions.getByType<org.gradle.api.tasks.SourceSetContainer>().named("main").map { it.java })
 }
 
 neoForge {
@@ -138,10 +206,17 @@ neoForge {
     mods {
         create(mod_id) {
             sourceSet(sourceSets.main.get())
-            sourceSet(commonMainSourceSet.get())
+            sourceSet(commonMainSourceSet)
         }
     }
 }
+
+val commonMinecraftCompileClasspath = configurations.create("commonMinecraftCompileClasspath") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    extendsFrom(configurations.getByName("modDevCompileDependencies"))
+}
+commonProject.dependencies.add("compileOnly", files(commonMinecraftCompileClasspath))
 
 sourceSets.named("main") {
     resources.srcDir("src/generated/resources")
