@@ -3,12 +3,11 @@ package cc.sighs.handheldmoon.fabric.block;
 import cc.sighs.handheldmoon.config.DeviceConfigCodecs;
 import cc.sighs.handheldmoon.config.FullMoonDeviceConfig;
 import cc.sighs.handheldmoon.fabric.entity.FullMoonEntity;
-import cc.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import cc.sighs.handheldmoon.registry.ModBlockEntities;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -25,7 +24,7 @@ public class FullMoonBlockEntity extends BlockEntity implements cc.sighs.handhel
 
     public FullMoonBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.FULL_MOON.get(), pos, state);
-        this.uuid = UUID.randomUUID();
+        uuid = UUID.randomUUID();
     }
 
     public UUID getUuid() {
@@ -47,9 +46,7 @@ public class FullMoonBlockEntity extends BlockEntity implements cc.sighs.handhel
     public void setFullMoonConfig(FullMoonDeviceConfig fullMoonConfig, boolean customized) {
         this.fullMoonConfig = fullMoonConfig;
         this.fullMoonConfigCustomized = customized;
-        if (level != null && level.isClientSide()) {
-            HandheldMoonDynamicLightsInitializer.ensureFullMoonBehaviorAt(getBlockPos());
-        } else if (level != null) {
+        if (level != null && !level.isClientSide()) {
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
             setChanged();
         }
@@ -62,29 +59,50 @@ public class FullMoonBlockEntity extends BlockEntity implements cc.sighs.handhel
     @Override
     public void setLevel(Level level) {
         super.setLevel(level);
+    }
 
-        if (level.isClientSide()) {
-            HandheldMoonDynamicLightsInitializer.addFullMoonBehavior(this);
+    @Override
+    public void clientTick() {
+    }
+
+    @Override
+    public void serverTick() {
+        if (level == null || level.isClientSide()) {
             return;
         }
-
+        FullMoonEntity entity = getBoundEntity();
+        if (entity != null) {
+            entity.setAnchor(getBlockPos());
+            return;
+        }
         BlockPos pos = getBlockPos();
-        AABB box = new AABB(
-                pos.getX() + 0.5 - 0.25, pos.getY() + 0.5 - 0.25, pos.getZ() + 0.5 - 0.25,
-                pos.getX() + 0.5 + 0.25, pos.getY() + 0.5 + 0.25, pos.getZ() + 0.5 + 0.25
-        );
+        AABB box = new AABB(pos.getX() + 0.25, pos.getY() + 0.25, pos.getZ() + 0.25,
+                pos.getX() + 0.75, pos.getY() + 0.75, pos.getZ() + 0.75);
         if (level.getEntitiesOfClass(FullMoonEntity.class, box).isEmpty()) {
-            FullMoonEntity entity = new FullMoonEntity(level);
+            entity = new FullMoonEntity(level);
             entity.setPos(pos.getX() + 0.5, pos.getY() + 0.4, pos.getZ() + 0.5);
             entity.setAnchor(pos);
             level.addFreshEntity(entity);
+            uuid = entity.getUUID();
+            setChanged();
         }
     }
 
     @Override
     public void setRemoved() {
+        FullMoonEntity entity = getBoundEntity();
         super.setRemoved();
-        HandheldMoonDynamicLightsInitializer.removeFullMoonBehavior(this);
+        if (entity != null) {
+            entity.discard();
+        }
+    }
+
+    private FullMoonEntity getBoundEntity() {
+        if (uuid == null || level == null) {
+            return null;
+        }
+        var entity = level.getEntity(uuid);
+        return entity instanceof FullMoonEntity fullMoon ? fullMoon : null;
     }
 
     @Override
@@ -100,10 +118,10 @@ public class FullMoonBlockEntity extends BlockEntity implements cc.sighs.handhel
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
-        String value = input.getStringOr("uuid", UUID.randomUUID().toString());
-        uuid = UUID.fromString(value);
+        uuid = UUID.fromString(input.getStringOr("uuid", UUID.randomUUID().toString()));
         fullMoonConfigCustomized = input.getBooleanOr("fullMoonConfigCustomized", false);
-        fullMoonConfig = input.read("fullMoonConfig", DeviceConfigCodecs.FULL_MOON).orElse(FullMoonDeviceConfig.fromGlobalConfig());
+        fullMoonConfig = input.read("fullMoonConfig", DeviceConfigCodecs.FULL_MOON)
+                .orElse(FullMoonDeviceConfig.fromGlobalConfig());
     }
 
     @Override
@@ -116,5 +134,3 @@ public class FullMoonBlockEntity extends BlockEntity implements cc.sighs.handhel
         return this.saveCustomOnly(provider);
     }
 }
-
-

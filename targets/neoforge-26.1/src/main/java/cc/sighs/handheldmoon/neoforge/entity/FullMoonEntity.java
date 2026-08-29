@@ -1,6 +1,7 @@
 package cc.sighs.handheldmoon.neoforge.entity;
 
 import cc.sighs.handheldmoon.block.FullMoonBlock;
+import cc.sighs.handheldmoon.api.light.EntityLightProfile;
 import cc.sighs.handheldmoon.neoforge.block.FullMoonBlockEntity;
 import cc.sighs.handheldmoon.config.FullMoonDeviceConfig;
 import cc.sighs.handheldmoon.config.LampDeviceConfig;
@@ -21,6 +22,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.nbt.CompoundTag;
 
 import java.util.Optional;
 
@@ -31,6 +33,8 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
     private static final EntityDataAccessor<Integer> LAMP_LUMINANCE = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Float> LAMP_X_ROT = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> LAMP_Y_ROT = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<String> LIGHT_PROFILE = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<Boolean> LIGHT_PROFILE_OVERRIDE = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.BOOLEAN);
 
     public FullMoonEntity(Level level) {
         this((EntityType<? extends FullMoonEntity>) ModEntities.MOONLIGHT.get(), level);
@@ -112,12 +116,35 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
     }
 
     @Override
+    public EntityLightProfile getLightProfile() {
+        if (!entityData.get(LIGHT_PROFILE_OVERRIDE)) {
+            return FullMoonDynamicLightSource.super.getLightProfile();
+        }
+        EntityLightProfile profile = EntityLightProfile.fromNetworkString(entityData.get(LIGHT_PROFILE));
+        return profile != null ? profile : FullMoonDynamicLightSource.super.getLightProfile();
+    }
+
+    @Override
+    public void setLightProfile(EntityLightProfile profile) {
+        entityData.set(LIGHT_PROFILE, profile.toNetworkString());
+        entityData.set(LIGHT_PROFILE_OVERRIDE, true);
+    }
+
+    @Override
+    public void clearLightProfileOverride() {
+        entityData.set(LIGHT_PROFILE, "");
+        entityData.set(LIGHT_PROFILE_OVERRIDE, false);
+    }
+
+    @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         builder.define(ANCHOR_POS, Optional.empty());
         builder.define(LAMP_BOUND, false);
         builder.define(LAMP_LUMINANCE, 15);
         builder.define(LAMP_X_ROT, 0.0f);
         builder.define(LAMP_Y_ROT, 0.0f);
+        builder.define(LIGHT_PROFILE, "");
+        builder.define(LIGHT_PROFILE_OVERRIDE, false);
     }
 
     @Override
@@ -160,6 +187,8 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
         entityData.set(LAMP_LUMINANCE, input.getIntOr("lamp_luminance", 15));
         entityData.set(LAMP_X_ROT, input.getFloatOr("lamp_x_rot", 0.0f));
         entityData.set(LAMP_Y_ROT, input.getFloatOr("lamp_y_rot", 0.0f));
+        entityData.set(LIGHT_PROFILE_OVERRIDE, input.getBooleanOr("light_profile_override", false));
+        input.read("light_profile", EntityLightProfile.CODEC).ifPresent(this::setLightProfile);
     }
 
     @Override
@@ -175,6 +204,10 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
         output.putInt("lamp_luminance", getLampLuminance());
         output.putFloat("lamp_x_rot", entityData.get(LAMP_X_ROT));
         output.putFloat("lamp_y_rot", entityData.get(LAMP_Y_ROT));
+        output.putBoolean("light_profile_override", entityData.get(LIGHT_PROFILE_OVERRIDE));
+        if (entityData.get(LIGHT_PROFILE_OVERRIDE)) {
+            output.store("light_profile", EntityLightProfile.CODEC, getLightProfile());
+        }
     }
 
     private BlockEntity getAnchorBlockEntity() {

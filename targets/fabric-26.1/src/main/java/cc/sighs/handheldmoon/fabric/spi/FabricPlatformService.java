@@ -135,7 +135,7 @@ public final class FabricPlatformService implements PlatformService {
         @Override public void initializeClient() {
             RayConeRenderer.installBackend(cc.sighs.handheldmoon.fabric.api.raycone.impl.RayConeRendererImpl::render);
             LampConeSourceHooks.install((minecraft, sources) -> BlockEntityLampConeSources.append(
-                    minecraft, HandheldMoonDynamicLightsInitializer.getActiveLampPositions(), sources));
+                    minecraft, java.util.List.of(), sources));
             LampInteractionHooks.install(HandheldMoonDynamicLightsInitializer::syncLampBehavior);
             registerKeyBindings();
             AccessoryCompat.init();

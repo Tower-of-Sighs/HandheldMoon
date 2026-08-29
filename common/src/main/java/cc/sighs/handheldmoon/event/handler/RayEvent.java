@@ -1,5 +1,6 @@
 package cc.sighs.handheldmoon.event.handler;
 
+import cc.sighs.handheldmoon.api.light.EntityLightProfile;
 import cc.sighs.handheldmoon.api.raycone.IRayConeConfig;
 import cc.sighs.handheldmoon.api.raycone.RayConeBuilder;
 import cc.sighs.handheldmoon.api.raycone.RayConeRenderer;
@@ -111,9 +112,28 @@ public final class RayEvent {
     }
 
     public static IRayConeConfig buildLampConeConfig(LampDeviceConfig cfg) {
+        return buildLampConeConfig(cfg, null);
+    }
+
+    /**
+     * Builds a lamp cone while allowing an entity profile to override the
+     * geometric properties controlled by the shared entity-light API.
+     * Colour, layer, noise, raycast and fog settings remain device settings.
+     *
+     * @param cfg base lamp visual configuration
+     * @param profile optional entity profile; when absent, device geometry is used
+     * @return immutable cone rendering configuration
+     */
+    public static IRayConeConfig buildLampConeConfig(
+            LampDeviceConfig cfg, EntityLightProfile profile
+    ) {
+        double range = profile != null ? profile.range() : cfg.lightRange();
+        double angle = profile != null
+                ? Math.toDegrees(profile.outerAngle() * 2.0)
+                : cfg.lightAngle();
         RayConeBuilder builder = RayConeBuilder.create()
-                .range(cfg.lightRange())
-                .angle(cfg.lightAngle())
+                .range(range)
+                .angle(angle)
                 .colorStops(ColorUtils.parseColorStops(cfg.lightColorsARGB()));
 
         int count = Math.min(cfg.layerSizeScales().size(),

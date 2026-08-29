@@ -1,6 +1,8 @@
 package cc.sighs.handheldmoon.event.handler;
 
 import cc.sighs.handheldmoon.api.raycone.RayConeRenderer;
+import cc.sighs.handheldmoon.api.light.EntityLightProfile;
+import cc.sighs.handheldmoon.api.light.EntityLightRuntimeState;
 import cc.sighs.handheldmoon.lights.FullMoonDynamicLightSource;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.phys.Vec3;
@@ -22,14 +24,21 @@ public final class BlockEntityLampConeSources {
             return;
         }
         for (Entity entity : minecraft.level.entitiesForRendering()) {
-            if (entity instanceof FullMoonDynamicLightSource lamp
-                    && lamp.isLampBound() && lamp.getLampLuminance() > 0) {
-                Vec3 direction = lamp.getLampDirection();
-                Vec3 apex = lamp.getLightPosition().add(direction.scale(0.24));
+            if (entity instanceof FullMoonDynamicLightSource lamp) {
+                EntityLightProfile profile = lamp.getLightProfile();
+                EntityLightRuntimeState runtime = lamp.getLightRuntimeState();
+                if (!lamp.isLampBound()
+                        || profile.shape() != EntityLightProfile.Shape.CONE
+                        || !profile.visibleCone()
+                        || !runtime.enabled()) {
+                    continue;
+                }
+                Vec3 direction = runtime.direction();
+                Vec3 apex = runtime.position().add(profile.positionOffset()).add(direction.scale(0.24));
                 sources.add(new RayConeRenderer.ConeSource(
                         apex,
                         direction,
-                        RayEvent.buildLampConeConfig(lamp.getLampConfig()),
+                        RayEvent.buildLampConeConfig(lamp.getLampConfig(), profile),
                         true
                 ));
             }

@@ -1,6 +1,7 @@
 package cc.sighs.handheldmoon.neoforge.entity;
 
 import cc.sighs.handheldmoon.block.FullMoonBlock;
+import cc.sighs.handheldmoon.api.light.EntityLightProfile;
 import cc.sighs.handheldmoon.neoforge.block.FullMoonBlockEntity;
 import cc.sighs.handheldmoon.neoforge.block.MoonlightLampBlockEntity;
 import cc.sighs.handheldmoon.config.FullMoonDeviceConfig;
@@ -34,6 +35,8 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
     private static final EntityDataAccessor<Integer> LAMP_LUMINANCE = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Float> LAMP_X_ROT = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> LAMP_Y_ROT = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<String> LIGHT_PROFILE = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<Boolean> LIGHT_PROFILE_OVERRIDE = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.BOOLEAN);
 
     public FullMoonEntity(Level level) {
         this((EntityType<? extends FullMoonEntity>) ModEntities.MOONLIGHT.get(), level);
@@ -51,6 +54,8 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
         builder.define(LAMP_LUMINANCE, 15);
         builder.define(LAMP_X_ROT, 0.0f);
         builder.define(LAMP_Y_ROT, 0.0f);
+        builder.define(LIGHT_PROFILE, "");
+        builder.define(LIGHT_PROFILE_OVERRIDE, false);
     }
 
     public void setAnchor(BlockPos pos) {
@@ -140,6 +145,27 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
         return true;
     }
 
+    @Override
+    public EntityLightProfile getLightProfile() {
+        if (!entityData.get(LIGHT_PROFILE_OVERRIDE)) {
+            return FullMoonDynamicLightSource.super.getLightProfile();
+        }
+        EntityLightProfile profile = EntityLightProfile.fromNetworkString(entityData.get(LIGHT_PROFILE));
+        return profile != null ? profile : FullMoonDynamicLightSource.super.getLightProfile();
+    }
+
+    @Override
+    public void setLightProfile(EntityLightProfile profile) {
+        entityData.set(LIGHT_PROFILE, profile.toNetworkString());
+        entityData.set(LIGHT_PROFILE_OVERRIDE, true);
+    }
+
+    @Override
+    public void clearLightProfileOverride() {
+        entityData.set(LIGHT_PROFILE, "");
+        entityData.set(LIGHT_PROFILE_OVERRIDE, false);
+    }
+
     public Vec3 getLampDirection() {
         Vec3 direction = LineLightMath.computeDirection(
                 this.entityData.get(LAMP_Y_ROT),
@@ -223,6 +249,13 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
         if (tag.contains("lamp_y_rot")) {
             this.entityData.set(LAMP_Y_ROT, tag.getFloat("lamp_y_rot"));
         }
+        this.entityData.set(LIGHT_PROFILE_OVERRIDE, tag.getBoolean("light_profile_override"));
+        if (tag.get("light_profile") instanceof CompoundTag profileTag) {
+            EntityLightProfile profile = EntityLightProfile.fromTag(profileTag);
+            if (profile != null) {
+                setLightProfile(profile);
+            }
+        }
     }
 
     @Override
@@ -238,5 +271,9 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
         tag.putInt("lamp_luminance", getLampLuminance());
         tag.putFloat("lamp_x_rot", getLampXRot());
         tag.putFloat("lamp_y_rot", getLampYRot());
+        tag.putBoolean("light_profile_override", entityData.get(LIGHT_PROFILE_OVERRIDE));
+        if (entityData.get(LIGHT_PROFILE_OVERRIDE)) {
+            tag.put("light_profile", getLightProfile().toTag());
+        }
     }
 }

@@ -14,9 +14,7 @@ public final class ClientRuntime {
         if (DynamicLightManager.syncLevel(minecraft)) {
             HandheldMoonDynamicLightsInitializer.reset();
         }
-        HandheldMoonDynamicLightsInitializer.updatePlayerBehaviors();
-        HandheldMoonDynamicLightsInitializer.updateFullMoonEntityBehaviors();
-        HandheldMoonDynamicLightsInitializer.updateItemBehaviors();
+        HandheldMoonDynamicLightsInitializer.updateEntityBehaviors();
         DynamicLightManager.tick(minecraft);
     }
 }

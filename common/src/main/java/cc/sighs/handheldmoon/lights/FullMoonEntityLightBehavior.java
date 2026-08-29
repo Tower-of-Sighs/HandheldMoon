@@ -1,21 +1,18 @@
 package cc.sighs.handheldmoon.lights;
 
 import cc.sighs.handheldmoon.api.light.DynamicLightBuilder;
+import cc.sighs.handheldmoon.api.light.EntityLightProfile;
+import cc.sighs.handheldmoon.api.light.EntityLightRuntimeState;
 import cc.sighs.handheldmoon.api.light.impl.RayLightBehavior;
-import cc.sighs.handheldmoon.config.FullMoonDeviceConfig;
-import cc.sighs.handheldmoon.config.LampDeviceConfig;
 import cc.sighs.handheldmoon.dynamiclight.DynamicLightBehavior;
-import cc.sighs.handheldmoon.dynamiclight.DynamicLightDefaults;
-import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 
 /** Shared light calculation for full-moon and lamp entities. */
 public final class FullMoonEntityLightBehavior implements DynamicLightBehavior {
     private final FullMoonDynamicLightSource source;
     private RayLightBehavior delegate;
-    private boolean lastLampBound;
-    private int lastLampLuminance;
-    private Object lastDeviceConfig;
+    private EntityLightProfile lastProfile;
+    private boolean lastEnabled;
 
     public FullMoonEntityLightBehavior(FullMoonDynamicLightSource source) {
         this.source = source;
@@ -34,12 +31,9 @@ public final class FullMoonEntityLightBehavior implements DynamicLightBehavior {
 
     @Override
     public boolean hasChanged() {
-        boolean lampBound = source.isLampBound();
-        int lampLuminance = source.getLampLuminance();
-        Object deviceConfig = currentDeviceConfig();
-        if (lampBound != lastLampBound
-                || lampLuminance != lastLampLuminance
-                || !deviceConfig.equals(lastDeviceConfig)) {
+        EntityLightProfile profile = source.getLightProfile();
+        EntityLightRuntimeState runtime = source.getLightRuntimeState();
+        if (!profile.equals(lastProfile) || runtime.enabled() != lastEnabled) {
             refreshDelegate();
             return true;
         }
@@ -48,48 +42,48 @@ public final class FullMoonEntityLightBehavior implements DynamicLightBehavior {
 
     @Override
     public boolean isRemoved() {
-        return source.isLightRemoved() || source.getAnchorPos() == null;
+        EntityLightRuntimeState runtime = source.getLightRuntimeState();
+        return source.isLightRemoved()
+                || source.getAnchorPos() == null
+                || !runtime.enabled()
+                || !source.getLightProfile().realLight();
     }
 
     private void refreshDelegate() {
-        lastLampBound = source.isLampBound();
-        lastLampLuminance = source.getLampLuminance();
-        lastDeviceConfig = currentDeviceConfig();
-        delegate = lastLampBound ? createLampDelegate((LampDeviceConfig) lastDeviceConfig)
-                : createFullMoonDelegate((FullMoonDeviceConfig) lastDeviceConfig);
+        lastProfile = source.getLightProfile();
+        EntityLightRuntimeState runtime = source.getLightRuntimeState();
+        lastEnabled = runtime.enabled();
+        delegate = createDelegate(lastProfile);
     }
 
-    private Object currentDeviceConfig() {
-        return source.isLampBound() ? source.getLampConfig() : source.getFullMoonConfig();
-    }
+    private RayLightBehavior createDelegate(EntityLightProfile profile) {
+        if (profile.shape() == EntityLightProfile.Shape.CONE) {
+            return new RayLightBehavior(
+                    DynamicLightBuilder.cone()
+                            .range(profile.range())
+                            .angle(profile.innerAngle(), profile.outerAngle())
+                            .luminance(profile.luminance())
+                            .occlusion(profile.occlusion())
+                            .buildConfig(),
+                    () -> lightPosition(profile),
+                    () -> source.getLightRuntimeState().direction(),
+                    () -> profile.realLight() && source.getLightRuntimeState().enabled()
+            );
+        }
 
-    private RayLightBehavior createLampDelegate(LampDeviceConfig config) {
-        double outerAngle = config.lightAngle() * 0.5 * Mth.DEG_TO_RAD;
-        double innerAngle = outerAngle * 0.7;
-        double luminance = source.getLampLuminance() > 0 ? config.realLightLuminance() : 0.0;
-        return new RayLightBehavior(
-                DynamicLightBuilder.cone()
-                        .range(DynamicLightDefaults.FLASHLIGHT_RANGE)
-                        .angle(innerAngle, outerAngle)
-                        .luminance(luminance)
-                        .occlusion(config.lightOcclusion())
-                        .buildConfig(),
-                source::getLightPosition,
-                source::getLampDirection,
-                () -> config.realLight() && source.getLampLuminance() > 0
-        );
-    }
-
-    private RayLightBehavior createFullMoonDelegate(FullMoonDeviceConfig config) {
         return new RayLightBehavior(
                 DynamicLightBuilder.point()
-                        .range(18.0)
-                        .luminance(config.realLightLuminance())
-                        .occlusion(config.lightOcclusion())
+                        .range(profile.range())
+                        .luminance(profile.luminance())
+                        .occlusion(profile.occlusion())
                         .buildConfig(),
-                source::getLightPosition,
+                () -> lightPosition(profile),
                 () -> Vec3.ZERO,
-                config::realLight
+                () -> profile.realLight() && source.getLightRuntimeState().enabled()
         );
+    }
+
+    private Vec3 lightPosition(EntityLightProfile profile) {
+        return source.getLightRuntimeState().position().add(profile.positionOffset());
     }
 }

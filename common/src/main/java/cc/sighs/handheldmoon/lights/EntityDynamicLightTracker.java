@@ -1,13 +1,13 @@
 package cc.sighs.handheldmoon.lights;
 
+import cc.sighs.handheldmoon.api.light.EntityLightSource;
+import cc.sighs.handheldmoon.api.light.EntityLightSourceProvider;
 import cc.sighs.handheldmoon.compat.FlashlightCompatHooks;
-import cc.sighs.handheldmoon.dynamiclight.DynamicLightBehavior;
-import cc.sighs.handheldmoon.dynamiclight.DynamicLightManager;
 import cc.sighs.handheldmoon.dynamiclight.EntityItemLightBehavior;
 import cc.sighs.handheldmoon.registry.Config;
 import cc.sighs.handheldmoon.registry.ModItems;
-import cc.sighs.handheldmoon.util.Utils;
 import cc.sighs.handheldmoon.util.ItemState;
+import cc.sighs.handheldmoon.util.Utils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -16,82 +16,70 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 
-/** Shared tracking for player-held and dropped item light sources. */
-public final class EntityDynamicLightTracker {
-    private static final Map<UUID, PlayerFlashlightLineLightBehavior> PLAYER_BEHAVIORS = new HashMap<>();
-    private static final Map<UUID, EntityItemLightBehavior> ITEM_BEHAVIORS = new HashMap<>();
+/** Discovers player-held and dropped-item entity light sources. */
+public final class EntityDynamicLightTracker implements EntityLightSourceProvider {
+    private static final String PLAYER_FLASHLIGHT_CHANNEL = "player-flashlight";
+    private static final String ENTITY_ITEM_CHANNEL = "entity-item";
 
-    private EntityDynamicLightTracker() {
-    }
+    private final Map<UUID, PlayerFlashlightLineLightBehavior> playerBehaviors = new HashMap<>();
+    private final Map<UUID, EntityItemLightBehavior> itemBehaviors = new HashMap<>();
 
-    public static void reset() {
-        PLAYER_BEHAVIORS.values().forEach(DynamicLightManager::remove);
-        ITEM_BEHAVIORS.values().forEach(DynamicLightManager::remove);
-        PLAYER_BEHAVIORS.clear();
-        ITEM_BEHAVIORS.clear();
-    }
-
-    public static void updatePlayerBehaviors() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null) return;
-        if (!Config.REAL_LIGHT.get()) {
-            PLAYER_BEHAVIORS.values().forEach(DynamicLightManager::remove);
-            PLAYER_BEHAVIORS.clear();
+    @Override
+    public void collect(Minecraft minecraft, Consumer<EntityLightSource> sink) {
+        if (minecraft.level == null || !Config.REAL_LIGHT.get()) {
+            playerBehaviors.clear();
+            itemBehaviors.clear();
             return;
         }
 
-        Set<UUID> seen = new HashSet<>();
-        for (Player player : mc.level.players()) {
+        Set<UUID> activePlayers = new HashSet<>();
+        for (Player player : minecraft.level.players()) {
             UUID id = player.getUUID();
-            seen.add(id);
-            PlayerFlashlightLineLightBehavior existing = PLAYER_BEHAVIORS.get(id);
             if (Utils.isUsingFlashlight(player)) {
-                if (existing == null) {
-                    existing = new PlayerFlashlightLineLightBehavior(player);
-                    PLAYER_BEHAVIORS.put(id, existing);
-                    DynamicLightManager.add(existing);
-                }
-            } else if (existing != null) {
-                DynamicLightManager.remove(existing);
-                PLAYER_BEHAVIORS.remove(id);
+                activePlayers.add(id);
+                PlayerFlashlightLineLightBehavior behavior = playerBehaviors.computeIfAbsent(
+                        id, ignored -> new PlayerFlashlightLineLightBehavior(player));
+                sink.accept(EntityLightSource.of(PLAYER_FLASHLIGHT_CHANNEL, id, behavior));
             }
         }
-        removeUnseen(PLAYER_BEHAVIORS, seen);
-    }
+        playerBehaviors.keySet().removeIf(id -> !activePlayers.contains(id));
 
-    public static void updateItemBehaviors() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null) return;
-
-        Set<UUID> active = new HashSet<>();
-        for (Entity entity : mc.level.entitiesForRendering()) {
-            if (!(entity instanceof Player) && !(entity instanceof ItemEntity)) continue;
+        Set<UUID> seenItems = new HashSet<>();
+        for (Entity entity : minecraft.level.entitiesForRendering()) {
+            if (!(entity instanceof Player) && !(entity instanceof ItemEntity)) {
+                continue;
+            }
             int luminance = itemLuminance(entity);
             UUID id = entity.getUUID();
-            EntityItemLightBehavior existing = ITEM_BEHAVIORS.get(id);
             if (luminance > 0) {
-                active.add(id);
-                if (existing == null) {
-                    existing = new EntityItemLightBehavior(entity, () -> itemLuminance(entity));
-                    ITEM_BEHAVIORS.put(id, existing);
-                    DynamicLightManager.add(existing);
-                }
-            } else if (existing != null) {
-                DynamicLightManager.remove(existing);
-                ITEM_BEHAVIORS.remove(id);
+                seenItems.add(id);
+                EntityItemLightBehavior behavior = itemBehaviors.computeIfAbsent(
+                        id, ignored -> new EntityItemLightBehavior(entity, () -> itemLuminance(entity)));
+                sink.accept(EntityLightSource.of(ENTITY_ITEM_CHANNEL, id, behavior));
             }
         }
-        removeUnseen(ITEM_BEHAVIORS, active);
+        itemBehaviors.keySet().removeIf(id -> !seenItems.contains(id));
+    }
+
+    @Override
+    public void reset() {
+        playerBehaviors.clear();
+        itemBehaviors.clear();
     }
 
     private static int itemLuminance(Entity entity) {
         if (entity instanceof Player player) {
-            int held = Math.max(itemLuminance(player.getMainHandItem()), itemLuminance(player.getOffhandItem()));
+            // A held moonlight lamp is represented by the flashlight cone when powered.
+            // It must not become an omnidirectional player light while switched off.
+            int held = Math.max(
+                    heldItemLuminance(player.getMainHandItem()),
+                    heldItemLuminance(player.getOffhandItem())
+            );
             return Math.max(held, FlashlightCompatHooks.itemLuminance(player));
         }
         if (entity instanceof ItemEntity itemEntity) {
@@ -100,19 +88,13 @@ public final class EntityDynamicLightTracker {
         return 0;
     }
 
+    private static int heldItemLuminance(ItemStack stack) {
+        return stack.is(ModItems.FULL_MOON.get()) ? 15 : 0;
+    }
+
     private static int itemLuminance(ItemStack stack) {
         if (stack.is(ModItems.FULL_MOON.get())) return 15;
         if (stack.is(ModItems.MOONLIGHT_LAMP.get()) && ItemState.powered(stack) == 0) return 15;
         return 0;
-    }
-
-    private static <T extends DynamicLightBehavior> void removeUnseen(Map<UUID, T> behaviors, Set<UUID> seen) {
-        Iterator<Map.Entry<UUID, T>> iterator = behaviors.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<UUID, T> entry = iterator.next();
-            if (seen.contains(entry.getKey())) continue;
-            DynamicLightManager.remove(entry.getValue());
-            iterator.remove();
-        }
     }
 }
