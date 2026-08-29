@@ -6,22 +6,29 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /** Minimal client dynamic-light registry and section invalidation engine. */
 public final class DynamicLightManager {
     private static final int MAX_SECTION_REBUILDS_PER_TICK = 64;
-    private static final int MAX_QUERY_CACHE_ENTRIES = 65_536;
+    private static final int QUERY_CACHE_SLOTS_PER_THREAD = 16_384;
     private static final Set<DynamicLightBehavior> SOURCES = ConcurrentHashMap.newKeySet();
     private static final Object DIRTY_LOCK = new Object();
     private static final LinkedHashSet<SectionKey> DIRTY_SECTIONS = new LinkedHashSet<>();
-    private static final ConcurrentHashMap<Long, CachedLight> QUERY_CACHE = new ConcurrentHashMap<>(32_768);
+    private static final AtomicLong SECTION_INDEX_REVISION = new AtomicLong();
+    private static final ThreadLocal<QueryCache> QUERY_CACHES = ThreadLocal.withInitial(QueryCache::new);
 
     private static volatile DynamicLightBehavior[] snapshot = new DynamicLightBehavior[0];
-    private static volatile Map<Long, IndexedSource[]> sectionIndex = Map.of();
-    private static volatile long lightRevision;
+    private static volatile SectionIndex sectionIndex = emptySectionIndex();
     private static ClientLevel currentLevel;
 
     private DynamicLightManager() {
@@ -36,8 +43,7 @@ public final class DynamicLightManager {
         currentLevel = next;
         SOURCES.clear();
         snapshot = new DynamicLightBehavior[0];
-        sectionIndex = Map.of();
-        invalidateQueryCache();
+        sectionIndex = emptySectionIndex();
         synchronized (DIRTY_LOCK) {
             DIRTY_SECTIONS.clear();
         }
@@ -97,21 +103,22 @@ public final class DynamicLightManager {
     }
 
     public static double getLightLevel(int blockX, int blockY, int blockZ) {
+        SectionIndex index = sectionIndex;
         long sectionKey = sectionKey(
                 SectionPos.blockToSectionCoord(blockX),
                 SectionPos.blockToSectionCoord(blockY),
                 SectionPos.blockToSectionCoord(blockZ)
         );
-        IndexedSource[] candidates = sectionIndex.get(sectionKey);
+        IndexedSource[] candidates = index.sources.get(sectionKey);
         if (candidates == null) {
             return 0.0;
         }
 
-        long revision = lightRevision;
         long blockKey = BlockPos.asLong(blockX, blockY, blockZ);
-        CachedLight cached = QUERY_CACHE.get(blockKey);
-        if (cached != null && cached.revision == revision) {
-            return cached.light;
+        QueryCache cache = QUERY_CACHES.get();
+        float cached = cache.get(index.revision, blockKey);
+        if (!Float.isNaN(cached)) {
+            return cached;
         }
 
         double light = 0.0;
@@ -128,11 +135,8 @@ public final class DynamicLightManager {
             }
         }
         light = Math.max(0.0, light);
-        if (revision == lightRevision) {
-            if (QUERY_CACHE.mappingCount() >= MAX_QUERY_CACHE_ENTRIES) {
-                QUERY_CACHE.clear();
-            }
-            QUERY_CACHE.put(blockKey, new CachedLight(revision, (float) light));
+        if (index == sectionIndex) {
+            cache.put(index.revision, blockKey, (float) light);
         }
         return light;
     }
@@ -142,7 +146,7 @@ public final class DynamicLightManager {
     }
 
     private static void rebuildSectionIndex() {
-        Map<Long, List<IndexedSource>> building = new HashMap<>();
+        Long2ObjectOpenHashMap<List<IndexedSource>> building = new Long2ObjectOpenHashMap<>();
         for (DynamicLightBehavior behavior : snapshot) {
             Bounds bounds = behavior.getBounds();
             IndexedSource source = new IndexedSource(
@@ -159,24 +163,24 @@ public final class DynamicLightManager {
             for (int sectionZ = minSectionZ; sectionZ <= maxSectionZ; sectionZ++) {
                 for (int sectionX = minSectionX; sectionX <= maxSectionX; sectionX++) {
                     for (int sectionY = minSectionY; sectionY <= maxSectionY; sectionY++) {
-                        building.computeIfAbsent(sectionKey(sectionX, sectionY, sectionZ), ignored -> new ArrayList<>())
-                                .add(source);
+                        long key = sectionKey(sectionX, sectionY, sectionZ);
+                        List<IndexedSource> sources = building.get(key);
+                        if (sources == null) {
+                            sources = new ArrayList<>();
+                            building.put(key, sources);
+                        }
+                        sources.add(source);
                     }
                 }
             }
         }
 
-        Map<Long, IndexedSource[]> rebuilt = new HashMap<>(building.size());
-        building.forEach((key, sources) -> rebuilt.put(key, sources.toArray(IndexedSource[]::new)));
-        sectionIndex = Collections.unmodifiableMap(rebuilt);
-        invalidateQueryCache();
-    }
-
-    private static void invalidateQueryCache() {
-        lightRevision++;
-        if (QUERY_CACHE.mappingCount() >= MAX_QUERY_CACHE_ENTRIES) {
-            QUERY_CACHE.clear();
+        Long2ObjectOpenHashMap<IndexedSource[]> rebuilt = new Long2ObjectOpenHashMap<>(building.size());
+        for (Long2ObjectMap.Entry<List<IndexedSource>> entry : building.long2ObjectEntrySet()) {
+            rebuilt.put(entry.getLongKey(), entry.getValue().toArray(IndexedSource[]::new));
         }
+        rebuilt.trim();
+        sectionIndex = new SectionIndex(SECTION_INDEX_REVISION.incrementAndGet(), rebuilt);
     }
 
     private static void schedule(Bounds bounds) {
@@ -213,7 +217,15 @@ public final class DynamicLightManager {
     private record SectionKey(int x, int y, int z) {
     }
 
-    private record CachedLight(long revision, float light) {
+    private static SectionIndex emptySectionIndex() {
+        return new SectionIndex(
+                SECTION_INDEX_REVISION.incrementAndGet(),
+                new Long2ObjectOpenHashMap<>()
+        );
+    }
+
+    /** The map is fully built before volatile publication and never mutated afterwards. */
+    private record SectionIndex(long revision, Long2ObjectOpenHashMap<IndexedSource[]> sources) {
     }
 
     private record IndexedSource(
@@ -221,6 +233,39 @@ public final class DynamicLightManager {
             int minX, int minY, int minZ,
             int maxX, int maxY, int maxZ
     ) {
+    }
+
+    private static final class QueryCache {
+        private static final int SLOT_MASK = QUERY_CACHE_SLOTS_PER_THREAD - 1;
+
+        private final long[] keys = new long[QUERY_CACHE_SLOTS_PER_THREAD];
+        private final long[] revisions = new long[QUERY_CACHE_SLOTS_PER_THREAD];
+        private final float[] values = new float[QUERY_CACHE_SLOTS_PER_THREAD];
+
+        private float get(long currentRevision, long key) {
+            int slot = slot(key);
+            if (revisions[slot] != currentRevision || keys[slot] != key) {
+                return Float.NaN;
+            }
+            return values[slot];
+        }
+
+        private void put(long currentRevision, long key, float light) {
+            int slot = slot(key);
+            keys[slot] = key;
+            values[slot] = light;
+            revisions[slot] = currentRevision;
+        }
+
+        private static int slot(long key) {
+            long mixed = key;
+            mixed ^= mixed >>> 33;
+            mixed *= 0xff51afd7ed558ccdL;
+            mixed ^= mixed >>> 33;
+            mixed *= 0xc4ceb9fe1a85ec53L;
+            mixed ^= mixed >>> 33;
+            return (int) mixed & SLOT_MASK;
+        }
     }
 
     private static long sectionKey(int sectionX, int sectionY, int sectionZ) {

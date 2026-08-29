@@ -54,7 +54,8 @@ public class RayLightBehavior implements DynamicLightBehavior {
     private Vec3 lastDir = Vec3.ZERO;
 
     // ---- caches ----
-    private LightCache lightCache;
+    private static final LightCache NO_LIGHT_CACHE = LightCache.none();
+    private LightCache lightCache = NO_LIGHT_CACHE;
     private final ConcurrentHashMap<Long, Boolean> occlusionCache = new ConcurrentHashMap<>(2048);
     private long occlusionCacheMax = 4_096L;
 
@@ -88,9 +89,6 @@ public class RayLightBehavior implements DynamicLightBehavior {
         this.cosInner = Mth.cos((float) config.innerAngle());
         this.cosOuter = Mth.cos((float) config.outerAngle());
         this.cosOuterSq = cosOuter * cosOuter;
-
-        long size = config.type() == IRayLightConfig.LightType.CONE ? 8_192L : 4_096L;
-        this.lightCache = new LightCacheImpl(size);
     }
 
     // ---- cache override ----
@@ -102,7 +100,7 @@ public class RayLightBehavior implements DynamicLightBehavior {
 
     /** Replace the light value cache strategy. */
     public void setLightCache(LightCache cache) {
-        this.lightCache = cache != null ? cache : new LightCacheImpl(65536);
+        this.lightCache = cache != null ? cache : NO_LIGHT_CACHE;
     }
 
     /** Replace the occlusion cache max size. */
@@ -117,49 +115,58 @@ public class RayLightBehavior implements DynamicLightBehavior {
         if (!lastActive) return 0.0;
 
         long key = BlockPos.asLong(blockX, blockY, blockZ);
-        return lightCache.getOrCompute(key, () -> {
-            Vec3 pos = lastPos;
-            Vec3 dir = lastDir;
+        LightCache cache = lightCache;
+        if (cache != NO_LIGHT_CACHE) {
+            double cached = cache.get(key);
+            if (!Double.isNaN(cached)) {
+                return cached;
+            }
+        }
 
-            double computed;
-            if (config.type() == IRayLightConfig.LightType.CONE) {
-                computed = LineLightMath.computeLightWithCos(
-                        pos.x, pos.y, pos.z,
-                        dir.x, dir.y, dir.z,
-                        lastLuminance, blockX, blockY, blockZ, lastRange,
-                        cosInner, cosOuter, cosOuterSq
+        Vec3 pos = lastPos;
+        Vec3 dir = lastDir;
+
+        double computed;
+        if (config.type() == IRayLightConfig.LightType.CONE) {
+            computed = LineLightMath.computeLightWithCos(
+                    pos.x, pos.y, pos.z,
+                    dir.x, dir.y, dir.z,
+                    lastLuminance, blockX, blockY, blockZ, lastRange,
+                    cosInner, cosOuter, cosOuterSq
+            );
+        } else {
+            computed = computePointLight(pos, blockX, blockY, blockZ, lastRange, lastLuminance);
+        }
+
+        if (computed > 0.0 && lastOcclusion) {
+            BlockPos query = new BlockPos(blockX, blockY, blockZ);
+            int shift = LineLightMath.chooseOcclusionBucketShift(computed);
+            long occKey = LineLightMath.occlusionBucketKey(query, shift);
+            Boolean visible = occlusionCache.get(occKey);
+            if (visible == null) {
+                Vec3 sample = LineLightMath.occlusionBucketCenter(query, shift);
+                visible = LineLightMath.isRayVisible(
+                        Minecraft.getInstance().level,
+                        pos.x, pos.y, pos.z, sample, query, shift
                 );
-            } else {
-                computed = computePointLight(pos, blockX, blockY, blockZ, lastRange, lastLuminance);
+                cacheOcclusion(occKey, visible);
             }
-
-            if (computed > 0.0 && lastOcclusion) {
-                BlockPos query = new BlockPos(blockX, blockY, blockZ);
-                int shift = LineLightMath.chooseOcclusionBucketShift(computed);
-                long occKey = LineLightMath.occlusionBucketKey(query, shift);
-                Boolean visible = occlusionCache.get(occKey);
-                if (visible == null) {
-                    Vec3 sample = LineLightMath.occlusionBucketCenter(query, shift);
-                    visible = LineLightMath.isRayVisible(
+            if (!visible) {
+                if (computed >= OCCLUSION_REFINE_THRESHOLD) {
+                    computed *= LineLightMath.preciseVisibilityFactor(
                             Minecraft.getInstance().level,
-                            pos.x, pos.y, pos.z, sample, query, shift
+                            pos.x, pos.y, pos.z, query
                     );
-                    cacheOcclusion(occKey, visible);
-                }
-                if (!visible) {
-                    if (computed >= OCCLUSION_REFINE_THRESHOLD) {
-                        computed *= LineLightMath.preciseVisibilityFactor(
-                                Minecraft.getInstance().level,
-                                pos.x, pos.y, pos.z, query
-                        );
-                    } else {
-                        computed = 0.0;
-                    }
+                } else {
+                    computed = 0.0;
                 }
             }
+        }
 
-            return computed;
-        });
+        if (cache != NO_LIGHT_CACHE) {
+            cache.put(key, computed);
+        }
+        return computed;
     }
 
     public double lightAtPos(BlockPos query, double falloffRatio) {
