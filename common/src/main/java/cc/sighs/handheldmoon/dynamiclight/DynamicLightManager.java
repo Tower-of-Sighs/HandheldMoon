@@ -40,7 +40,12 @@ public final class DynamicLightManager {
     private static final AtomicLong INDEX_BUILD_GENERATION = new AtomicLong();
     private static final Object INDEX_BUILD_LOCK = new Object();
     private static final ThreadLocal<QueryCache> QUERY_CACHES = ThreadLocal.withInitial(QueryCache::new);
-    private static final ConcurrentHashMap<BatchKey, BatchEntry> BATCH_LIGHT_CACHE = new ConcurrentHashMap<>();
+    /**
+     * Uses the already-existing section bucket as the identity key. Creating a
+     * record key for every block-light query showed up as the largest
+     * HandheldMoon allocation in the latest profile.
+     */
+    private static final ConcurrentHashMap<SectionBucket, BatchEntry> BATCH_LIGHT_CACHE = new ConcurrentHashMap<>();
     private static final AtomicInteger PENDING_BATCH_TASKS = new AtomicInteger();
 
     private static Future<?> pendingIndexBuild;
@@ -219,15 +224,18 @@ public final class DynamicLightManager {
         if (!hasBatchSource(bucket.sources)) {
             return null;
         }
-        BatchKey key = new BatchKey(sectionKey, revision);
-        BatchEntry entry = BATCH_LIGHT_CACHE.get(key);
-        if (entry == null) {
-            if (BATCH_LIGHT_CACHE.size() >= MAX_BATCH_CACHE_ENTRIES) {
-                BATCH_LIGHT_CACHE.clear();
+        BatchEntry entry = BATCH_LIGHT_CACHE.get(bucket);
+        if (entry == null || entry.revision != revision) {
+            synchronized (bucket) {
+                entry = BATCH_LIGHT_CACHE.get(bucket);
+                if (entry == null || entry.revision != revision) {
+                    if (BATCH_LIGHT_CACHE.size() >= MAX_BATCH_CACHE_ENTRIES) {
+                        BATCH_LIGHT_CACHE.clear();
+                    }
+                    entry = new BatchEntry(revision);
+                    BATCH_LIGHT_CACHE.put(bucket, entry);
+                }
             }
-            BatchEntry created = new BatchEntry();
-            BatchEntry previous = BATCH_LIGHT_CACHE.putIfAbsent(key, created);
-            entry = previous != null ? previous : created;
         }
 
         int requests = entry.requests.incrementAndGet();
@@ -813,9 +821,6 @@ public final class DynamicLightManager {
     ) {
     }
 
-    private record BatchKey(long sectionKey, long revision) {
-    }
-
     private record BatchSource(
             DynamicLightBehavior.BatchLightSnapshot snapshot,
             Bounds bounds
@@ -823,9 +828,14 @@ public final class DynamicLightManager {
     }
 
     private static final class BatchEntry {
+        private final long revision;
         private final AtomicInteger requests = new AtomicInteger();
         private volatile CompletableFuture<BatchLightValues> future;
         private volatile boolean disabled;
+
+        private BatchEntry(long revision) {
+            this.revision = revision;
+        }
     }
 
     private record BatchLightValues(float[] values) {

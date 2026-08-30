@@ -2,9 +2,12 @@ plugins {
     `java-library`
 }
 
+val java_version: String by project
+
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version.toInt())
+    sourceCompatibility = JavaVersion.toVersion(java_version)
+    targetCompatibility = JavaVersion.toVersion(java_version)
     withSourcesJar()
     withJavadocJar()
 }

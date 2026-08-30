@@ -103,6 +103,9 @@ sourceSets.named("main") {
 }
 
 tasks.named<ProcessResources>("processResources") {
+    // Keep the legacy 1.21.1 model/recipe variants in this source set when
+    // they intentionally share paths with newer common resources.
+    duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.EXCLUDE
     val expandProps = mapOf(
         "version" to project.version,
         "minecraft_version" to minecraft_version,
@@ -161,6 +164,8 @@ tasks.named<Jar>("jar") {
 }
 
 tasks.named<Jar>("sourcesJar") {
+    // Keep the target source set's legacy resources when paths overlap common.
+    duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.EXCLUDE
     from(commonProject.extensions.getByType<org.gradle.api.tasks.SourceSetContainer>().named("main").map { it.java })
 }
 

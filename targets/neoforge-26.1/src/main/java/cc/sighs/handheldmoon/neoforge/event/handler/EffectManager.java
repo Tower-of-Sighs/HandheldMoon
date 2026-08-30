@@ -1,7 +1,7 @@
 package cc.sighs.handheldmoon.neoforge.event.handler;
 
 import cc.sighs.handheldmoon.HandheldMoon;
-import com.mojang.blaze3d.resource.GraphicsResourceAllocator;
+import com.mojang.blaze3d.resource.CrossFrameResourcePool;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelTargetBundle;
 import net.minecraft.client.renderer.PostChain;
@@ -11,6 +11,7 @@ import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.systems.RenderSystem;
 import cc.sighs.handheldmoon.neoforge.mixin.client.PostPassAccessor;
+import cc.sighs.handheldmoon.neoforge.mixin.client.GameRendererAccessor;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -154,7 +155,9 @@ public final class EffectManager {
             return;
         }
         try {
-            chain.process(mc.getMainRenderTarget(), GraphicsResourceAllocator.UNPOOLED);
+            CrossFrameResourcePool resourcePool = ((GameRendererAccessor) mc.gameRenderer)
+                    .handheldmoon$getResourcePool();
+            chain.process(mc.getMainRenderTarget(), resourcePool);
         } catch (IllegalStateException ex) {
             flashlightEnabled = false;
             HandheldMoon.LOGGER.error("Failed to process flashlight post effect, disabling it for this session.", ex);

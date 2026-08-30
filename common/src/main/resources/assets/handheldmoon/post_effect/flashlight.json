@@ -1,6 +1,10 @@
 {
   "targets": {
-    "swap": {}
+    "swap": {
+      "width": 960,
+      "height": 540
+    },
+    "composite": {}
   },
   "passes": [
     {
@@ -9,7 +13,8 @@
       "inputs": [
         {
           "sampler_name": "In",
-          "target": "minecraft:main"
+          "target": "minecraft:main",
+          "bilinear": true
         }
       ],
       "output": "swap",
@@ -23,10 +28,7 @@
           {
             "name": "Offset",
             "type": "vec2",
-            "value": [
-              0.0,
-              0.0
-            ]
+            "value": [0.0, 0.0]
           },
           {
             "name": "RadiusRatio",
@@ -38,11 +40,29 @@
     },
     {
       "vertex_shader": "minecraft:core/screenquad",
+      "fragment_shader": "handheldmoon:post/flashlight_composite",
+      "inputs": [
+        {
+          "sampler_name": "Scene",
+          "target": "minecraft:main",
+          "bilinear": true
+        },
+        {
+          "sampler_name": "Delta",
+          "target": "swap",
+          "bilinear": true
+        }
+      ],
+      "output": "composite"
+    },
+    {
+      "vertex_shader": "minecraft:core/screenquad",
       "fragment_shader": "minecraft:post/blit",
       "inputs": [
         {
           "sampler_name": "In",
-          "target": "swap"
+          "target": "composite",
+          "bilinear": true
         }
       ],
       "uniforms": {
@@ -50,12 +70,7 @@
           {
             "name": "ColorModulate",
             "type": "vec4",
-            "value": [
-              1.0,
-              1.0,
-              1.0,
-              1.0
-            ]
+            "value": [1.0, 1.0, 1.0, 1.0]
           }
         ]
       },

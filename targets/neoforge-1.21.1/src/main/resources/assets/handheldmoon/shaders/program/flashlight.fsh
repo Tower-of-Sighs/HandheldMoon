@@ -19,10 +19,17 @@ void main() {
     vec2 pixelCoord = texCoord * texSize;
     // 中心点（屏幕中心 + 偏移量）
     vec2 center = texSize * 0.5 + Offset;
-    float dist = distance(pixelCoord, center);
+    vec2 fromCenter = pixelCoord - center;
+    float distSquared = dot(fromCenter, fromCenter);
 
     // 边缘过渡
     float radius = min(texSize.x, texSize.y) * RadiusRatio;
+    if (distSquared >= radius * radius) {
+        fragColor = vec4(finalColor, 1.0);
+        return;
+    }
+
+    float dist = sqrt(distSquared);
     float edge = radius / 3;
 
     // 平滑过渡
@@ -30,7 +37,9 @@ void main() {
 
     if (factor > 0.0) {
         float brightness = dot(finalColor.rgb, vec3(0.299, 0.587, 0.114));
-        float brightnessResponse = pow(brightness, 3.0) * (1 - brightness * 2) + brightness * brightness * 2;
+        float brightnessSquared = brightness * brightness;
+        float brightnessResponse = brightnessSquared
+                * (brightness - brightnessSquared * 2.0 + 2.0);
         float gammaBoost = (1.0 - brightnessResponse) * factor * IntensityAmount * 2;
         float gammaAdjust = 1.0 + gammaBoost;
         finalColor = pow(finalColor, vec3(1.0 / gammaAdjust));

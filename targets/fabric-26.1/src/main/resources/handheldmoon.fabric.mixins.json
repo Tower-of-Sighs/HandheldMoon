@@ -8,6 +8,7 @@
   "client": [
     "KeyboardHandlerMixin",
     "MouseHandlerMixin",
+    "GameRendererAccessor",
     "PostChainAccessor",
     "PostPassAccessor"
   ],

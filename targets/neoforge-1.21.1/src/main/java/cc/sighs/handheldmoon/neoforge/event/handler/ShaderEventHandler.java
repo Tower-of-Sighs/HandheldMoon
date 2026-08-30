@@ -21,9 +21,15 @@ public final class ShaderEventHandler {
             return;
         }
         Minecraft mc = Minecraft.getInstance();
-        if (mc.options.getCameraType() == CameraType.THIRD_PERSON_FRONT) return;
+        if (mc.options.getCameraType() == CameraType.THIRD_PERSON_FRONT) {
+            disableFlashlight();
+            return;
+        }
         Player player = mc.player;
-        if (player == null) return;
+        if (player == null) {
+            disableFlashlight();
+            return;
+        }
 
         long currentTime = System.currentTimeMillis();
         long deltaTime = currentTime - lastTickTime;
@@ -68,12 +74,15 @@ public final class ShaderEventHandler {
                 }
             });
         } else {
-            EffectManager.clean("flashlight");
-
-            currentOffsetX = 0.0f;
-            currentOffsetY = 0.0f;
+            disableFlashlight();
             previousYaw = player.getYRot();
             previousPitch = player.getXRot();
         }
+    }
+
+    private static void disableFlashlight() {
+        EffectManager.clean("flashlight");
+        currentOffsetX = 0.0f;
+        currentOffsetY = 0.0f;
     }
 }

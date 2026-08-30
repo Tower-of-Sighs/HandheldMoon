@@ -6,6 +6,7 @@
   "mixins": [],
   "client": [
     "client.EntityRendererMixin",
+    "client.GameRendererAccessor",
     "client.PostPassAccessor",
     "dynamiclight.DynamicLightBrightnessGetterMixin"
   ],

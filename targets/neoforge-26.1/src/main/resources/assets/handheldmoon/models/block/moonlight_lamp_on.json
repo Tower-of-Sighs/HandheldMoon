@@ -1,7 +1,0 @@
-{
-  "parent": "minecraft:block/cube_all",
-  "textures": {
-    "all": "handheldmoon:block/moonlight_lamp_on",
-    "particle": "handheldmoon:block/moonlight_lamp_on"
-  }
-}
