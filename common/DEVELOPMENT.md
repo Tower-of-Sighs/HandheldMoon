@@ -32,6 +32,9 @@ LIGHT_PROFILE 通过 EntityLightProfile.toNetworkString() 编码，禁止手拼 
 | occlusion | 是否检查方块遮挡 |
 | offsetX/Y/Z | 相对实体运行时光源位置的世界坐标偏移 |
 | attenuationCurve | LINEAR、QUADRATIC、EXPONENTIAL、LOGARITHMIC、NONE |
+| lightColor | 光锥颜色，Web/CSS `#RRGGBB` 或 `#RRGGBBAA`；alpha 在末尾，默认 `#FFFFFFFF` |
+
+`lightColor` 使用 Web 的 RGBA 顺序；已有设备配置字段仍兼容旧的 ARGB 顺序。
 
 光照强度统一为：
 L(d) = luminance × curve.at(d / range)；d >= range 时为 0。
@@ -44,4 +47,3 @@ innerAngle 和 outerAngle 是半角弧度，不要与可见光锥的完整角度
 调用 clearLightProfileOverride() 将 override 设为 false，并恢复默认 profile。
 LIGHT_PROFILE 和 LIGHT_PROFILE_OVERRIDE 还必须在实体 NBT 的 light_profile、
 light_profile_override 字段中保存和读取，否则重载存档会丢失自定义参数。
-

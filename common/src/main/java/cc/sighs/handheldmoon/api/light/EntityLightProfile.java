@@ -1,5 +1,6 @@
 package cc.sighs.handheldmoon.api.light;
 
+import cc.sighs.handheldmoon.util.ColorUtils;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
@@ -26,6 +27,7 @@ import java.util.Objects;
  * @param occlusion whether world geometry blocks the real light
  * @param positionOffset offset from the runtime light position
  * @param attenuationCurve distance falloff preset
+ * @param lightColor cone color as canonical Web/CSS {@code #RRGGBBAA} text
  */
 public record EntityLightProfile(
         Shape shape,
@@ -37,8 +39,11 @@ public record EntityLightProfile(
         boolean visibleCone,
         boolean occlusion,
         Vec3 positionOffset,
-        AttenuationCurve attenuationCurve
+        AttenuationCurve attenuationCurve,
+        String lightColor
 ) {
+    public static final String DEFAULT_LIGHT_COLOR = "#FFFFFFFF";
+
     public static final Codec<EntityLightProfile> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.STRING.xmap(EntityLightProfile::parseShape, Shape::name)
                     .fieldOf("shape").forGetter(EntityLightProfile::shape),
@@ -54,11 +59,13 @@ public record EntityLightProfile(
             Codec.DOUBLE.fieldOf("offsetZ").forGetter(profile -> profile.positionOffset().z),
             Codec.STRING.xmap(AttenuationCurve::parse, AttenuationCurve::name)
                     .optionalFieldOf("attenuationCurve", AttenuationCurve.QUADRATIC)
-                    .forGetter(EntityLightProfile::attenuationCurve)
+                    .forGetter(EntityLightProfile::attenuationCurve),
+            Codec.STRING.optionalFieldOf("lightColor", DEFAULT_LIGHT_COLOR)
+                    .forGetter(EntityLightProfile::lightColor)
     ).apply(instance, (shape, luminance, range, innerAngle, outerAngle, realLight,
-            visibleCone, occlusion, offsetX, offsetY, offsetZ, attenuationCurve) -> new EntityLightProfile(
+            visibleCone, occlusion, offsetX, offsetY, offsetZ, attenuationCurve, lightColor) -> new EntityLightProfile(
             shape, luminance, range, innerAngle, outerAngle, realLight, visibleCone,
-            occlusion, new Vec3(offsetX, offsetY, offsetZ), attenuationCurve)));
+            occlusion, new Vec3(offsetX, offsetY, offsetZ), attenuationCurve, lightColor)));
 
     public EntityLightProfile {
         Objects.requireNonNull(shape, "shape");
@@ -73,6 +80,7 @@ public record EntityLightProfile(
                 finiteOrZero(positionOffset.y),
                 finiteOrZero(positionOffset.z)
         );
+        lightColor = ColorUtils.normalizeWebColor(lightColor);
     }
 
     /** Compatibility constructor retaining the original profile shape. */
@@ -88,7 +96,26 @@ public record EntityLightProfile(
             Vec3 positionOffset
     ) {
         this(shape, luminance, range, innerAngle, outerAngle, realLight,
-                visibleCone, occlusion, positionOffset, AttenuationCurve.QUADRATIC);
+                visibleCone, occlusion, positionOffset, AttenuationCurve.QUADRATIC,
+                DEFAULT_LIGHT_COLOR);
+    }
+
+    /** Compatibility constructor retaining the pre-color profile signature. */
+    public EntityLightProfile(
+            Shape shape,
+            double luminance,
+            double range,
+            double innerAngle,
+            double outerAngle,
+            boolean realLight,
+            boolean visibleCone,
+            boolean occlusion,
+            Vec3 positionOffset,
+            AttenuationCurve attenuationCurve
+    ) {
+        this(shape, luminance, range, innerAngle, outerAngle, realLight,
+                visibleCone, occlusion, positionOffset, attenuationCurve,
+                DEFAULT_LIGHT_COLOR);
     }
 
     public static EntityLightProfile point(
@@ -105,8 +132,28 @@ public record EntityLightProfile(
     ) {
         return new EntityLightProfile(
                 Shape.POINT, luminance, range, 0.0, 0.0,
-                realLight, false, occlusion, positionOffset, attenuationCurve
+                realLight, false, occlusion, positionOffset, attenuationCurve,
+                DEFAULT_LIGHT_COLOR
         );
+    }
+
+    public static EntityLightProfile point(
+            double luminance, double range, boolean realLight,
+            boolean occlusion, Vec3 positionOffset, AttenuationCurve attenuationCurve,
+            String lightColor
+    ) {
+        return new EntityLightProfile(
+                Shape.POINT, luminance, range, 0.0, 0.0,
+                realLight, false, occlusion, positionOffset, attenuationCurve, lightColor
+        );
+    }
+
+    public static EntityLightProfile point(
+            double luminance, double range, boolean realLight,
+            boolean occlusion, Vec3 positionOffset, String lightColor
+    ) {
+        return point(luminance, range, realLight, occlusion, positionOffset,
+                AttenuationCurve.QUADRATIC, lightColor);
     }
 
     public static EntityLightProfile cone(
@@ -124,8 +171,29 @@ public record EntityLightProfile(
     ) {
         return new EntityLightProfile(
                 Shape.CONE, luminance, range, innerAngle, outerAngle,
-                realLight, visibleCone, occlusion, positionOffset, attenuationCurve
+                realLight, visibleCone, occlusion, positionOffset, attenuationCurve,
+                DEFAULT_LIGHT_COLOR
         );
+    }
+
+    public static EntityLightProfile cone(
+            double luminance, double range, double innerAngle, double outerAngle,
+            boolean realLight, boolean visibleCone, boolean occlusion, Vec3 positionOffset,
+            AttenuationCurve attenuationCurve, String lightColor
+    ) {
+        return new EntityLightProfile(
+                Shape.CONE, luminance, range, innerAngle, outerAngle,
+                realLight, visibleCone, occlusion, positionOffset, attenuationCurve, lightColor
+        );
+    }
+
+    public static EntityLightProfile cone(
+            double luminance, double range, double innerAngle, double outerAngle,
+            boolean realLight, boolean visibleCone, boolean occlusion, Vec3 positionOffset,
+            String lightColor
+    ) {
+        return cone(luminance, range, innerAngle, outerAngle, realLight, visibleCone,
+                occlusion, positionOffset, AttenuationCurve.QUADRATIC, lightColor);
     }
 
     public CompoundTag toTag() {

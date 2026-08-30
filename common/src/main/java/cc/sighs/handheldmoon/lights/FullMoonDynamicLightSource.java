@@ -5,6 +5,7 @@ import cc.sighs.handheldmoon.api.light.EntityLightProfileAccess;
 import cc.sighs.handheldmoon.api.light.EntityLightRuntimeState;
 import cc.sighs.handheldmoon.config.FullMoonDeviceConfig;
 import cc.sighs.handheldmoon.config.LampDeviceConfig;
+import cc.sighs.handheldmoon.util.ColorUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
@@ -40,6 +41,9 @@ public interface FullMoonDynamicLightSource extends EntityLightProfileAccess {
         if (isLampBound()) {
             LampDeviceConfig config = getLampConfig();
             double outerAngle = config.lightAngle() * 0.5 * Mth.DEG_TO_RAD;
+            String lightColor = config.lightColorsARGB().isEmpty()
+                    ? EntityLightProfile.DEFAULT_LIGHT_COLOR
+                    : ColorUtils.argbToWebColor(config.lightColorsARGB().get(0));
             return EntityLightProfile.cone(
                     config.realLightLuminance(),
                     // Use the same configured physical radius as the
@@ -51,7 +55,8 @@ public interface FullMoonDynamicLightSource extends EntityLightProfileAccess {
                     true,
                     config.lightOcclusion(),
                     Vec3.ZERO,
-                    config.realLightAttenuation()
+                    config.realLightAttenuation(),
+                    lightColor
             );
         }
 

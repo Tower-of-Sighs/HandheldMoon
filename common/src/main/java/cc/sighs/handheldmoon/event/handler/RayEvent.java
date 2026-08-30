@@ -32,6 +32,10 @@ import java.util.UUID;
  * directly instead of this handler.
  */
 public final class RayEvent {
+    private static final int ENTITY_CONE_LAYER_COUNT = 3;
+    private static final float[] DEFAULT_LAYER_SIZE_SCALES = {1.00f, 1.08f, 1.16f};
+    private static final float[] DEFAULT_LAYER_CENTER_ALPHAS = {0.15f, 0.12f, 0.08f};
+    private static final float[] DEFAULT_LAYER_EDGE_ALPHAS = {0.00f, 0.00f, 0.00f};
     private static final Map<UUID, Vec3> LAST_DIR = new HashMap<>();
     private static final GlobalConeConfigCache GLOBAL_CONFIG_CACHE = new GlobalConeConfigCache();
 
@@ -213,7 +217,8 @@ public final class RayEvent {
     /**
      * Builds a lamp cone while allowing an entity profile to override the
      * geometric properties controlled by the shared entity-light API.
-     * Colour, layer, noise, raycast and fog settings remain device settings.
+     * Colour comes from the entity profile when one is present; layer, noise,
+     * raycast and fog settings remain device settings.
      *
      * @param cfg base lamp visual configuration
      * @param profile optional entity profile; when absent, device geometry is used
@@ -226,19 +231,37 @@ public final class RayEvent {
         double angle = profile != null
                 ? Math.toDegrees(profile.outerAngle() * 2.0)
                 : cfg.lightAngle();
+        float[] profileColor = profile == null
+                ? null : ColorUtils.parseColorRGBAWithAlpha(profile.lightColor());
+        List<float[]> colorStops = profileColor == null
+                ? ColorUtils.parseColorStops(cfg.lightColorsARGB())
+                : List.of(new float[]{profileColor[0], profileColor[1], profileColor[2]});
         RayConeBuilder builder = RayConeBuilder.create()
                 .range(range)
                 .angle(angle)
-                .colorStops(ColorUtils.parseColorStops(cfg.lightColorsARGB()));
+                .colorStops(colorStops);
 
-        int count = Math.min(cfg.layerSizeScales().size(),
-                Math.min(cfg.layerCenterAlphas().size(), cfg.layerEdgeAlphas().size()));
+        int count = profile == null
+                ? Math.min(cfg.layerSizeScales().size(),
+                Math.min(cfg.layerCenterAlphas().size(), cfg.layerEdgeAlphas().size()))
+                : ENTITY_CONE_LAYER_COUNT;
+        float[] centerAlphas = profileColor == null
+                ? null : deriveLayerAlphas(cfg.layerCenterAlphas(), DEFAULT_LAYER_CENTER_ALPHAS,
+                profileColor[3], count, true);
+        float[] edgeAlphas = profileColor == null
+                ? null : deriveLayerAlphas(cfg.layerEdgeAlphas(), DEFAULT_LAYER_EDGE_ALPHAS,
+                profileColor[3], count, false);
         for (int i = 0; i < count; i++) {
-            float ss = parseFloat(cfg.layerSizeScales().get(i), 1.0f);
-            float ca = clamp01(parseFloat(cfg.layerCenterAlphas().get(i), 0.12f));
-            float ea = clamp01(parseFloat(cfg.layerEdgeAlphas().get(i), 0.02f));
-            float[] lc = null;
-            if (i < cfg.layerColorsARGB().size()) {
+            float ss = parseFloatAt(cfg.layerSizeScales(), i, DEFAULT_LAYER_SIZE_SCALES[i]);
+            float ca = centerAlphas == null
+                    ? clamp01(parseFloat(cfg.layerCenterAlphas().get(i), 0.12f))
+                    : centerAlphas[i];
+            float ea = edgeAlphas == null
+                    ? clamp01(parseFloat(cfg.layerEdgeAlphas().get(i), 0.02f))
+                    : edgeAlphas[i];
+            float[] lc = profileColor == null
+                    ? null : new float[]{profileColor[0], profileColor[1], profileColor[2]};
+            if (profileColor == null && i < cfg.layerColorsARGB().size()) {
                 lc = ColorUtils.parseColorARGB(cfg.layerColorsARGB().get(i));
             }
             builder.addLayer(ss, ca, ea, lc);
@@ -259,6 +282,51 @@ public final class RayEvent {
         }
 
         return builder.build();
+    }
+
+    /**
+     * Derives each layer from the current three baseline alpha values. For
+     * center alphas, the first layer is the profile color alpha directly;
+     * following layers retain adjacent baseline ratios instead of hard-coded
+     * alpha values. Edge alphas keep their configured base scaling.
+     */
+    private static float[] deriveLayerAlphas(
+            List<String> configured,
+            float[] defaults,
+            float colorAlpha,
+            int count,
+            boolean directFirstLayer
+    ) {
+        float[] result = new float[count];
+        float previousBase = 0.0f;
+        float previousValue = 0.0f;
+        for (int i = 0; i < count; i++) {
+            float fallback = i < defaults.length ? defaults[i] : previousBase;
+            float currentBase = clamp01(parseFloatAt(configured, i, fallback));
+            // A wider layer should never become brighter than the layer it
+            // surrounds, even when a custom list is not monotonically ordered.
+            if (i > 0) {
+                currentBase = Math.min(currentBase, previousBase);
+            }
+            if (i == 0) {
+                previousValue = directFirstLayer
+                        ? clamp01(colorAlpha)
+                        : clamp01(colorAlpha * currentBase);
+            } else if (previousBase > 1.0E-6f) {
+                previousValue = clamp01(previousValue * currentBase / previousBase);
+            } else {
+                previousValue = clamp01(colorAlpha * currentBase);
+            }
+            result[i] = previousValue;
+            previousBase = currentBase;
+        }
+        return result;
+    }
+
+    private static float parseFloatAt(List<String> values, int index, float fallback) {
+        return index >= 0 && index < values.size()
+                ? parseFloat(values.get(index), fallback)
+                : fallback;
     }
 
     private static float parseFloat(String value, float fallback) {

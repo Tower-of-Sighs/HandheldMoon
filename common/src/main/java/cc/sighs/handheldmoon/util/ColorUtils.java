@@ -1,7 +1,9 @@
 package cc.sighs.handheldmoon.util;
 
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public final class ColorUtils {
     private ColorUtils() {}
@@ -20,7 +22,9 @@ public final class ColorUtils {
                 int g = Integer.parseInt(t.substring(4, 6), 16);
                 int b = Integer.parseInt(t.substring(6, 8), 16);
                 res.add(new float[]{r / 255.0f, g / 255.0f, b / 255.0f});
-            } catch (Exception ignored) {}
+            } catch (RuntimeException ignored) {
+                // Keep malformed device stops out of the gradient.
+            }
         }
         if (res.isEmpty()) res.add(new float[]{1.0f, 1.0f, 1.0f});
         return res;
@@ -98,28 +102,146 @@ public final class ColorUtils {
             int g = Integer.parseInt(t.substring(4, 6), 16);
             int b = Integer.parseInt(t.substring(6, 8), 16);
             return new float[]{r / 255.0f, g / 255.0f, b / 255.0f};
-        } catch (Exception e) {
+        } catch (RuntimeException ignored) {
             return new float[]{1.0f, 1.0f, 1.0f};
         }
     }
 
+    /** Parses a Web/CSS hex color ({@code #RRGGBB} or {@code #RRGGBBAA}). */
+    public static Color parseJavaColor(String source) {
+        Color color = tryParseWebColor(source);
+        return color != null ? color : DEFAULT_COLOR;
+    }
+
+    /** Parses the legacy AARRGGBB format used by existing device settings. */
+    private static Color parseArgbColor(String source) {
+        Color color = tryParseArgbColor(source);
+        return color != null ? color : DEFAULT_COLOR;
+    }
+
+    private static Color tryParseArgbColor(String source) {
+        String value = source == null ? "" : source.trim();
+        if (value.startsWith("#")) {
+            value = value.substring(1);
+        } else if (value.startsWith("0x") || value.startsWith("0X")) {
+            value = value.substring(2);
+        }
+        try {
+            if (value.length() == 8) {
+                int alpha = Integer.parseInt(value.substring(0, 2), 16);
+                Color rgb = Color.decode("#" + value.substring(2));
+                return new Color(rgb.getRed(), rgb.getGreen(), rgb.getBlue(), alpha);
+            }
+            if (value.length() == 6) {
+                Color rgb = Color.decode("#" + value);
+                return new Color(rgb.getRed(), rgb.getGreen(), rgb.getBlue(), 255);
+            }
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+        return null;
+    }
+
+    /** Normalizes the legacy device color form ({@code AARRGGBB}). */
     private static String normalizeArgbHex(String source) {
         if (source == null) {
             return null;
         }
-        String t = source.trim();
-        if (t.isEmpty()) {
+        String value = source.trim();
+        if (value.isEmpty()) {
             return null;
         }
-        if (t.startsWith("#")) {
-            t = t.substring(1);
+        if (value.startsWith("#")) {
+            value = value.substring(1);
         }
-        if (t.length() == 6) {
-            t = "FF" + t;
+        if (value.length() == 6) {
+            value = "FF" + value;
         }
-        if (t.length() != 8) {
-            return null;
-        }
-        return t;
+        return value.length() == 8 ? value : null;
     }
+
+    private static Color tryParseWebColor(String source) {
+        String value = source == null ? "" : source.trim();
+        if (value.startsWith("#")) {
+            value = value.substring(1);
+        } else if (value.startsWith("0x") || value.startsWith("0X")) {
+            value = value.substring(2);
+        }
+        if (value.length() == 3 || value.length() == 4) {
+            StringBuilder expanded = new StringBuilder(value.length() * 2);
+            for (int i = 0; i < value.length(); i++) {
+                char channel = value.charAt(i);
+                expanded.append(channel).append(channel);
+            }
+            value = expanded.toString();
+        }
+        try {
+            if (value.length() == 8) {
+                int alpha = Integer.parseInt(value.substring(6, 8), 16);
+                Color rgb = Color.decode("#" + value.substring(0, 6));
+                return new Color(rgb.getRed(), rgb.getGreen(), rgb.getBlue(), alpha);
+            }
+            if (value.length() == 6) {
+                Color rgb = Color.decode("#" + value);
+                return new Color(rgb.getRed(), rgb.getGreen(), rgb.getBlue(), 255);
+            }
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+        return null;
+    }
+
+    /** Returns a canonical Web/CSS {@code #RRGGBBAA} string for profile storage. */
+    public static String normalizeWebColor(String source) {
+        return formatWebColor(parseJavaColor(source));
+    }
+
+    /** Converts a legacy AARRGGBB setting to canonical Web/CSS form. */
+    public static String argbToWebColor(String source) {
+        return formatWebColor(parseArgbColor(source));
+    }
+
+    /** Returns a canonical uppercase AARRGGBB string for legacy settings. */
+    public static String normalizeColorARGB(String source) {
+        Color color = parseArgbColor(source);
+        return String.format(Locale.ROOT, "%02X%02X%02X%02X",
+                color.getAlpha(), color.getRed(), color.getGreen(), color.getBlue());
+    }
+
+    private static String formatWebColor(Color color) {
+        return String.format(Locale.ROOT, "#%02X%02X%02X%02X",
+                color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+    }
+
+    /** Returns RGBA floats for a Web/CSS color, retaining its trailing alpha. */
+    public static float[] parseColorRGBAWithAlpha(String source) {
+        Color color = parseJavaColor(source);
+        return new float[]{
+                color.getRed() / 255.0f,
+                color.getGreen() / 255.0f,
+                color.getBlue() / 255.0f,
+                color.getAlpha() / 255.0f
+        };
+    }
+
+    /** Returns RGBA floats for a legacy AARRGGBB color. */
+    public static float[] parseColorARGBWithAlpha(String source) {
+        Color color = parseArgbColor(source);
+        return new float[]{
+                color.getRed() / 255.0f,
+                color.getGreen() / 255.0f,
+                color.getBlue() / 255.0f,
+                color.getAlpha() / 255.0f
+        };
+    }
+
+    private static float[] rgb(Color color) {
+        return new float[]{
+                color.getRed() / 255.0f,
+                color.getGreen() / 255.0f,
+                color.getBlue() / 255.0f
+        };
+    }
+
+    private static final Color DEFAULT_COLOR = new Color(255, 255, 255, 255);
 }
