@@ -28,6 +28,8 @@ import java.util.Optional;
 
 public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource {
     private int radius = 16;
+    private String lightProfileCacheKey;
+    private EntityLightProfile lightProfileCache;
     private static final EntityDataAccessor<Optional<BlockPos>> ANCHOR_POS = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
     private static final EntityDataAccessor<Boolean> LAMP_BOUND = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> LAMP_LUMINANCE = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.INT);
@@ -48,12 +50,14 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
     public void setAnchor(BlockPos pos) {
         entityData.set(ANCHOR_POS, Optional.ofNullable(pos));
         entityData.set(LAMP_BOUND, false);
+        syncDefaultLightProfile();
         syncToAnchor();
     }
 
     public void bindToLamp(BlockPos pos) {
         entityData.set(ANCHOR_POS, Optional.ofNullable(pos));
         entityData.set(LAMP_BOUND, true);
+        syncDefaultLightProfile();
         syncToAnchor();
     }
 
@@ -117,23 +121,47 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
 
     @Override
     public EntityLightProfile getLightProfile() {
-        if (!entityData.get(LIGHT_PROFILE_OVERRIDE)) {
-            return FullMoonDynamicLightSource.super.getLightProfile();
+        String encoded = entityData.get(LIGHT_PROFILE);
+        if (encoded.equals(lightProfileCacheKey)) {
+            return lightProfileCache != null
+                    ? lightProfileCache : FullMoonDynamicLightSource.super.getDefaultLightProfile();
         }
-        EntityLightProfile profile = EntityLightProfile.fromNetworkString(entityData.get(LIGHT_PROFILE));
-        return profile != null ? profile : FullMoonDynamicLightSource.super.getLightProfile();
+        EntityLightProfile profile = EntityLightProfile.fromNetworkString(encoded);
+        lightProfileCacheKey = encoded;
+        lightProfileCache = profile;
+        return profile != null ? profile : FullMoonDynamicLightSource.super.getDefaultLightProfile();
     }
 
     @Override
     public void setLightProfile(EntityLightProfile profile) {
-        entityData.set(LIGHT_PROFILE, profile.toNetworkString());
+        writeLightProfile(profile);
         entityData.set(LIGHT_PROFILE_OVERRIDE, true);
     }
 
     @Override
     public void clearLightProfileOverride() {
-        entityData.set(LIGHT_PROFILE, "");
         entityData.set(LIGHT_PROFILE_OVERRIDE, false);
+        syncDefaultLightProfile();
+    }
+
+    /** Refreshes the synchronized profile when the bound device uses defaults. */
+    public void syncDefaultLightProfile() {
+        if (entityData.get(LIGHT_PROFILE_OVERRIDE)) {
+            return;
+        }
+        EntityLightProfile profile = FullMoonDynamicLightSource.super.getDefaultLightProfile();
+        if (!profile.equals(lightProfileCache)) {
+            writeLightProfile(profile);
+        }
+    }
+
+    private void writeLightProfile(EntityLightProfile profile) {
+        String encoded = profile.toNetworkString();
+        if (!encoded.equals(entityData.get(LIGHT_PROFILE))) {
+            entityData.set(LIGHT_PROFILE, encoded);
+        }
+        lightProfileCacheKey = encoded;
+        lightProfileCache = profile;
     }
 
     @Override
@@ -152,6 +180,7 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
         super.tick();
         setNoGravity(true);
         if (!level().isClientSide()) {
+            syncDefaultLightProfile();
             if (isLampBound()) {
                 syncToAnchor();
                 if (!MoonlightLampEntityHeartbeatCenter.isAlive(level(), getUUID())) discard();
@@ -188,7 +217,10 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
         entityData.set(LAMP_X_ROT, input.getFloatOr("lamp_x_rot", 0.0f));
         entityData.set(LAMP_Y_ROT, input.getFloatOr("lamp_y_rot", 0.0f));
         entityData.set(LIGHT_PROFILE_OVERRIDE, input.getBooleanOr("light_profile_override", false));
-        input.read("light_profile", EntityLightProfile.CODEC).ifPresent(this::setLightProfile);
+        input.read("light_profile", EntityLightProfile.CODEC).ifPresent(this::writeLightProfile);
+        if (entityData.get(LIGHT_PROFILE).isEmpty()) {
+            syncDefaultLightProfile();
+        }
     }
 
     @Override
@@ -205,9 +237,7 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
         output.putFloat("lamp_x_rot", entityData.get(LAMP_X_ROT));
         output.putFloat("lamp_y_rot", entityData.get(LAMP_Y_ROT));
         output.putBoolean("light_profile_override", entityData.get(LIGHT_PROFILE_OVERRIDE));
-        if (entityData.get(LIGHT_PROFILE_OVERRIDE)) {
-            output.store("light_profile", EntityLightProfile.CODEC, getLightProfile());
-        }
+        output.store("light_profile", EntityLightProfile.CODEC, getLightProfile());
     }
 
     private BlockEntity getAnchorBlockEntity() {

@@ -1,5 +1,6 @@
 package cc.sighs.handheldmoon.config;
 
+import cc.sighs.handheldmoon.api.light.AttenuationCurve;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -15,6 +16,7 @@ class DeviceConfigTest {
     void clampsFullMoonLuminance() {
         assertEquals(0.0, new FullMoonDeviceConfig(true, -1.0, false).realLightLuminance());
         assertEquals(15.0, new FullMoonDeviceConfig(true, 20.0, false).realLightLuminance());
+        assertEquals(18.0, new FullMoonDeviceConfig(true, 12.0, false).realLightRadius());
     }
 
     @Test
@@ -43,6 +45,8 @@ class DeviceConfigTest {
         assertEquals(10.0, config.lightAngle());
         assertEquals(1.0, config.lightIntensity());
         assertEquals(0.0, config.realLightLuminance());
+        assertEquals(32.0, config.realLightRadius());
+        assertEquals(AttenuationCurve.QUADRATIC, config.realLightAttenuation());
         assertEquals(1.0, config.colorNoiseAmplitude());
         assertEquals(Collections.singletonList("FFFFFFFF"), config.lightColorsARGB());
         assertThrows(UnsupportedOperationException.class, () -> config.lightColorsARGB().add("FF000000"));

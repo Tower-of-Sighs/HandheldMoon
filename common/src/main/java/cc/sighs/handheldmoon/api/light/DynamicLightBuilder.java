@@ -27,6 +27,7 @@ public final class DynamicLightBuilder {
     private double innerAngle = 0.5;
     private double outerAngle = 0.7;
     private double luminance = 12.0;
+    private AttenuationCurve attenuationCurve = AttenuationCurve.QUADRATIC;
     private boolean occlusion = true;
     private final IRayLightConfig.LightType type;
 
@@ -80,6 +81,12 @@ public final class DynamicLightBuilder {
         return this;
     }
 
+    /** Select the normalized distance falloff preset. Default: quadratic. */
+    public DynamicLightBuilder attenuation(AttenuationCurve curve) {
+        this.attenuationCurve = curve == null ? AttenuationCurve.QUADRATIC : curve;
+        return this;
+    }
+
     /** Enable/disable world occlusion checks. Default: true. */
     public DynamicLightBuilder occlusion(boolean enabled) {
         this.occlusion = enabled;
@@ -93,7 +100,8 @@ public final class DynamicLightBuilder {
      * Useful when you only need the configuration object.
      */
     public IRayLightConfig buildConfig() {
-        return new RayLightConfigImpl(range, innerAngle, outerAngle, luminance, occlusion, type);
+        return new RayLightConfigImpl(range, innerAngle, outerAngle, luminance,
+                attenuationCurve, occlusion, type);
     }
 
 }

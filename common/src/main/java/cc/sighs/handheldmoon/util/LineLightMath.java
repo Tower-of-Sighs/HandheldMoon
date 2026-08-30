@@ -1,5 +1,6 @@
 package cc.sighs.handheldmoon.util;
 
+import cc.sighs.handheldmoon.api.light.AttenuationCurve;
 import cc.sighs.handheldmoon.dynamiclight.DynamicLightBehavior;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
@@ -25,12 +26,24 @@ public final class LineLightMath {
                                       double range,
                                       double innerAngleRad,
                                       double outerAngleRad) {
+        return computeLight(sx, sy, sz, dx, dy, dz, luminance, query, range,
+                innerAngleRad, outerAngleRad, AttenuationCurve.QUADRATIC);
+    }
+
+    public static double computeLight(double sx, double sy, double sz,
+                                      double dx, double dy, double dz,
+                                      double luminance,
+                                      BlockPos query,
+                                      double range,
+                                      double innerAngleRad,
+                                      double outerAngleRad,
+                                      AttenuationCurve curve) {
         double cosInner = Mth.cos((float) innerAngleRad);
         double cosOuter = Mth.cos((float) outerAngleRad);
         return computeLightWithCos(
                 sx, sy, sz, dx, dy, dz, luminance,
                 query.getX(), query.getY(), query.getZ(), range,
-                cosInner, cosOuter, cosOuter * cosOuter
+                cosInner, cosOuter, cosOuter * cosOuter, curve
         );
     }
 
@@ -43,6 +56,20 @@ public final class LineLightMath {
                                              double cosInner,
                                              double cosOuter,
                                              double cosOuterSq) {
+        return computeLightWithCos(sx, sy, sz, dx, dy, dz, luminance,
+                blockX, blockY, blockZ, range, cosInner, cosOuter, cosOuterSq,
+                AttenuationCurve.QUADRATIC);
+    }
+
+    public static double computeLightWithCos(double sx, double sy, double sz,
+                                             double dx, double dy, double dz,
+                                             double luminance,
+                                             int blockX, int blockY, int blockZ,
+                                             double range,
+                                             double cosInner,
+                                             double cosOuter,
+                                             double cosOuterSq,
+                                             AttenuationCurve curve) {
         double cx = blockX + 0.5;
         double cy = blockY + 0.5;
         double cz = blockZ + 0.5;
@@ -51,16 +78,18 @@ public final class LineLightMath {
         double vz = cz - sz;
         double dist2 = vx * vx + vy * vy + vz * vz;
         double range2 = range * range;
-        if (dist2 > range2) return 0.0;
+        if (dist2 >= range2) return 0.0;
+        if (dist2 < 1.0E-12) return Math.max(luminance, 0.0);
         double dot = dx * vx + dy * vy + dz * vz;
         if (dot <= 0.0) return 0.0;
         if (dot * dot < cosOuterSq * dist2) return 0.0;
         double invDistF = Mth.fastInvSqrt((float) dist2);
         double dist = 1.0 / invDistF;
         double dotNorm = dot * invDistF;
-        double angleAtt = dotNorm >= cosInner ? 1.0 : (dotNorm - cosOuter) / (cosInner - cosOuter);
-        double distMul = SharedLightMath.distanceAttenuation(dist, range);
-        double res = luminance * angleAtt * distMul;
+        double angleAtt = Math.abs(cosInner - cosOuter) < 1.0E-9
+                ? (dotNorm >= cosOuter ? 1.0 : 0.0)
+                : (dotNorm >= cosInner ? 1.0 : (dotNorm - cosOuter) / (cosInner - cosOuter));
+        double res = SharedLightMath.attenuatedIntensity(luminance, dist, range, curve) * angleAtt;
         return Math.max(res, 0.0);
     }
 
@@ -72,7 +101,21 @@ public final class LineLightMath {
                                               double range,
                                               double innerAngleRad,
                                               double outerAngleRad) {
-        double res = computeLight(sx, sy, sz, dx, dy, dz, luminance, query, range, innerAngleRad, outerAngleRad);
+        return computeLightOccluded(level, sx, sy, sz, dx, dy, dz, luminance, query,
+                range, innerAngleRad, outerAngleRad, AttenuationCurve.QUADRATIC);
+    }
+
+    public static double computeLightOccluded(Level level,
+                                              double sx, double sy, double sz,
+                                              double dx, double dy, double dz,
+                                              double luminance,
+                                              BlockPos query,
+                                              double range,
+                                              double innerAngleRad,
+                                              double outerAngleRad,
+                                              AttenuationCurve curve) {
+        double res = computeLight(sx, sy, sz, dx, dy, dz, luminance, query, range,
+                innerAngleRad, outerAngleRad, curve);
         if (res <= 0.0) return 0.0;
         if (level == null) return res;
         Vec3 end = new Vec3(query.getX() + 0.5, query.getY() + 0.5, query.getZ() + 0.5);
@@ -85,6 +128,16 @@ public final class LineLightMath {
                                                    double luminance,
                                                    BlockPos query,
                                                    double range) {
+        return computePointLightOccluded(level, sx, sy, sz, luminance, query, range,
+                AttenuationCurve.QUADRATIC);
+    }
+
+    public static double computePointLightOccluded(Level level,
+                                                   double sx, double sy, double sz,
+                                                   double luminance,
+                                                   BlockPos query,
+                                                   double range,
+                                                   AttenuationCurve curve) {
         double cx = query.getX() + 0.5;
         double cy = query.getY() + 0.5;
         double cz = query.getZ() + 0.5;
@@ -93,12 +146,11 @@ public final class LineLightMath {
         double dz = cz - sz;
         double distSq = dx * dx + dy * dy + dz * dz;
         double rangeSq = range * range;
-        if (distSq > rangeSq) return 0.0;
-        if (distSq < 1.0e-8) return luminance;
+        if (distSq >= rangeSq) return 0.0;
+        if (distSq < 1.0e-8) return Math.max(luminance, 0.0);
         double invDist = Mth.fastInvSqrt((float) distSq);
         double dist = 1.0 / invDist;
-        double distanceMultiplier = SharedLightMath.distanceAttenuation(dist, range);
-        double res = luminance * distanceMultiplier;
+        double res = SharedLightMath.attenuatedIntensity(luminance, dist, range, curve);
         if (res <= 0.0) return 0.0;
         if (level == null) return res;
         Vec3 endCenter = new Vec3(cx, cy, cz);
@@ -203,6 +255,11 @@ public final class LineLightMath {
 
     public static double effectiveRange(double luminance, double range, double threshold) {
         return SharedLightMath.effectiveRange(luminance, range, threshold);
+    }
+
+    public static double effectiveRange(double luminance, double range, double threshold,
+                                        AttenuationCurve curve) {
+        return SharedLightMath.effectiveRange(luminance, range, threshold, curve);
     }
 
     public static double conePadding(double distance, double outerAngleRad, double minPad, double maxPad) {

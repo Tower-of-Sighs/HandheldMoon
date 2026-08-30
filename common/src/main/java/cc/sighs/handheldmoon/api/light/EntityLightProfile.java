@@ -25,6 +25,7 @@ import java.util.Objects;
  * @param visibleCone whether a client-side volumetric cone may be rendered
  * @param occlusion whether world geometry blocks the real light
  * @param positionOffset offset from the runtime light position
+ * @param attenuationCurve distance falloff preset
  */
 public record EntityLightProfile(
         Shape shape,
@@ -35,7 +36,8 @@ public record EntityLightProfile(
         boolean realLight,
         boolean visibleCone,
         boolean occlusion,
-        Vec3 positionOffset
+        Vec3 positionOffset,
+        AttenuationCurve attenuationCurve
 ) {
     public static final Codec<EntityLightProfile> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.STRING.xmap(EntityLightProfile::parseShape, Shape::name)
@@ -49,15 +51,19 @@ public record EntityLightProfile(
             Codec.BOOL.fieldOf("occlusion").forGetter(EntityLightProfile::occlusion),
             Codec.DOUBLE.fieldOf("offsetX").forGetter(profile -> profile.positionOffset().x),
             Codec.DOUBLE.fieldOf("offsetY").forGetter(profile -> profile.positionOffset().y),
-            Codec.DOUBLE.fieldOf("offsetZ").forGetter(profile -> profile.positionOffset().z)
+            Codec.DOUBLE.fieldOf("offsetZ").forGetter(profile -> profile.positionOffset().z),
+            Codec.STRING.xmap(AttenuationCurve::parse, AttenuationCurve::name)
+                    .optionalFieldOf("attenuationCurve", AttenuationCurve.QUADRATIC)
+                    .forGetter(EntityLightProfile::attenuationCurve)
     ).apply(instance, (shape, luminance, range, innerAngle, outerAngle, realLight,
-            visibleCone, occlusion, offsetX, offsetY, offsetZ) -> new EntityLightProfile(
+            visibleCone, occlusion, offsetX, offsetY, offsetZ, attenuationCurve) -> new EntityLightProfile(
             shape, luminance, range, innerAngle, outerAngle, realLight, visibleCone,
-            occlusion, new Vec3(offsetX, offsetY, offsetZ))));
+            occlusion, new Vec3(offsetX, offsetY, offsetZ), attenuationCurve)));
 
     public EntityLightProfile {
         Objects.requireNonNull(shape, "shape");
         Objects.requireNonNull(positionOffset, "positionOffset");
+        attenuationCurve = attenuationCurve == null ? AttenuationCurve.QUADRATIC : attenuationCurve;
         luminance = clamp(luminance, 0.0, 15.0);
         range = clamp(range, 0.0, 64.0);
         innerAngle = clamp(innerAngle, 0.0, Math.PI);
@@ -69,13 +75,37 @@ public record EntityLightProfile(
         );
     }
 
+    /** Compatibility constructor retaining the original profile shape. */
+    public EntityLightProfile(
+            Shape shape,
+            double luminance,
+            double range,
+            double innerAngle,
+            double outerAngle,
+            boolean realLight,
+            boolean visibleCone,
+            boolean occlusion,
+            Vec3 positionOffset
+    ) {
+        this(shape, luminance, range, innerAngle, outerAngle, realLight,
+                visibleCone, occlusion, positionOffset, AttenuationCurve.QUADRATIC);
+    }
+
     public static EntityLightProfile point(
             double luminance, double range, boolean realLight,
             boolean occlusion, Vec3 positionOffset
     ) {
+        return point(luminance, range, realLight, occlusion, positionOffset,
+                AttenuationCurve.QUADRATIC);
+    }
+
+    public static EntityLightProfile point(
+            double luminance, double range, boolean realLight,
+            boolean occlusion, Vec3 positionOffset, AttenuationCurve attenuationCurve
+    ) {
         return new EntityLightProfile(
                 Shape.POINT, luminance, range, 0.0, 0.0,
-                realLight, false, occlusion, positionOffset
+                realLight, false, occlusion, positionOffset, attenuationCurve
         );
     }
 
@@ -83,9 +113,18 @@ public record EntityLightProfile(
             double luminance, double range, double innerAngle, double outerAngle,
             boolean realLight, boolean visibleCone, boolean occlusion, Vec3 positionOffset
     ) {
+        return cone(luminance, range, innerAngle, outerAngle, realLight, visibleCone,
+                occlusion, positionOffset, AttenuationCurve.QUADRATIC);
+    }
+
+    public static EntityLightProfile cone(
+            double luminance, double range, double innerAngle, double outerAngle,
+            boolean realLight, boolean visibleCone, boolean occlusion, Vec3 positionOffset,
+            AttenuationCurve attenuationCurve
+    ) {
         return new EntityLightProfile(
                 Shape.CONE, luminance, range, innerAngle, outerAngle,
-                realLight, visibleCone, occlusion, positionOffset
+                realLight, visibleCone, occlusion, positionOffset, attenuationCurve
         );
     }
 

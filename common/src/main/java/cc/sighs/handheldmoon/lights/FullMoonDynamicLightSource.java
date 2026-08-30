@@ -29,32 +29,47 @@ public interface FullMoonDynamicLightSource extends EntityLightProfileAccess {
 
     boolean usesEntityBackedLight();
 
-    /** Returns the effective profile, including any target-side override. */
-    @Override
-    default EntityLightProfile getLightProfile() {
+    /**
+     * Returns the profile derived from the current device configuration.
+     * <p>
+     * Target entities copy this value into their synchronized entity data;
+     * the light calculation itself then consumes only that entity-facing
+     * profile channel.
+     */
+    default EntityLightProfile getDefaultLightProfile() {
         if (isLampBound()) {
             LampDeviceConfig config = getLampConfig();
             double outerAngle = config.lightAngle() * 0.5 * Mth.DEG_TO_RAD;
             return EntityLightProfile.cone(
                     config.realLightLuminance(),
-                    config.lightRange(),
+                    // Use the same configured physical radius as the
+                    // hand-held light path.
+                    config.realLightRadius(),
                     outerAngle * 0.7,
                     outerAngle,
                     config.realLight(),
                     true,
                     config.lightOcclusion(),
-                    Vec3.ZERO
+                    Vec3.ZERO,
+                    config.realLightAttenuation()
             );
         }
 
         FullMoonDeviceConfig config = getFullMoonConfig();
         return EntityLightProfile.point(
                 config.realLightLuminance(),
-                18.0,
+                config.realLightRadius(),
                 config.realLight(),
                 config.lightOcclusion(),
-                Vec3.ZERO
+                Vec3.ZERO,
+                config.realLightAttenuation()
         );
+    }
+
+    /** Returns the effective profile, including any target-side override. */
+    @Override
+    default EntityLightProfile getLightProfile() {
+        return getDefaultLightProfile();
     }
 
     /** Returns the current transform and activation state. */

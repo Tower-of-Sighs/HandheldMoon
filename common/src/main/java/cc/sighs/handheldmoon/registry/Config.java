@@ -2,6 +2,7 @@ package cc.sighs.handheldmoon.registry;
 
 import cc.sighs.handheldmoon.config.FullMoonDeviceConfig;
 import cc.sighs.handheldmoon.config.LampDeviceConfig;
+import cc.sighs.handheldmoon.api.light.AttenuationCurve;
 
 import java.util.List;
 
@@ -17,6 +18,9 @@ public final class Config {
     public static final Value<Boolean> LIGHT_OCCLUSION = value(false);
     public static final Value<Boolean> CONE_RAYCAST = value(false);
     public static final Value<Double> REAL_LIGHT_LUMINANCE = value(15.0);
+    public static final Value<Double> REAL_LIGHT_RADIUS = value(32.0);
+    public static final Value<Double> FULL_MOON_RADIUS = value(18.0);
+    public static final Value<String> REAL_LIGHT_ATTENUATION = value(AttenuationCurve.QUADRATIC.name());
     public static final Value<List<String>> LAYER_SIZE_SCALES = value(List.of("1.00", "1.08", "1.16"));
     public static final Value<List<String>> LAYER_CENTER_ALPHAS = value(List.of("0.15", "0.12", "0.08"));
     public static final Value<List<String>> LAYER_EDGE_ALPHAS = value(List.of("0.00", "0.00", "0.00"));
@@ -35,12 +39,14 @@ public final class Config {
         LampDeviceConfig.setGlobalConfigSupplier(() -> new LampDeviceConfig(
                 LIGHT_RANGE.get(), LIGHT_ANGLE.get(), List.copyOf(LIGHT_COLORS_ARGB.get()), REAL_LIGHT.get(),
                 LIGHT_INTENSITY.get(), LIGHT_OCCLUSION.get(), CONE_RAYCAST.get(), REAL_LIGHT_LUMINANCE.get(),
+                REAL_LIGHT_RADIUS.get(), AttenuationCurve.parse(REAL_LIGHT_ATTENUATION.get()),
                 List.copyOf(LAYER_SIZE_SCALES.get()), List.copyOf(LAYER_CENTER_ALPHAS.get()),
                 List.copyOf(LAYER_EDGE_ALPHAS.get()), List.copyOf(LAYER_COLORS_ARGB.get()), COLOR_NOISE_AMPLITUDE.get(),
                 new LampDeviceConfig.FogSettings(FOG_ENABLED.get(), FOG_SIZE_SCALE.get(), FOG_CENTER_ALPHA.get(),
                         FOG_EDGE_ALPHA.get(), FOG_COLOR_ARGB.get())));
         FullMoonDeviceConfig.setGlobalConfigSupplier(() -> new FullMoonDeviceConfig(
-                REAL_LIGHT.get(), REAL_LIGHT_LUMINANCE.get(), LIGHT_OCCLUSION.get()));
+                REAL_LIGHT.get(), REAL_LIGHT_LUMINANCE.get(), FULL_MOON_RADIUS.get(),
+                AttenuationCurve.parse(REAL_LIGHT_ATTENUATION.get()), LIGHT_OCCLUSION.get()));
     }
 
     private static <T> Value<T> value(T initial) {

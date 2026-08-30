@@ -38,6 +38,11 @@ public interface IRayLightConfig {
     /** Peak luminance (arbitrary unit, typical range 5–15). */
     double luminance();
 
+    /** Distance falloff preset used between the source and {@link #range()}. */
+    default AttenuationCurve attenuationCurve() {
+        return AttenuationCurve.QUADRATIC;
+    }
+
     /** Enable world-space occlusion raycast checks. */
     boolean occlusionEnabled();
 

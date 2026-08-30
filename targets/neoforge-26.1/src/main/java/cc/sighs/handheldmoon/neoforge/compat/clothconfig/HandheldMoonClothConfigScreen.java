@@ -64,6 +64,18 @@ public final class HandheldMoonClothConfigScreen {
                 .setDefaultValue(15.0).setMin(0.0).setMax(15.0)
                 .setSaveConsumer(Config.REAL_LIGHT_LUMINANCE::set)
                 .build());
+        category.addEntry(entries.startDoubleField(
+                        Component.translatable("config.handheldmoon.client_settings.realLightRadius"),
+                        Config.REAL_LIGHT_RADIUS.get())
+                .setDefaultValue(32.0).setMin(0.0).setMax(64.0)
+                .setSaveConsumer(Config.REAL_LIGHT_RADIUS::set)
+                .build());
+        category.addEntry(entries.startStrField(
+                        Component.translatable("config.handheldmoon.client_settings.realLightAttenuation"),
+                        Config.REAL_LIGHT_ATTENUATION.get())
+                .setDefaultValue("QUADRATIC")
+                .setSaveConsumer(Config.REAL_LIGHT_ATTENUATION::set)
+                .build());
         category.addEntry(entries.startStrList(
                         Component.translatable("config.handheldmoon.client_settings.layerSizeScales"),
                         (List<String>) Config.LAYER_SIZE_SCALES.get())

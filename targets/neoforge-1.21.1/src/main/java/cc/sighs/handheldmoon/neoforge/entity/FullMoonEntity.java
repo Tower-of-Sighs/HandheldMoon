@@ -30,6 +30,8 @@ import java.util.Optional;
 
 public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource {
     private int radius = 16;
+    private String lightProfileCacheKey;
+    private EntityLightProfile lightProfileCache;
     private static final EntityDataAccessor<Optional<BlockPos>> ANCHOR_POS = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
     private static final EntityDataAccessor<Boolean> LAMP_BOUND = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> LAMP_LUMINANCE = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.INT);
@@ -60,6 +62,8 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
 
     public void setAnchor(BlockPos pos) {
         this.entityData.set(ANCHOR_POS, Optional.ofNullable(pos));
+        this.entityData.set(LAMP_BOUND, false);
+        syncDefaultLightProfile();
         syncToAnchor();
     }
 
@@ -70,6 +74,7 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
     public void bindToLamp(BlockPos pos) {
         this.entityData.set(ANCHOR_POS, Optional.ofNullable(pos));
         this.entityData.set(LAMP_BOUND, true);
+        syncDefaultLightProfile();
         syncToAnchor();
     }
 
@@ -147,23 +152,47 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
 
     @Override
     public EntityLightProfile getLightProfile() {
-        if (!entityData.get(LIGHT_PROFILE_OVERRIDE)) {
-            return FullMoonDynamicLightSource.super.getLightProfile();
+        String encoded = entityData.get(LIGHT_PROFILE);
+        if (encoded.equals(lightProfileCacheKey)) {
+            return lightProfileCache != null
+                    ? lightProfileCache : FullMoonDynamicLightSource.super.getDefaultLightProfile();
         }
-        EntityLightProfile profile = EntityLightProfile.fromNetworkString(entityData.get(LIGHT_PROFILE));
-        return profile != null ? profile : FullMoonDynamicLightSource.super.getLightProfile();
+        EntityLightProfile profile = EntityLightProfile.fromNetworkString(encoded);
+        lightProfileCacheKey = encoded;
+        lightProfileCache = profile;
+        return profile != null ? profile : FullMoonDynamicLightSource.super.getDefaultLightProfile();
     }
 
     @Override
     public void setLightProfile(EntityLightProfile profile) {
-        entityData.set(LIGHT_PROFILE, profile.toNetworkString());
+        writeLightProfile(profile);
         entityData.set(LIGHT_PROFILE_OVERRIDE, true);
     }
 
     @Override
     public void clearLightProfileOverride() {
-        entityData.set(LIGHT_PROFILE, "");
         entityData.set(LIGHT_PROFILE_OVERRIDE, false);
+        syncDefaultLightProfile();
+    }
+
+    /** Refreshes the synchronized profile when the bound device uses defaults. */
+    public void syncDefaultLightProfile() {
+        if (entityData.get(LIGHT_PROFILE_OVERRIDE)) {
+            return;
+        }
+        EntityLightProfile profile = FullMoonDynamicLightSource.super.getDefaultLightProfile();
+        if (!profile.equals(lightProfileCache)) {
+            writeLightProfile(profile);
+        }
+    }
+
+    private void writeLightProfile(EntityLightProfile profile) {
+        String encoded = profile.toNetworkString();
+        if (!encoded.equals(entityData.get(LIGHT_PROFILE))) {
+            entityData.set(LIGHT_PROFILE, encoded);
+        }
+        lightProfileCacheKey = encoded;
+        lightProfileCache = profile;
     }
 
     public Vec3 getLampDirection() {
@@ -212,6 +241,7 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
         super.tick();
         this.setNoGravity(true);
         if (!level().isClientSide) {
+            syncDefaultLightProfile();
             if (isLampBound()) {
                 syncToAnchor();
                 if (!MoonlightLampEntityHeartbeatCenter.isAlive(level(), this.getUUID())) {
@@ -253,8 +283,11 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
         if (tag.get("light_profile") instanceof CompoundTag profileTag) {
             EntityLightProfile profile = EntityLightProfile.fromTag(profileTag);
             if (profile != null) {
-                setLightProfile(profile);
+                writeLightProfile(profile);
             }
+        }
+        if (entityData.get(LIGHT_PROFILE).isEmpty()) {
+            syncDefaultLightProfile();
         }
     }
 
@@ -272,8 +305,6 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
         tag.putFloat("lamp_x_rot", getLampXRot());
         tag.putFloat("lamp_y_rot", getLampYRot());
         tag.putBoolean("light_profile_override", entityData.get(LIGHT_PROFILE_OVERRIDE));
-        if (entityData.get(LIGHT_PROFILE_OVERRIDE)) {
-            tag.put("light_profile", getLightProfile().toTag());
-        }
+        tag.put("light_profile", getLightProfile().toTag());
     }
 }

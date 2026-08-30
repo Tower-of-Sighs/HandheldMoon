@@ -1,9 +1,9 @@
 package cc.sighs.handheldmoon.lights;
 
 import cc.sighs.handheldmoon.api.light.DynamicLightBuilder;
+import cc.sighs.handheldmoon.api.light.AttenuationCurve;
 import cc.sighs.handheldmoon.api.light.impl.RayLightBehavior;
 import cc.sighs.handheldmoon.dynamiclight.DynamicLightBehavior;
-import cc.sighs.handheldmoon.dynamiclight.DynamicLightDefaults;
 import cc.sighs.handheldmoon.registry.Config;
 import cc.sighs.handheldmoon.util.LineLightMath;
 import cc.sighs.handheldmoon.util.Utils;
@@ -21,23 +21,28 @@ public class PlayerFlashlightLineLightBehavior implements DynamicLightBehavior {
     private RayLightBehavior delegate;
     private double lastLuminance;
     private boolean lastOcclusion;
-
-    private static final double INNER = 0.5;
-    private static final double OUTER = 0.7;
+    private double lastRange;
+    private double lastAngle;
+    private AttenuationCurve lastAttenuation;
 
     public PlayerFlashlightLineLightBehavior(Player player) {
         this.player = player;
         this.delegate = createDelegate();
         this.lastLuminance = Config.REAL_LIGHT_LUMINANCE.get();
         this.lastOcclusion = Config.LIGHT_OCCLUSION.get();
+        this.lastRange = Config.REAL_LIGHT_RADIUS.get();
+        this.lastAngle = Config.LIGHT_ANGLE.get();
+        this.lastAttenuation = currentAttenuation();
     }
 
     private RayLightBehavior createDelegate() {
+        double outerAngle = Config.LIGHT_ANGLE.get() * 0.5 * net.minecraft.util.Mth.DEG_TO_RAD;
         return new RayLightBehavior(
                 DynamicLightBuilder.cone()
-                        .range(DynamicLightDefaults.FLASHLIGHT_RANGE)
-                        .angle(INNER, OUTER)
+                        .range(Config.REAL_LIGHT_RADIUS.get())
+                        .angle(outerAngle * 0.7, outerAngle)
                         .luminance(Config.REAL_LIGHT_LUMINANCE.get())
+                        .attenuation(currentAttenuation())
                         .occlusion(Config.LIGHT_OCCLUSION.get())
                         .buildConfig(),
                         () -> player.getEyePosition(1.0f),
@@ -59,10 +64,16 @@ public class PlayerFlashlightLineLightBehavior implements DynamicLightBehavior {
     @Override
     public boolean hasChanged() {
         boolean cfgChanged = Math.abs(Config.REAL_LIGHT_LUMINANCE.get() - lastLuminance) > 0.001
-                || Config.LIGHT_OCCLUSION.get() != lastOcclusion;
+                || Config.LIGHT_OCCLUSION.get() != lastOcclusion
+                || Math.abs(Config.REAL_LIGHT_RADIUS.get() - lastRange) > 0.001
+                || currentAttenuation() != lastAttenuation
+                || Math.abs(Config.LIGHT_ANGLE.get() - lastAngle) > 0.001;
         if (cfgChanged) {
             lastLuminance = Config.REAL_LIGHT_LUMINANCE.get();
             lastOcclusion = Config.LIGHT_OCCLUSION.get();
+            lastRange = Config.REAL_LIGHT_RADIUS.get();
+            lastAttenuation = currentAttenuation();
+            lastAngle = Config.LIGHT_ANGLE.get();
             delegate = createDelegate();
             return true;
         }
@@ -77,5 +88,9 @@ public class PlayerFlashlightLineLightBehavior implements DynamicLightBehavior {
     @Override
     public BatchLightSnapshot getBatchLightSnapshot() {
         return delegate.getBatchLightSnapshot();
+    }
+
+    private static AttenuationCurve currentAttenuation() {
+        return AttenuationCurve.parse(Config.REAL_LIGHT_ATTENUATION.get());
     }
 }

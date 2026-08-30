@@ -1,5 +1,6 @@
 package cc.sighs.handheldmoon.dynamiclight;
 
+import cc.sighs.handheldmoon.api.light.AttenuationCurve;
 import cc.sighs.handheldmoon.util.SharedLightMath;
 
 /**
@@ -43,21 +44,46 @@ public interface DynamicLightBehavior {
             double luminance,
             double cosInner,
             double cosOuter,
-            double cosOuterSq
+            double cosOuterSq,
+            AttenuationCurve attenuationCurve
     ) {
+        public BatchLightSnapshot(
+                boolean cone,
+                double originX,
+                double originY,
+                double originZ,
+                double directionX,
+                double directionY,
+                double directionZ,
+                double range,
+                double luminance,
+                double cosInner,
+                double cosOuter,
+                double cosOuterSq
+        ) {
+            this(cone, originX, originY, originZ, directionX, directionY, directionZ,
+                    range, luminance, cosInner, cosOuter, cosOuterSq,
+                    AttenuationCurve.QUADRATIC);
+        }
+
+        public BatchLightSnapshot {
+            attenuationCurve = attenuationCurve == null
+                    ? AttenuationCurve.QUADRATIC : attenuationCurve;
+        }
+
         public double lightAt(int blockX, int blockY, int blockZ) {
             if (cone) {
                 return SharedLightMath.coneLight(
                         originX, originY, originZ,
                         directionX, directionY, directionZ,
                         luminance, blockX, blockY, blockZ, range,
-                        cosInner, cosOuter, cosOuterSq
+                        cosInner, cosOuter, cosOuterSq, attenuationCurve
                 );
             }
 
             return SharedLightMath.pointLight(
                     originX, originY, originZ, luminance,
-                    blockX, blockY, blockZ, range
+                    blockX, blockY, blockZ, range, attenuationCurve
             );
         }
     }

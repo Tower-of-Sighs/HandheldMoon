@@ -1,5 +1,7 @@
 package cc.sighs.handheldmoon.config;
 
+import cc.sighs.handheldmoon.api.light.AttenuationCurve;
+import cc.sighs.handheldmoon.dynamiclight.DynamicLightDefaults;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,6 +22,8 @@ public final class LampDeviceConfig {
     private final boolean lightOcclusion;
     private final boolean coneRaycast;
     private final double realLightLuminance;
+    private final double realLightRadius;
+    private final AttenuationCurve realLightAttenuation;
     private final List<String> layerSizeScales;
     private final List<String> layerCenterAlphas;
     private final List<String> layerEdgeAlphas;
@@ -43,6 +47,31 @@ public final class LampDeviceConfig {
             double colorNoiseAmplitude,
             FogSettings fog
     ) {
+        this(lightRange, lightAngle, lightColorsARGB, realLight, lightIntensity,
+                lightOcclusion, coneRaycast, realLightLuminance,
+                DynamicLightDefaults.FLASHLIGHT_RANGE, AttenuationCurve.QUADRATIC,
+                layerSizeScales, layerCenterAlphas, layerEdgeAlphas, layerColorsARGB,
+                colorNoiseAmplitude, fog);
+    }
+
+    public LampDeviceConfig(
+            double lightRange,
+            double lightAngle,
+            List<String> lightColorsARGB,
+            boolean realLight,
+            double lightIntensity,
+            boolean lightOcclusion,
+            boolean coneRaycast,
+            double realLightLuminance,
+            double realLightRadius,
+            AttenuationCurve realLightAttenuation,
+            List<String> layerSizeScales,
+            List<String> layerCenterAlphas,
+            List<String> layerEdgeAlphas,
+            List<String> layerColorsARGB,
+            double colorNoiseAmplitude,
+            FogSettings fog
+    ) {
         this.lightRange = clamp(lightRange, 1.0, 64.0);
         this.lightAngle = clamp(lightAngle, 10.0, 120.0);
         this.lightColorsARGB = immutableCopy(lightColorsARGB);
@@ -51,6 +80,9 @@ public final class LampDeviceConfig {
         this.lightOcclusion = lightOcclusion;
         this.coneRaycast = coneRaycast;
         this.realLightLuminance = clamp(realLightLuminance, 0.0, 15.0);
+        this.realLightRadius = clamp(realLightRadius, 0.0, 64.0);
+        this.realLightAttenuation = realLightAttenuation == null
+                ? AttenuationCurve.QUADRATIC : realLightAttenuation;
         this.layerSizeScales = immutableCopy(layerSizeScales);
         this.layerCenterAlphas = immutableCopy(layerCenterAlphas);
         this.layerEdgeAlphas = immutableCopy(layerEdgeAlphas);
@@ -89,6 +121,16 @@ public final class LampDeviceConfig {
 
     public double realLightLuminance() {
         return realLightLuminance;
+    }
+
+    /** Hard radius for the physical world-light contribution. */
+    public double realLightRadius() {
+        return realLightRadius;
+    }
+
+    /** Distance falloff preset for the physical world-light contribution. */
+    public AttenuationCurve realLightAttenuation() {
+        return realLightAttenuation;
     }
 
     public List<String> layerSizeScales() {
@@ -161,6 +203,8 @@ public final class LampDeviceConfig {
                 && lightOcclusion == that.lightOcclusion
                 && coneRaycast == that.coneRaycast
                 && Double.compare(realLightLuminance, that.realLightLuminance) == 0
+                && Double.compare(realLightRadius, that.realLightRadius) == 0
+                && realLightAttenuation == that.realLightAttenuation
                 && Double.compare(colorNoiseAmplitude, that.colorNoiseAmplitude) == 0
                 && lightColorsARGB.equals(that.lightColorsARGB)
                 && layerSizeScales.equals(that.layerSizeScales)
@@ -181,6 +225,8 @@ public final class LampDeviceConfig {
                 lightOcclusion,
                 coneRaycast,
                 realLightLuminance,
+                realLightRadius,
+                realLightAttenuation,
                 layerSizeScales,
                 layerCenterAlphas,
                 layerEdgeAlphas,
@@ -200,6 +246,8 @@ public final class LampDeviceConfig {
                 false,
                 false,
                 15.0,
+                DynamicLightDefaults.FLASHLIGHT_RANGE,
+                AttenuationCurve.QUADRATIC,
                 Arrays.asList("1.00", "1.08", "1.16"),
                 Arrays.asList("0.15", "0.12", "0.08"),
                 Arrays.asList("0.00", "0.00", "0.00"),
@@ -218,6 +266,12 @@ public final class LampDeviceConfig {
     }
 
     private static double clamp(double value, double minimum, double maximum) {
+        if (Double.isNaN(value) || value == Double.NEGATIVE_INFINITY) {
+            return minimum;
+        }
+        if (value == Double.POSITIVE_INFINITY) {
+            return maximum;
+        }
         return Math.max(minimum, Math.min(maximum, value));
     }
 

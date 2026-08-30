@@ -68,6 +68,7 @@ public final class FullMoonEntityLightBehavior implements DynamicLightBehavior {
                             .range(profile.range())
                             .angle(profile.innerAngle(), profile.outerAngle())
                             .luminance(profile.luminance())
+                            .attenuation(profile.attenuationCurve())
                             .occlusion(profile.occlusion())
                             .buildConfig(),
                     () -> lightPosition(profile),
@@ -80,6 +81,7 @@ public final class FullMoonEntityLightBehavior implements DynamicLightBehavior {
                 DynamicLightBuilder.point()
                         .range(profile.range())
                         .luminance(profile.luminance())
+                        .attenuation(profile.attenuationCurve())
                         .occlusion(profile.occlusion())
                         .buildConfig(),
                 () -> lightPosition(profile),

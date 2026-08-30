@@ -1,6 +1,7 @@
 package cc.sighs.handheldmoon.api.light.impl;
 
 import cc.sighs.handheldmoon.api.light.IRayLightConfig;
+import cc.sighs.handheldmoon.api.light.AttenuationCurve;
 import cc.sighs.handheldmoon.api.light.LightCache;
 import cc.sighs.handheldmoon.dynamiclight.DynamicLightBehavior;
 import cc.sighs.handheldmoon.util.LineLightMath;
@@ -49,6 +50,7 @@ public class RayLightBehavior implements DynamicLightBehavior {
     private boolean lastActive;
     private double lastRange;
     private double lastLuminance;
+    private AttenuationCurve lastAttenuation;
     private boolean lastOcclusion;
     private Vec3 lastPos = Vec3.ZERO;
     private Vec3 lastDir = Vec3.ZERO;
@@ -85,6 +87,7 @@ public class RayLightBehavior implements DynamicLightBehavior {
                 ? directionSupplier.get() : Vec3.ZERO;
         this.lastRange = config.range();
         this.lastLuminance = config.luminance();
+        this.lastAttenuation = config.attenuationCurve();
         this.lastOcclusion = config.occlusionEnabled();
         this.cosInner = Mth.cos((float) config.innerAngle());
         this.cosOuter = Mth.cos((float) config.outerAngle());
@@ -132,10 +135,11 @@ public class RayLightBehavior implements DynamicLightBehavior {
                     pos.x, pos.y, pos.z,
                     dir.x, dir.y, dir.z,
                     lastLuminance, blockX, blockY, blockZ, lastRange,
-                    cosInner, cosOuter, cosOuterSq
+                    cosInner, cosOuter, cosOuterSq, lastAttenuation
             );
         } else {
-            computed = computePointLight(pos, blockX, blockY, blockZ, lastRange, lastLuminance);
+            computed = computePointLight(pos, blockX, blockY, blockZ, lastRange,
+                    lastLuminance, lastAttenuation);
         }
 
         if (computed > 0.0 && lastOcclusion) {
@@ -247,10 +251,11 @@ public class RayLightBehavior implements DynamicLightBehavior {
         boolean activeChanged = active != lastActive;
         boolean rangeChanged = Math.abs(config.range() - lastRange) > 0.001;
         boolean lumChanged = Math.abs(config.luminance() - lastLuminance) > 0.001;
+        boolean attenuationChanged = config.attenuationCurve() != lastAttenuation;
         boolean occChanged = config.occlusionEnabled() != lastOcclusion;
 
         boolean changed = dirChanged || posChanged || activeChanged
-                || rangeChanged || lumChanged || occChanged;
+                || rangeChanged || lumChanged || attenuationChanged || occChanged;
 
         if (changed) {
             lastPos = pos;
@@ -258,6 +263,7 @@ public class RayLightBehavior implements DynamicLightBehavior {
             lastActive = active;
             lastRange = config.range();
             lastLuminance = config.luminance();
+            lastAttenuation = config.attenuationCurve();
             lastOcclusion = config.occlusionEnabled();
             boundsCache = null;
             lightCache.clear();
@@ -284,7 +290,7 @@ public class RayLightBehavior implements DynamicLightBehavior {
                 pos.x, pos.y, pos.z,
                 dir.x, dir.y, dir.z,
                 lastRange, lastLuminance,
-                cosInner, cosOuter, cosOuterSq
+                cosInner, cosOuter, cosOuterSq, lastAttenuation
         );
     }
 
@@ -292,7 +298,7 @@ public class RayLightBehavior implements DynamicLightBehavior {
 
     private double effectiveRange() {
         double lum = lastLuminance;
-        return LineLightMath.effectiveRange(lum, lastRange, LUMINANCE_THRESHOLD);
+        return LineLightMath.effectiveRange(lum, lastRange, LUMINANCE_THRESHOLD, lastAttenuation);
     }
 
     private void cacheOcclusion(long key, boolean visible) {
@@ -303,17 +309,17 @@ public class RayLightBehavior implements DynamicLightBehavior {
     }
 
     private static double computePointLight(Vec3 origin, int blockX, int blockY, int blockZ,
-                                            double range, double luminance) {
+                                            double range, double luminance,
+                                            AttenuationCurve attenuationCurve) {
         double dx = blockX + 0.5 - origin.x;
         double dy = blockY + 0.5 - origin.y;
         double dz = blockZ + 0.5 - origin.z;
         double distSq = dx * dx + dy * dy + dz * dz;
         double rangeSq = range * range;
-        if (distSq > rangeSq) return 0.0;
-        if (distSq < 1.0e-8) return luminance;
+        if (distSq >= rangeSq) return 0.0;
+        if (distSq < 1.0e-8) return Math.max(luminance, 0.0);
         double invDist = Mth.fastInvSqrt((float) distSq);
         double dist = 1.0 / invDist;
-        double distMul = SharedLightMath.distanceAttenuation(dist, range);
-        return luminance * distMul;
+        return SharedLightMath.attenuatedIntensity(luminance, dist, range, attenuationCurve);
     }
 }

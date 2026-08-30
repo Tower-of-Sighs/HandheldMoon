@@ -1,11 +1,11 @@
 package cc.sighs.handheldmoon.lights;
 
 import cc.sighs.handheldmoon.api.light.DynamicLightBuilder;
+import cc.sighs.handheldmoon.api.light.AttenuationCurve;
 import cc.sighs.handheldmoon.api.light.impl.RayLightBehavior;
 import cc.sighs.handheldmoon.api.content.MoonlightLampBlockEntityAccess;
 import cc.sighs.handheldmoon.config.LampDeviceConfig;
 import cc.sighs.handheldmoon.dynamiclight.DynamicLightBehavior;
-import cc.sighs.handheldmoon.dynamiclight.DynamicLightDefaults;
 import cc.sighs.handheldmoon.util.LineLightMath;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -26,9 +26,7 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
     private double lastRange;
     private double lastLuminance;
     private boolean lastOcclusion;
-
-    private static final double INNER = 0.5;
-    private static final double OUTER = 0.7;
+    private AttenuationCurve lastAttenuation;
 
     public MoonLampLineLightBehavior(BlockPos pos) {
         this.pos = pos;
@@ -39,6 +37,7 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
         MoonlightLampBlockEntityAccess lamp = lamp();
         if (lamp == null) return;
         LampDeviceConfig cfg = lamp.getLampConfig();
+        double outerAngle = cfg.lightAngle() * 0.5 * net.minecraft.util.Mth.DEG_TO_RAD;
 
         Vec3 center = pos.getCenter();
         float adjustedPitch = lamp.getXRot() - 90.0f;
@@ -46,9 +45,10 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
 
         this.delegate = new RayLightBehavior(
                 DynamicLightBuilder.cone()
-                        .range(DynamicLightDefaults.FLASHLIGHT_RANGE)
-                        .angle(INNER, OUTER)
+                        .range(cfg.realLightRadius())
+                        .angle(outerAngle * 0.7, outerAngle)
                         .luminance(cfg.realLightLuminance())
+                        .attenuation(cfg.realLightAttenuation())
                         .occlusion(cfg.lightOcclusion())
                         .buildConfig(),
                         () -> pos.getCenter(),
@@ -63,9 +63,11 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
                             return l != null && l.getPowered() && l.getLampConfig().realLight();
                         }
                 );
-        this.lastRange = cfg.lightRange();
+        // Keep this compatibility behavior on the hand-held physical range.
+        this.lastRange = cfg.realLightRadius();
         this.lastLuminance = cfg.realLightLuminance();
         this.lastOcclusion = cfg.lightOcclusion();
+        this.lastAttenuation = cfg.realLightAttenuation();
         this.initialized = true;
     }
 
@@ -94,13 +96,15 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
         if (!initialized) return true;
 
         LampDeviceConfig cfg = lamp.getLampConfig();
-        boolean cfgChanged = Math.abs(cfg.lightRange() - lastRange) > 0.001
+        boolean cfgChanged = Math.abs(cfg.realLightRadius() - lastRange) > 0.001
                 || Math.abs(cfg.realLightLuminance() - lastLuminance) > 0.001
-                || cfg.lightOcclusion() != lastOcclusion;
+                || cfg.lightOcclusion() != lastOcclusion
+                || cfg.realLightAttenuation() != lastAttenuation;
         if (cfgChanged) {
-            lastRange = cfg.lightRange();
+            lastRange = cfg.realLightRadius();
             lastLuminance = cfg.realLightLuminance();
             lastOcclusion = cfg.lightOcclusion();
+            lastAttenuation = cfg.realLightAttenuation();
             delegate = null;
             initialized = false;
             return true;

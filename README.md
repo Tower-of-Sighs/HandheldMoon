@@ -14,6 +14,9 @@ independently buildable Gradle project.
 Each target references `../../common`; no target includes another loader or
 Minecraft version.
 
+For entity light entityData synchronization and persistence details, see
+the [common development guide](common/DEVELOPMENT.md).
+
 ## Build
 
 Build each target from its own directory. NeoForge 1.21.1 uses JDK 21; the

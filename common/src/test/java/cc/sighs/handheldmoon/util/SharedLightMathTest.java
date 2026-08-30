@@ -1,8 +1,10 @@
 package cc.sighs.handheldmoon.util;
 
+import cc.sighs.handheldmoon.api.light.AttenuationCurve;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SharedLightMathTest {
     @Test
@@ -26,6 +28,24 @@ class SharedLightMathTest {
                 Math.cos(0.2), Math.cos(0.5), Math.cos(0.5) * Math.cos(0.5)
         ), 1.0E-9);
         assertEquals(24L, SharedLightMath.volume(0, 0, 0, 1, 2, 3));
+    }
+
+    @Test
+    void allAttenuationCurvesRespectPeakAndHardRadius() {
+        for (AttenuationCurve curve : AttenuationCurve.values()) {
+            assertEquals(1.0, SharedLightMath.distanceAttenuation(0.0, 20.0, curve), 1.0E-12, curve.name());
+            assertEquals(0.0, SharedLightMath.distanceAttenuation(20.0, 20.0, curve), 0.0, curve.name());
+            assertEquals(0.0, SharedLightMath.distanceAttenuation(21.0, 20.0, curve), 0.0, curve.name());
+            double midpoint = SharedLightMath.distanceAttenuation(10.0, 20.0, curve);
+            assertTrue(midpoint >= 0.0 && midpoint <= 1.0, curve.name());
+        }
+        assertEquals(1.0, SharedLightMath.distanceAttenuation(10.0, 20.0, AttenuationCurve.NONE), 1.0E-12);
+        assertEquals(7.5, SharedLightMath.attenuatedIntensity(15.0, 10.0, 20.0,
+                AttenuationCurve.LINEAR), 1.0E-12);
+        assertEquals(15.0, SharedLightMath.pointLight(0.5, 0.5, 0.5, 15.0,
+                0, 0, 0, 20.0, AttenuationCurve.EXPONENTIAL), 1.0E-12);
+        assertEquals(AttenuationCurve.EXPONENTIAL, AttenuationCurve.parse("exp"));
+        assertEquals(AttenuationCurve.LOGARITHMIC, AttenuationCurve.parse("log"));
     }
 
     @Test
