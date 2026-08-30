@@ -12,14 +12,17 @@ import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 
+import java.util.Arrays;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /** Minimal client dynamic-light registry and section invalidation engine. */
 public final class DynamicLightManager {
-    private static final int MAX_SECTION_REBUILDS_PER_TICK = 64;
+    private static final int MAX_SECTION_DIRTY_MARKS_PER_TICK = 64;
+    private static final int FAIR_SECTION_DIRTY_MARKS_PER_TICK = 4;
     private static final int QUERY_CACHE_SLOTS_PER_THREAD = 16_384;
     private static final Set<DynamicLightBehavior> SOURCES = ConcurrentHashMap.newKeySet();
     private static final Object DIRTY_LOCK = new Object();
@@ -56,24 +59,31 @@ public final class DynamicLightManager {
     public static void add(DynamicLightBehavior behavior) {
         if (SOURCES.add(behavior)) {
             refreshSnapshot();
-            rebuildSectionIndex();
-            schedule(behavior.getBounds());
+            if (!appendToSectionIndex(behavior)) {
+                rebuildSectionIndex();
+            }
+            IndexedSource indexed = sectionIndex.byBehavior.get(behavior);
+            schedule(indexed != null ? indexed.bounds : behavior.getBounds());
         }
     }
 
     public static void remove(DynamicLightBehavior behavior) {
         if (SOURCES.remove(behavior)) {
-            schedule(behavior.getBounds());
+            IndexedSource indexed = sectionIndex.byBehavior.get(behavior);
+            Bounds bounds = indexed != null ? indexed.bounds : behavior.getBounds();
+            schedule(bounds);
             refreshSnapshot();
-            rebuildSectionIndex();
+            if (!removeFromSectionIndex(behavior)) {
+                rebuildSectionIndex();
+            }
         }
     }
 
     public static void tick(Minecraft minecraft) {
         DynamicLightBehavior[] current = snapshot;
         boolean removedAny = false;
-        boolean changedAny = false;
-        boolean indexChanged = false;
+        boolean requiresFullIndexRebuild = false;
+        List<CoverageChange> coverageChanges = null;
         for (DynamicLightBehavior behavior : current) {
             Bounds before = behavior.getBounds();
             boolean changed = behavior.hasChanged();
@@ -88,31 +98,34 @@ public final class DynamicLightManager {
                 schedule(before);
                 Bounds after = behavior.getBounds();
                 schedule(after);
+                SectionIndex index = sectionIndex;
+                IndexedSource indexed = index.byBehavior.get(behavior);
+                if (indexed == null) {
+                    requiresFullIndexRebuild = true;
+                    continue;
+                }
                 if (sameSectionCoverage(before, after)) {
                     // Keep the candidate section membership and refresh the
                     // exact block bounds in place for sub-section movement.
-                    SectionIndex index = sectionIndex;
-                    IndexedSource indexed = index.byBehavior.get(behavior);
-                    if (indexed != null) {
-                        indexed.updateBounds(after);
-                    } else {
-                        indexChanged = true;
-                    }
+                    indexed.updateBounds(after);
+                    invalidateSectionRevisions(after);
                 } else {
-                    indexChanged = true;
+                    if (coverageChanges == null) {
+                        coverageChanges = new java.util.ArrayList<>();
+                    }
+                    coverageChanges.add(new CoverageChange(behavior, before, after, indexed));
                 }
-                changedAny = true;
             }
         }
         if (removedAny) {
             refreshSnapshot();
         }
-        if (removedAny || indexChanged) {
+        if (removedAny || requiresFullIndexRebuild) {
             rebuildSectionIndex();
-        } else if (changedAny) {
-            advanceSectionIndexRevision();
+        } else if (coverageChanges != null && !coverageChanges.isEmpty()) {
+            rebuildSectionIndexIncremental(coverageChanges);
         }
-        rebuildDirtySections(minecraft.levelRenderer);
+        rebuildDirtySections(minecraft);
     }
 
     public static double getLightLevel(BlockPos pos) {
@@ -126,14 +139,16 @@ public final class DynamicLightManager {
                 SectionPos.blockToSectionCoord(blockY),
                 SectionPos.blockToSectionCoord(blockZ)
         );
-        IndexedSource[] candidates = index.sources.get(sectionKey);
-        if (candidates == null) {
+        SectionBucket bucket = index.sources.get(sectionKey);
+        if (bucket == null) {
             return 0.0;
         }
+        IndexedSource[] candidates = bucket.sources;
 
         long blockKey = BlockPos.asLong(blockX, blockY, blockZ);
         QueryCache cache = QUERY_CACHES.get();
-        float cached = cache.get(index.revision, blockKey);
+        long revision = bucket.revision;
+        float cached = cache.get(revision, blockKey);
         if (!Float.isNaN(cached)) {
             return cached;
         }
@@ -153,14 +168,47 @@ public final class DynamicLightManager {
             }
         }
         light = Math.max(0.0, light);
-        if (index == sectionIndex) {
-            cache.put(index.revision, blockKey, (float) light);
+        if (index == sectionIndex && bucket.revision == revision) {
+            cache.put(revision, blockKey, (float) light);
         }
         return light;
     }
 
     private static void refreshSnapshot() {
         snapshot = SOURCES.toArray(DynamicLightBehavior[]::new);
+    }
+
+    private static boolean appendToSectionIndex(DynamicLightBehavior behavior) {
+        SectionIndex current = sectionIndex;
+        if (current.byBehavior.containsKey(behavior)) {
+            return false;
+        }
+
+        Bounds bounds = behavior.getBounds();
+        IndexedSource source = new IndexedSource(behavior, bounds);
+        Long2ObjectOpenHashMap<SectionBucket> rebuilt = copySources(current.sources);
+        IdentityHashMap<DynamicLightBehavior, IndexedSource> byBehavior =
+                new IdentityHashMap<>(current.byBehavior);
+        byBehavior.put(behavior, source);
+        addSourceToSections(rebuilt, source, bounds);
+        sectionIndex = new SectionIndex(rebuilt, byBehavior);
+        return true;
+    }
+
+    private static boolean removeFromSectionIndex(DynamicLightBehavior behavior) {
+        SectionIndex current = sectionIndex;
+        IndexedSource source = current.byBehavior.get(behavior);
+        if (source == null) {
+            return false;
+        }
+
+        Long2ObjectOpenHashMap<SectionBucket> rebuilt = copySources(current.sources);
+        IdentityHashMap<DynamicLightBehavior, IndexedSource> byBehavior =
+                new IdentityHashMap<>(current.byBehavior);
+        byBehavior.remove(behavior);
+        removeSourceFromSections(rebuilt, source, source.bounds);
+        sectionIndex = new SectionIndex(rebuilt, byBehavior);
+        return true;
     }
 
     private static void rebuildSectionIndex() {
@@ -189,13 +237,16 @@ public final class DynamicLightManager {
             }
         }
 
-        Long2ObjectOpenHashMap<IndexedSource[]> rebuilt = new Long2ObjectOpenHashMap<>(counts.size());
+        long revision = nextSectionRevision();
+        Long2ObjectOpenHashMap<SectionBucket> rebuilt = new Long2ObjectOpenHashMap<>(counts.size());
         IdentityHashMap<DynamicLightBehavior, IndexedSource> byBehavior = new IdentityHashMap<>(current.length);
         for (IndexedSource source : indexed) {
             byBehavior.put(source.behavior, source);
         }
         for (Long2IntMap.Entry entry : counts.long2IntEntrySet()) {
-            rebuilt.put(entry.getLongKey(), new IndexedSource[entry.getIntValue()]);
+            rebuilt.put(entry.getLongKey(), new SectionBucket(
+                    new IndexedSource[entry.getIntValue()], revision
+            ));
         }
         Long2IntOpenHashMap offsets = new Long2IntOpenHashMap(counts.size());
         offsets.defaultReturnValue(0);
@@ -211,7 +262,7 @@ public final class DynamicLightManager {
                 for (int sectionX = minSectionX; sectionX <= maxSectionX; sectionX++) {
                     for (int sectionY = minSectionY; sectionY <= maxSectionY; sectionY++) {
                         long key = sectionKey(sectionX, sectionY, sectionZ);
-                        IndexedSource[] sources = rebuilt.get(key);
+                        IndexedSource[] sources = rebuilt.get(key).sources;
                         int offset = offsets.get(key);
                         sources[offset] = source;
                         offsets.put(key, offset + 1);
@@ -220,16 +271,131 @@ public final class DynamicLightManager {
             }
         }
         rebuilt.trim();
-        sectionIndex = new SectionIndex(
-                SECTION_INDEX_REVISION.incrementAndGet(), rebuilt, byBehavior
-        );
+        sectionIndex = new SectionIndex(rebuilt, byBehavior);
     }
 
-    private static void advanceSectionIndexRevision() {
+    private static void rebuildSectionIndexIncremental(List<CoverageChange> changes) {
         SectionIndex current = sectionIndex;
-        sectionIndex = new SectionIndex(
-                SECTION_INDEX_REVISION.incrementAndGet(), current.sources, current.byBehavior
-        );
+        Long2ObjectOpenHashMap<SectionBucket> rebuilt = copySources(current.sources);
+        IdentityHashMap<DynamicLightBehavior, IndexedSource> byBehavior =
+                new IdentityHashMap<>(current.byBehavior);
+
+        for (CoverageChange change : changes) {
+            IndexedSource currentSource = byBehavior.get(change.behavior);
+            if (currentSource != change.previousSource) {
+                // The index changed unexpectedly while collecting updates.
+                // Falling back to a complete rebuild keeps publication atomic.
+                rebuildSectionIndex();
+                return;
+            }
+
+            removeSourceFromSections(rebuilt, currentSource, change.before);
+            IndexedSource replacement = new IndexedSource(change.behavior, change.after);
+            addSourceToSections(rebuilt, replacement, change.after);
+            byBehavior.put(change.behavior, replacement);
+        }
+
+        rebuilt.trim();
+        sectionIndex = new SectionIndex(rebuilt, byBehavior);
+    }
+
+    private static Long2ObjectOpenHashMap<SectionBucket> copySources(
+            Long2ObjectOpenHashMap<SectionBucket> sources
+    ) {
+        Long2ObjectOpenHashMap<SectionBucket> copy = new Long2ObjectOpenHashMap<>(sources.size());
+        copy.putAll(sources);
+        return copy;
+    }
+
+    private static void addSourceToSections(
+            Long2ObjectOpenHashMap<SectionBucket> sections,
+            IndexedSource source,
+            Bounds bounds
+    ) {
+        forEachCoveredSection(bounds, key -> {
+            SectionBucket bucket = sections.get(key);
+            if (bucket == null) {
+                sections.put(key, new SectionBucket(
+                        new IndexedSource[]{source}, nextSectionRevision()
+                ));
+                return;
+            }
+            IndexedSource[] expanded = Arrays.copyOf(bucket.sources, bucket.sources.length + 1);
+            expanded[expanded.length - 1] = source;
+            sections.put(key, new SectionBucket(expanded, nextSectionRevision()));
+        });
+    }
+
+    private static void removeSourceFromSections(
+            Long2ObjectOpenHashMap<SectionBucket> sections,
+            IndexedSource source,
+            Bounds bounds
+    ) {
+        forEachCoveredSection(bounds, key -> {
+            SectionBucket bucket = sections.get(key);
+            if (bucket == null) {
+                return;
+            }
+            IndexedSource[] existing = bucket.sources;
+            int found = -1;
+            for (int i = 0; i < existing.length; i++) {
+                if (existing[i] == source) {
+                    found = i;
+                    break;
+                }
+            }
+            if (found < 0) {
+                return;
+            }
+            if (existing.length == 1) {
+                sections.remove(key);
+                return;
+            }
+            IndexedSource[] reduced = new IndexedSource[existing.length - 1];
+            System.arraycopy(existing, 0, reduced, 0, found);
+            System.arraycopy(existing, found + 1, reduced, found, existing.length - found - 1);
+            sections.put(key, new SectionBucket(reduced, nextSectionRevision()));
+        });
+    }
+
+    private static void invalidateSectionRevisions(Bounds bounds) {
+        SectionIndex index = sectionIndex;
+        int minSectionX = SectionPos.blockToSectionCoord(bounds.minX());
+        int minSectionY = SectionPos.blockToSectionCoord(bounds.minY());
+        int minSectionZ = SectionPos.blockToSectionCoord(bounds.minZ());
+        int maxSectionX = SectionPos.blockToSectionCoord(bounds.maxX());
+        int maxSectionY = SectionPos.blockToSectionCoord(bounds.maxY());
+        int maxSectionZ = SectionPos.blockToSectionCoord(bounds.maxZ());
+        for (int sectionZ = minSectionZ; sectionZ <= maxSectionZ; sectionZ++) {
+            for (int sectionX = minSectionX; sectionX <= maxSectionX; sectionX++) {
+                for (int sectionY = minSectionY; sectionY <= maxSectionY; sectionY++) {
+                    SectionBucket bucket = index.sources.get(sectionKey(sectionX, sectionY, sectionZ));
+                    if (bucket != null) {
+                        bucket.revision = nextSectionRevision();
+                    }
+                }
+            }
+        }
+    }
+
+    private static void forEachCoveredSection(Bounds bounds, java.util.function.LongConsumer action) {
+        int minSectionX = SectionPos.blockToSectionCoord(bounds.minX());
+        int minSectionY = SectionPos.blockToSectionCoord(bounds.minY());
+        int minSectionZ = SectionPos.blockToSectionCoord(bounds.minZ());
+        int maxSectionX = SectionPos.blockToSectionCoord(bounds.maxX());
+        int maxSectionY = SectionPos.blockToSectionCoord(bounds.maxY());
+        int maxSectionZ = SectionPos.blockToSectionCoord(bounds.maxZ());
+        for (int sectionZ = minSectionZ; sectionZ <= maxSectionZ; sectionZ++) {
+            for (int sectionX = minSectionX; sectionX <= maxSectionX; sectionX++) {
+                for (int sectionY = minSectionY; sectionY <= maxSectionY; sectionY++) {
+                    action.accept(sectionKey(sectionX, sectionY, sectionZ));
+                }
+            }
+        }
+    }
+
+    private static long nextSectionRevision() {
+        return SECTION_INDEX_REVISION.incrementAndGet();
     }
 
     private static boolean sameSectionCoverage(Bounds first, Bounds second) {
@@ -259,32 +425,140 @@ public final class DynamicLightManager {
         }
     }
 
-    private static void rebuildDirtySections(LevelRenderer renderer) {
-        synchronized (DIRTY_LOCK) {
-            LongIterator iterator = DIRTY_SECTIONS.iterator();
-            int rebuilt = 0;
-            while (iterator.hasNext() && rebuilt < MAX_SECTION_REBUILDS_PER_TICK) {
-                long key = iterator.nextLong();
-                iterator.remove();
-                renderer.setSectionDirty(sectionX(key), sectionY(key), sectionZ(key));
-                rebuilt++;
+    private static void rebuildDirtySections(Minecraft minecraft) {
+        long[] pending = new long[MAX_SECTION_DIRTY_MARKS_PER_TICK];
+        boolean prioritize = minecraft.player != null;
+        double cameraX = prioritize ? minecraft.player.getX() : 0.0;
+        double cameraY = prioritize ? minecraft.player.getY() : 0.0;
+        double cameraZ = prioritize ? minecraft.player.getZ() : 0.0;
+        int pendingCount = 0;
+        if (!prioritize) {
+            synchronized (DIRTY_LOCK) {
+                LongIterator iterator = DIRTY_SECTIONS.iterator();
+                while (iterator.hasNext() && pendingCount < pending.length) {
+                    long key = iterator.nextLong();
+                    if (!isSectionLoaded(key)) {
+                        // Unloaded sections are compiled from scratch when they
+                        // enter the render distance, so retaining this marker
+                        // only creates unbounded queue growth while travelling.
+                        iterator.remove();
+                        continue;
+                    }
+                    iterator.remove();
+                    pending[pendingCount++] = key;
+                }
+            }
+        } else {
+            long[] fair = new long[FAIR_SECTION_DIRTY_MARKS_PER_TICK];
+            long[] nearest = new long[MAX_SECTION_DIRTY_MARKS_PER_TICK - FAIR_SECTION_DIRTY_MARKS_PER_TICK];
+            double[] distances = new double[nearest.length];
+            int fairCount = 0;
+            int nearestCount = 0;
+            synchronized (DIRTY_LOCK) {
+                LongIterator iterator = DIRTY_SECTIONS.iterator();
+                while (iterator.hasNext()) {
+                    long key = iterator.nextLong();
+                    if (!isSectionLoaded(key)) {
+                        iterator.remove();
+                        continue;
+                    }
+                    if (fairCount < fair.length) {
+                        fair[fairCount++] = key;
+                        continue;
+                    }
+
+                    double distance = sectionDistanceSq(key, cameraX, cameraY, cameraZ);
+                    int slot = -1;
+                    if (nearestCount < nearest.length) {
+                        slot = nearestCount++;
+                    } else {
+                        int farthestSlot = 0;
+                        for (int i = 1; i < nearestCount; i++) {
+                            if (distances[i] > distances[farthestSlot]) {
+                                farthestSlot = i;
+                            }
+                        }
+                        if (distance < distances[farthestSlot]) {
+                            slot = farthestSlot;
+                        }
+                    }
+                    if (slot >= 0) {
+                        nearest[slot] = key;
+                        distances[slot] = distance;
+                    }
+                }
+
+                for (int i = 0; i < fairCount; i++) {
+                    if (DIRTY_SECTIONS.remove(fair[i])) {
+                        pending[pendingCount++] = fair[i];
+                    }
+                }
+                for (int i = 0; i < nearestCount; i++) {
+                    if (DIRTY_SECTIONS.remove(nearest[i])) {
+                        pending[pendingCount++] = nearest[i];
+                    }
+                }
             }
         }
+
+        LevelRenderer renderer = minecraft.levelRenderer;
+        for (int i = 0; i < pendingCount; i++) {
+            long key = pending[i];
+            renderer.setSectionDirty(sectionX(key), sectionY(key), sectionZ(key));
+        }
+    }
+
+    private static double sectionDistanceSq(long key, double x, double y, double z) {
+        double centerX = (sectionX(key) << 4) + 8.0;
+        double centerY = (sectionY(key) << 4) + 8.0;
+        double centerZ = (sectionZ(key) << 4) + 8.0;
+        double dx = centerX - x;
+        double dy = centerY - y;
+        double dz = centerZ - z;
+        return dx * dx + dy * dy + dz * dz;
+    }
+
+    private static boolean isSectionLoaded(long key) {
+        ClientLevel level = currentLevel;
+        if (level == null) {
+            return true;
+        }
+        return level.hasChunkAt(new BlockPos(
+                sectionX(key) << 4,
+                sectionY(key) << 4,
+                sectionZ(key) << 4
+        ));
     }
 
     private static SectionIndex emptySectionIndex() {
         return new SectionIndex(
-                SECTION_INDEX_REVISION.incrementAndGet(),
                 new Long2ObjectOpenHashMap<>(),
                 new IdentityHashMap<>()
         );
     }
 
-    /** The maps are fully built before volatile publication; source bounds update in place. */
+    /** The maps are fully built before volatile publication; buckets are immutable apart from revisions. */
     private record SectionIndex(
-            long revision,
-            Long2ObjectOpenHashMap<IndexedSource[]> sources,
+            Long2ObjectOpenHashMap<SectionBucket> sources,
             IdentityHashMap<DynamicLightBehavior, IndexedSource> byBehavior
+    ) {
+    }
+
+    private static final class SectionBucket {
+        private final IndexedSource[] sources;
+        private volatile long revision;
+
+        private SectionBucket(IndexedSource[] sources, long revision) {
+            this.sources = sources;
+            this.revision = revision;
+        }
+    }
+
+    private record CoverageChange(
+            DynamicLightBehavior behavior,
+            Bounds before,
+            Bounds after,
+            IndexedSource previousSource
     ) {
     }
 

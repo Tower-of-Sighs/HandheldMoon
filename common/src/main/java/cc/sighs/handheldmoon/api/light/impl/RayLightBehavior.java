@@ -61,11 +61,10 @@ public class RayLightBehavior implements DynamicLightBehavior {
     private long occlusionCacheMax = 4_096L;
 
     private static final double LUMINANCE_THRESHOLD = 0.5;
-    private static final double ACTIVE_MIN_PADDING = 1.0;
-    private static final double ACTIVE_MAX_PADDING = 12.0;
     private static final double OCCLUSION_REFINE_THRESHOLD = 3.0;
     private static final double POSITION_CHANGE_SQ = 1.0E-4;
     private static final double DIRECTION_CHANGE_SQ = 1.0E-5;
+    private static final double BOUNDS_EPSILON = 1.0E-6;
     private final double cosInner;
     private final double cosOuter;
     private final double cosOuterSq;
@@ -186,28 +185,53 @@ public class RayLightBehavior implements DynamicLightBehavior {
         double eff = effectiveRange();
 
         if (config.type() == IRayLightConfig.LightType.CONE) {
-            double ex = pos.x + dir.x * eff;
-            double ey = pos.y + dir.y * eff;
-            double ez = pos.z + dir.z * eff;
-            double pad = LineLightMath.conePadding(eff, config.outerAngle(),
-                    ACTIVE_MIN_PADDING, ACTIVE_MAX_PADDING);
-            cached = new Bounds(
-                    Mth.floor(Math.min(pos.x, ex) - pad),
-                    Mth.floor(Math.min(pos.y, ey) - pad),
-                    Mth.floor(Math.min(pos.z, ez) - pad),
-                    Mth.floor(Math.max(pos.x, ex) + pad),
-                    Mth.floor(Math.max(pos.y, ey) + pad),
-                    Mth.floor(Math.max(pos.z, ez) + pad)
-            );
+            // The light query is a spherical sector, not a padded axis-aligned
+            // prism. Account for non-normalised directions and fall back to a
+            // sphere only when the support cone is degenerate.
+            double directionLengthSq = dir.lengthSqr();
+            double directionLength = Math.sqrt(directionLengthSq);
+            // computeLightWithCos uses the supplied vector directly. Account
+            // for its length when deriving the support cone instead of
+            // treating harmless float sin/cos drift as malformed input.
+            double supportCos = Math.abs(cosOuter) / directionLength;
+            if (eff <= 0.0
+                    || !Double.isFinite(directionLength)
+                    || directionLength <= 1.0E-8
+                    || !Double.isFinite(supportCos)
+                    || supportCos >= 1.0) {
+                cached = sphereBounds(pos, Math.max(eff, 1.0));
+            } else {
+                SharedLightMath.Aabb aabb = SharedLightMath.sphericalConeBounds(
+                        pos.x, pos.y, pos.z,
+                        dir.x, dir.y, dir.z,
+                        eff, Math.acos(Math.max(0.0, supportCos))
+                );
+                cached = voxelBounds(aabb);
+            }
         } else {
-            int r = (int) Math.ceil(lastRange);
-            cached = new Bounds(
-                    Mth.floor(pos.x - r), Mth.floor(pos.y - r), Mth.floor(pos.z - r),
-                    Mth.floor(pos.x + r), Mth.floor(pos.y + r), Mth.floor(pos.z + r)
-            );
+            cached = sphereBounds(pos, lastRange);
         }
         boundsCache = cached;
         return cached;
+    }
+
+    private static Bounds voxelBounds(SharedLightMath.Aabb aabb) {
+        return new Bounds(
+                Mth.floor(aabb.minX() - BOUNDS_EPSILON),
+                Mth.floor(aabb.minY() - BOUNDS_EPSILON),
+                Mth.floor(aabb.minZ() - BOUNDS_EPSILON),
+                Mth.floor(aabb.maxX() + BOUNDS_EPSILON),
+                Mth.floor(aabb.maxY() + BOUNDS_EPSILON),
+                Mth.floor(aabb.maxZ() + BOUNDS_EPSILON)
+        );
+    }
+
+    private static Bounds sphereBounds(Vec3 pos, double radius) {
+        int r = (int) Math.ceil(Math.max(radius, 0.0));
+        return new Bounds(
+                Mth.floor(pos.x - r), Mth.floor(pos.y - r), Mth.floor(pos.z - r),
+                Mth.floor(pos.x + r), Mth.floor(pos.y + r), Mth.floor(pos.z + r)
+        );
     }
 
     @Override
