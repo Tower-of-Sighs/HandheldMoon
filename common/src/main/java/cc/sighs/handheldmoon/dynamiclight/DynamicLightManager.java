@@ -1,6 +1,7 @@
 package cc.sighs.handheldmoon.dynamiclight;
 
 import cc.sighs.handheldmoon.dynamiclight.DynamicLightBehavior.Bounds;
+import cc.sighs.handheldmoon.util.AsyncLightExecutor;
 import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -13,22 +14,36 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /** Minimal client dynamic-light registry and section invalidation engine. */
 public final class DynamicLightManager {
     private static final int MAX_SECTION_DIRTY_MARKS_PER_TICK = 64;
     private static final int FAIR_SECTION_DIRTY_MARKS_PER_TICK = 4;
+    private static final int ASYNC_INDEX_SOURCE_THRESHOLD = 64;
+    private static final int BATCH_REQUEST_THRESHOLD = 24;
+    private static final int MAX_BATCH_CACHE_ENTRIES = 1024;
+    private static final int MAX_PENDING_BATCH_TASKS = 8;
     private static final int QUERY_CACHE_SLOTS_PER_THREAD = 16_384;
     private static final Set<DynamicLightBehavior> SOURCES = ConcurrentHashMap.newKeySet();
     private static final Object DIRTY_LOCK = new Object();
     private static final LongLinkedOpenHashSet DIRTY_SECTIONS = new LongLinkedOpenHashSet();
     private static final AtomicLong SECTION_INDEX_REVISION = new AtomicLong();
+    private static final AtomicLong INDEX_BUILD_GENERATION = new AtomicLong();
+    private static final Object INDEX_BUILD_LOCK = new Object();
     private static final ThreadLocal<QueryCache> QUERY_CACHES = ThreadLocal.withInitial(QueryCache::new);
+    private static final ConcurrentHashMap<BatchKey, BatchEntry> BATCH_LIGHT_CACHE = new ConcurrentHashMap<>();
+    private static final AtomicInteger PENDING_BATCH_TASKS = new AtomicInteger();
+
+    private static Future<?> pendingIndexBuild;
 
     private static volatile DynamicLightBehavior[] snapshot = new DynamicLightBehavior[0];
     private static volatile SectionIndex sectionIndex = emptySectionIndex();
@@ -47,6 +62,8 @@ public final class DynamicLightManager {
         SOURCES.clear();
         snapshot = new DynamicLightBehavior[0];
         sectionIndex = emptySectionIndex();
+        invalidateAsyncWork();
+        BATCH_LIGHT_CACHE.clear();
         synchronized (DIRTY_LOCK) {
             DIRTY_SECTIONS.clear();
         }
@@ -58,6 +75,7 @@ public final class DynamicLightManager {
 
     public static void add(DynamicLightBehavior behavior) {
         if (SOURCES.add(behavior)) {
+            invalidateAsyncIndexBuild();
             refreshSnapshot();
             if (!appendToSectionIndex(behavior)) {
                 rebuildSectionIndex();
@@ -69,6 +87,7 @@ public final class DynamicLightManager {
 
     public static void remove(DynamicLightBehavior behavior) {
         if (SOURCES.remove(behavior)) {
+            invalidateAsyncIndexBuild();
             IndexedSource indexed = sectionIndex.byBehavior.get(behavior);
             Bounds bounds = indexed != null ? indexed.bounds : behavior.getBounds();
             schedule(bounds);
@@ -83,6 +102,7 @@ public final class DynamicLightManager {
         DynamicLightBehavior[] current = snapshot;
         boolean removedAny = false;
         boolean requiresFullIndexRebuild = false;
+        boolean anyChanged = false;
         List<CoverageChange> coverageChanges = null;
         for (DynamicLightBehavior behavior : current) {
             Bounds before = behavior.getBounds();
@@ -91,10 +111,12 @@ public final class DynamicLightManager {
                 if (SOURCES.remove(behavior)) {
                     schedule(before);
                     removedAny = true;
+                    anyChanged = true;
                 }
                 continue;
             }
             if (changed) {
+                anyChanged = true;
                 schedule(before);
                 Bounds after = behavior.getBounds();
                 schedule(after);
@@ -107,7 +129,7 @@ public final class DynamicLightManager {
                 if (sameSectionCoverage(before, after)) {
                     // Keep the candidate section membership and refresh the
                     // exact block bounds in place for sub-section movement.
-                    indexed.updateBounds(after);
+                    indexed.update(after, behavior.getBatchLightSnapshot());
                     invalidateSectionRevisions(after);
                 } else {
                     if (coverageChanges == null) {
@@ -120,8 +142,11 @@ public final class DynamicLightManager {
         if (removedAny) {
             refreshSnapshot();
         }
+        if (anyChanged) {
+            invalidateAsyncIndexBuild();
+        }
         if (removedAny || requiresFullIndexRebuild) {
-            rebuildSectionIndex();
+            rebuildSectionIndex(minecraft, true);
         } else if (coverageChanges != null && !coverageChanges.isEmpty()) {
             rebuildSectionIndexIncremental(coverageChanges);
         }
@@ -154,7 +179,16 @@ public final class DynamicLightManager {
         }
 
         double light = 0.0;
+        BatchLightValues batchValues = getBatchLightValues(
+                sectionKey, bucket, revision, blockX, blockY, blockZ
+        );
+        if (batchValues != null) {
+            light = batchValues.value(blockX, blockY, blockZ);
+        }
         for (IndexedSource source : candidates) {
+            if (batchValues != null && source.batchSource != null) {
+                continue;
+            }
             Bounds bounds = source.bounds;
             if (blockX < bounds.minX() || blockX > bounds.maxX()
                     || blockY < bounds.minY() || blockY > bounds.maxY()
@@ -174,6 +208,120 @@ public final class DynamicLightManager {
         return light;
     }
 
+    private static BatchLightValues getBatchLightValues(
+            long sectionKey,
+            SectionBucket bucket,
+            long revision,
+            int blockX,
+            int blockY,
+            int blockZ
+    ) {
+        if (!hasBatchSource(bucket.sources)) {
+            return null;
+        }
+        BatchKey key = new BatchKey(sectionKey, revision);
+        BatchEntry entry = BATCH_LIGHT_CACHE.get(key);
+        if (entry == null) {
+            if (BATCH_LIGHT_CACHE.size() >= MAX_BATCH_CACHE_ENTRIES) {
+                BATCH_LIGHT_CACHE.clear();
+            }
+            BatchEntry created = new BatchEntry();
+            BatchEntry previous = BATCH_LIGHT_CACHE.putIfAbsent(key, created);
+            entry = previous != null ? previous : created;
+        }
+
+        int requests = entry.requests.incrementAndGet();
+        if (requests >= BATCH_REQUEST_THRESHOLD && entry.future == null && !entry.disabled) {
+            synchronized (entry) {
+                if (entry.future == null && !entry.disabled) {
+                    BatchSource[] snapshots = batchSources(bucket.sources);
+                    if (snapshots.length > 0 && PENDING_BATCH_TASKS.incrementAndGet() <= MAX_PENDING_BATCH_TASKS) {
+                        try {
+                            entry.future = CompletableFuture
+                                    .supplyAsync(
+                                            () -> computeBatchLightValues(sectionKey, snapshots),
+                                            AsyncLightExecutor.executor()
+                                    )
+                                    .whenComplete((ignored, error) -> PENDING_BATCH_TASKS.decrementAndGet());
+                        } catch (RuntimeException rejected) {
+                            entry.disabled = true;
+                            PENDING_BATCH_TASKS.decrementAndGet();
+                        }
+                    } else if (snapshots.length > 0) {
+                        entry.disabled = true;
+                        PENDING_BATCH_TASKS.decrementAndGet();
+                    }
+                }
+            }
+        }
+
+        CompletableFuture<BatchLightValues> future = entry.future;
+        if (future == null || !future.isDone()) {
+            return null;
+        }
+        try {
+            return future.getNow(null);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private static boolean hasBatchSource(IndexedSource[] sources) {
+        for (IndexedSource source : sources) {
+            if (source.batchSource != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static BatchSource[] batchSources(IndexedSource[] sources) {
+        ArrayList<BatchSource> snapshots = new ArrayList<>();
+        for (IndexedSource source : sources) {
+            BatchSource batchSource = source.batchSource;
+            if (batchSource != null) {
+                snapshots.add(batchSource);
+            }
+        }
+        return snapshots.toArray(BatchSource[]::new);
+    }
+
+    private static BatchLightValues computeBatchLightValues(
+            long sectionKey,
+            BatchSource[] sources
+    ) {
+        int sectionX = sectionX(sectionKey);
+        int sectionY = sectionY(sectionKey);
+        int sectionZ = sectionZ(sectionKey);
+        float[] values = new float[16 * 16 * 16];
+        int index = 0;
+        for (int localZ = 0; localZ < 16; localZ++) {
+            for (int localX = 0; localX < 16; localX++) {
+                for (int localY = 0; localY < 16; localY++) {
+                    int blockX = (sectionX << 4) + localX;
+                    int blockY = (sectionY << 4) + localY;
+                    int blockZ = (sectionZ << 4) + localZ;
+                    double light = 0.0;
+                    for (BatchSource source : sources) {
+                        Bounds bounds = source.bounds;
+                        if (blockX < bounds.minX() || blockX > bounds.maxX()
+                                || blockY < bounds.minY() || blockY > bounds.maxY()
+                                || blockZ < bounds.minZ() || blockZ > bounds.maxZ()) {
+                            continue;
+                        }
+                        light = Math.max(light, source.snapshot.lightAt(blockX, blockY, blockZ));
+                        if (light >= 15.0) {
+                            light = 15.0;
+                            break;
+                        }
+                    }
+                    values[index++] = (float) Math.max(0.0, light);
+                }
+            }
+        }
+        return new BatchLightValues(values);
+    }
+
     private static void refreshSnapshot() {
         snapshot = SOURCES.toArray(DynamicLightBehavior[]::new);
     }
@@ -185,7 +333,9 @@ public final class DynamicLightManager {
         }
 
         Bounds bounds = behavior.getBounds();
-        IndexedSource source = new IndexedSource(behavior, bounds);
+        IndexedSource source = new IndexedSource(
+                behavior, bounds, behavior.getBatchLightSnapshot()
+        );
         Long2ObjectOpenHashMap<SectionBucket> rebuilt = copySources(current.sources);
         IdentityHashMap<DynamicLightBehavior, IndexedSource> byBehavior =
                 new IdentityHashMap<>(current.byBehavior);
@@ -212,14 +362,41 @@ public final class DynamicLightManager {
     }
 
     private static void rebuildSectionIndex() {
-        DynamicLightBehavior[] current = snapshot;
+        rebuildSectionIndex(null, false);
+    }
+
+    private static void rebuildSectionIndex(Minecraft minecraft, boolean allowAsync) {
+        IndexSourceState[] current = captureIndexSources(snapshot);
+        if (allowAsync && minecraft != null && current.length >= ASYNC_INDEX_SOURCE_THRESHOLD) {
+            requestAsyncSectionIndex(minecraft, current);
+            return;
+        }
+
+        invalidateAsyncIndexBuild();
+        sectionIndex = buildSectionIndex(current);
+    }
+
+    private static IndexSourceState[] captureIndexSources(DynamicLightBehavior[] current) {
+        IndexSourceState[] captured = new IndexSourceState[current.length];
+        for (int i = 0; i < current.length; i++) {
+            DynamicLightBehavior behavior = current[i];
+            captured[i] = new IndexSourceState(
+                    behavior,
+                    behavior.getBounds(),
+                    behavior.getBatchLightSnapshot()
+            );
+        }
+        return captured;
+    }
+
+    private static SectionIndex buildSectionIndex(IndexSourceState[] current) {
         IndexedSource[] indexed = new IndexedSource[current.length];
         Long2IntOpenHashMap counts = new Long2IntOpenHashMap();
         counts.defaultReturnValue(0);
         for (int sourceIndex = 0; sourceIndex < current.length; sourceIndex++) {
-            DynamicLightBehavior behavior = current[sourceIndex];
-            Bounds bounds = behavior.getBounds();
-            IndexedSource source = new IndexedSource(behavior, bounds);
+            IndexSourceState state = current[sourceIndex];
+            Bounds bounds = state.bounds;
+            IndexedSource source = new IndexedSource(state.behavior, bounds, state.batchSnapshot);
             indexed[sourceIndex] = source;
             int minSectionX = SectionPos.blockToSectionCoord(bounds.minX());
             int minSectionY = SectionPos.blockToSectionCoord(bounds.minY());
@@ -271,7 +448,70 @@ public final class DynamicLightManager {
             }
         }
         rebuilt.trim();
-        sectionIndex = new SectionIndex(rebuilt, byBehavior);
+        return new SectionIndex(rebuilt, byBehavior);
+    }
+
+    private static void requestAsyncSectionIndex(
+            Minecraft minecraft,
+            IndexSourceState[] sources
+    ) {
+        long generation = INDEX_BUILD_GENERATION.incrementAndGet();
+        ClientLevel level = currentLevel;
+        synchronized (INDEX_BUILD_LOCK) {
+            if (pendingIndexBuild != null) {
+                pendingIndexBuild.cancel(false);
+            }
+            CompletableFuture<SectionIndex> build;
+            try {
+                build = CompletableFuture.supplyAsync(
+                        () -> buildSectionIndex(sources), AsyncLightExecutor.executor()
+                );
+            } catch (RuntimeException rejected) {
+                // Keep the currently published index when the executor is
+                // unavailable (for example during client shutdown).
+                pendingIndexBuild = null;
+                return;
+            }
+            pendingIndexBuild = build;
+            build.whenComplete((index, error) -> {
+                if (error != null) {
+                    synchronized (INDEX_BUILD_LOCK) {
+                        if (pendingIndexBuild == build) {
+                            pendingIndexBuild = null;
+                        }
+                    }
+                    return;
+                }
+                minecraft.execute(() -> {
+                    synchronized (INDEX_BUILD_LOCK) {
+                        if (generation != INDEX_BUILD_GENERATION.get()
+                                || level != currentLevel
+                                || minecraft.level != level) {
+                            if (pendingIndexBuild == build) {
+                                pendingIndexBuild = null;
+                            }
+                            return;
+                        }
+                        sectionIndex = index;
+                        pendingIndexBuild = null;
+                    }
+                });
+            });
+        }
+    }
+
+    private static void invalidateAsyncIndexBuild() {
+        INDEX_BUILD_GENERATION.incrementAndGet();
+        synchronized (INDEX_BUILD_LOCK) {
+            if (pendingIndexBuild != null) {
+                pendingIndexBuild.cancel(false);
+                pendingIndexBuild = null;
+            }
+        }
+    }
+
+    private static void invalidateAsyncWork() {
+        invalidateAsyncIndexBuild();
     }
 
     private static void rebuildSectionIndexIncremental(List<CoverageChange> changes) {
@@ -290,7 +530,11 @@ public final class DynamicLightManager {
             }
 
             removeSourceFromSections(rebuilt, currentSource, change.before);
-            IndexedSource replacement = new IndexedSource(change.behavior, change.after);
+            IndexedSource replacement = new IndexedSource(
+                    change.behavior,
+                    change.after,
+                    change.behavior.getBatchLightSnapshot()
+            );
             addSourceToSections(rebuilt, replacement, change.after);
             byBehavior.put(change.behavior, replacement);
         }
@@ -544,6 +788,13 @@ public final class DynamicLightManager {
     ) {
     }
 
+    private record IndexSourceState(
+            DynamicLightBehavior behavior,
+            Bounds bounds,
+            DynamicLightBehavior.BatchLightSnapshot batchSnapshot
+    ) {
+    }
+
     private static final class SectionBucket {
         private final IndexedSource[] sources;
         private volatile long revision;
@@ -562,17 +813,51 @@ public final class DynamicLightManager {
     ) {
     }
 
+    private record BatchKey(long sectionKey, long revision) {
+    }
+
+    private record BatchSource(
+            DynamicLightBehavior.BatchLightSnapshot snapshot,
+            Bounds bounds
+    ) {
+    }
+
+    private static final class BatchEntry {
+        private final AtomicInteger requests = new AtomicInteger();
+        private volatile CompletableFuture<BatchLightValues> future;
+        private volatile boolean disabled;
+    }
+
+    private record BatchLightValues(float[] values) {
+        private float value(int blockX, int blockY, int blockZ) {
+            int index = (blockZ & 15) * 16 * 16
+                    + (blockX & 15) * 16
+                    + (blockY & 15);
+            return values[index];
+        }
+    }
+
     private static final class IndexedSource {
         private final DynamicLightBehavior behavior;
         private volatile Bounds bounds;
+        private volatile BatchSource batchSource;
 
-        private IndexedSource(DynamicLightBehavior behavior, Bounds bounds) {
+        private IndexedSource(
+                DynamicLightBehavior behavior,
+                Bounds bounds,
+                DynamicLightBehavior.BatchLightSnapshot batchSnapshot
+        ) {
             this.behavior = behavior;
             this.bounds = bounds;
+            this.batchSource = batchSnapshot == null ? null : new BatchSource(batchSnapshot, bounds);
         }
 
-        private void updateBounds(Bounds bounds) {
+        private void update(
+                Bounds bounds,
+                DynamicLightBehavior.BatchLightSnapshot batchSnapshot
+        ) {
             this.bounds = bounds;
+            this.batchSource = batchSnapshot == null ? null : new BatchSource(batchSnapshot, bounds);
         }
 
     }

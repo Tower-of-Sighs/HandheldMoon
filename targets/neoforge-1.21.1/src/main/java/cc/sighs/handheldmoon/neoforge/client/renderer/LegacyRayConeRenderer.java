@@ -114,17 +114,34 @@ public final class LegacyRayConeRenderer {
             float noiseAmplitude,
             boolean raycast
     ) {
+        RayConeGeometry.PreparedLayer prepared = !raycast
+                ? RayConeGeometry.preparedLayerNow(
+                baseRange, baseAngleDegrees, sizeScale, SEGMENTS
+        ) : null;
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION_COLOR);
+        VertexFormat.Mode mode = prepared != null && !prepared.isEmpty()
+                ? VertexFormat.Mode.TRIANGLES : VertexFormat.Mode.TRIANGLE_FAN;
+        BufferBuilder buffer = Tesselator.getInstance().begin(mode, DefaultVertexFormat.POSITION_COLOR);
         Matrix4f matrix = poseStack.last().pose();
-        RayConeGeometry.emitLayer(
-                Minecraft.getInstance(), apex, direction, baseRange, baseAngleDegrees,
-                colorStops, sizeScale, centerAlpha, edgeAlpha, layerColorOverride,
-                noiseAmplitude, raycast, SEGMENTS,
-                (position, color, alpha) -> buffer
-                        .addVertex(matrix, (float) position.x, (float) position.y, (float) position.z)
-                        .setColor(color[0], color[1], color[2], alpha)
-        );
+        if (prepared != null && !prepared.isEmpty()) {
+            RayConeGeometry.emitPreparedLayer(
+                    prepared, apex, direction, colorStops,
+                    centerAlpha, edgeAlpha, layerColorOverride,
+                    noiseAmplitude, new float[3],
+                    (x, y, z, r, g, b, alpha) -> buffer
+                            .addVertex(matrix, (float) x, (float) y, (float) z)
+                            .setColor(r, g, b, alpha)
+            );
+        } else {
+            RayConeGeometry.emitLayer(
+                    Minecraft.getInstance(), apex, direction, baseRange, baseAngleDegrees,
+                    colorStops, sizeScale, centerAlpha, edgeAlpha, layerColorOverride,
+                    noiseAmplitude, raycast, SEGMENTS,
+                    (position, color, alpha) -> buffer
+                            .addVertex(matrix, (float) position.x, (float) position.y, (float) position.z)
+                            .setColor(color[0], color[1], color[2], alpha)
+            );
+        }
 
         BufferUploader.drawWithShader(buffer.buildOrThrow());
     }

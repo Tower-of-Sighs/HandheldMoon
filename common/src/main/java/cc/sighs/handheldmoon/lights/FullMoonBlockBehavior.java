@@ -93,6 +93,11 @@ public class FullMoonBlockBehavior implements DynamicLightBehavior {
         return !(level.getBlockState(pos).getBlock() instanceof FullMoonBlock);
     }
 
+    @Override
+    public BatchLightSnapshot getBatchLightSnapshot() {
+        return delegate.getBatchLightSnapshot();
+    }
+
     // ---- internal ----
 
     private void refreshEpoch() {

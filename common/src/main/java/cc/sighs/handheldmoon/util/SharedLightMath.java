@@ -39,6 +39,58 @@ public final class SharedLightMath {
         return 1.0 - t * t;
     }
 
+    /** Pure-Java cone sample used by background section batch workers. */
+    public static double coneLight(
+            double originX, double originY, double originZ,
+            double directionX, double directionY, double directionZ,
+            double luminance,
+            int blockX, int blockY, int blockZ,
+            double range,
+            double cosInner, double cosOuter, double cosOuterSq
+    ) {
+        double centerX = blockX + 0.5;
+        double centerY = blockY + 0.5;
+        double centerZ = blockZ + 0.5;
+        double vectorX = centerX - originX;
+        double vectorY = centerY - originY;
+        double vectorZ = centerZ - originZ;
+        double distanceSquared = vectorX * vectorX + vectorY * vectorY + vectorZ * vectorZ;
+        if (distanceSquared > range * range) {
+            return 0.0;
+        }
+        double dot = directionX * vectorX + directionY * vectorY + directionZ * vectorZ;
+        if (dot <= 0.0 || dot * dot < cosOuterSq * distanceSquared) {
+            return 0.0;
+        }
+        double inverseDistance = 1.0 / Math.sqrt(distanceSquared);
+        double dotNormal = dot * inverseDistance;
+        double angleAttenuation = dotNormal >= cosInner
+                ? 1.0
+                : (dotNormal - cosOuter) / (cosInner - cosOuter);
+        double distanceAttenuation = distanceAttenuation(1.0 / inverseDistance, range);
+        return Math.max(luminance * angleAttenuation * distanceAttenuation, 0.0);
+    }
+
+    /** Pure-Java point sample used by background section batch workers. */
+    public static double pointLight(
+            double originX, double originY, double originZ,
+            double luminance,
+            int blockX, int blockY, int blockZ,
+            double range
+    ) {
+        double dx = blockX + 0.5 - originX;
+        double dy = blockY + 0.5 - originY;
+        double dz = blockZ + 0.5 - originZ;
+        double distanceSquared = dx * dx + dy * dy + dz * dz;
+        if (distanceSquared > range * range) {
+            return 0.0;
+        }
+        if (distanceSquared < 1.0E-8) {
+            return luminance;
+        }
+        return luminance * distanceAttenuation(Math.sqrt(distanceSquared), range);
+    }
+
     public static double conePadding(double distance, double outerAngleTangent, double minimum, double maximum) {
         double padding = distance * outerAngleTangent;
         return Math.max(minimum, Math.min(maximum, padding));

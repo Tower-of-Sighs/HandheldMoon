@@ -114,6 +114,11 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
         return lamp == null || !lamp.getPowered() || !lamp.getLampConfig().realLight();
     }
 
+    @Override
+    public BatchLightSnapshot getBatchLightSnapshot() {
+        return delegate == null ? null : delegate.getBatchLightSnapshot();
+    }
+
     // ---- internal ----
 
     private MoonlightLampBlockEntityAccess lamp() {

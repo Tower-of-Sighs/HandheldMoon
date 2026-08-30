@@ -171,6 +171,17 @@ public final class RayConeRendererImpl {
             boolean doRaycast,
             VertexEmitter emitter
     ) {
+        RayConeGeometry.PreparedLayer prepared = RayConeGeometry.preparedLayerNow(
+                baseRange, baseAngleDeg, sizeScale, SEGMENTS
+        );
+        if (!doRaycast && prepared != null && !prepared.isEmpty()) {
+            RayConeGeometry.emitPreparedLayer(
+                    prepared, apex, direction, colorStops,
+                    centerAlpha, edgeAlpha, layerColorOverride,
+                    noiseAmplitude, emitter.colorScratch, emitter
+            );
+            return;
+        }
         RayConeGeometry.emitLayerTriangles(
                 Minecraft.getInstance(), apex, direction, baseRange, baseAngleDeg,
                 colorStops, sizeScale, centerAlpha, edgeAlpha, layerColorOverride,

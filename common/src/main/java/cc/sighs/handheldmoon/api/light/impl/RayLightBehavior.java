@@ -272,6 +272,22 @@ public class RayLightBehavior implements DynamicLightBehavior {
         return !lastActive;
     }
 
+    @Override
+    public BatchLightSnapshot getBatchLightSnapshot() {
+        if (!lastActive || lastOcclusion || lightCache != NO_LIGHT_CACHE) {
+            return null;
+        }
+        Vec3 pos = lastPos;
+        Vec3 dir = lastDir;
+        return new BatchLightSnapshot(
+                config.type() == IRayLightConfig.LightType.CONE,
+                pos.x, pos.y, pos.z,
+                dir.x, dir.y, dir.z,
+                lastRange, lastLuminance,
+                cosInner, cosOuter, cosOuterSq
+        );
+    }
+
     // ---- internal helpers ----
 
     private double effectiveRange() {

@@ -61,4 +61,9 @@ public final class EntityItemLightBehavior implements DynamicLightBehavior {
     public boolean isRemoved() {
         return entity.isRemoved() || luminanceSupplier.getAsInt() <= 0;
     }
+
+    @Override
+    public BatchLightSnapshot getBatchLightSnapshot() {
+        return delegate.getBatchLightSnapshot();
+    }
 }

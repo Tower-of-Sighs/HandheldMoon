@@ -1,6 +1,7 @@
 package cc.sighs.handheldmoon.api.raycone;
 
 import cc.sighs.handheldmoon.util.ColorUtils;
+import cc.sighs.handheldmoon.util.AsyncLightExecutor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.ClipContext;
@@ -9,9 +10,14 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Version-independent cone geometry and colour sampling. */
 public final class RayConeGeometry {
+    private static final int MAX_PREPARED_LAYERS = 256;
+    private static final ConcurrentHashMap<GeometryKey, CompletableFuture<PreparedLayer>> PREPARED_LAYERS =
+            new ConcurrentHashMap<>();
     @FunctionalInterface
     public interface VertexSink {
         void vertex(Vec3 position, float[] rgb, float alpha);
@@ -24,6 +30,249 @@ public final class RayConeGeometry {
     }
 
     private RayConeGeometry() {
+    }
+
+    /** Immutable canonical (+Z axis) mesh generated without Minecraft state. */
+    public static final class PreparedLayer {
+        private final float[] positions;
+        private final int[] ringIndices;
+        private final int segments;
+        private final float sizeScale;
+
+        private PreparedLayer(float[] positions, int[] ringIndices, int segments, float sizeScale) {
+            this.positions = positions;
+            this.ringIndices = ringIndices;
+            this.segments = segments;
+            this.sizeScale = sizeScale;
+        }
+
+        private int vertexCount() {
+            return ringIndices.length;
+        }
+
+        public boolean isEmpty() {
+            return ringIndices.length == 0;
+        }
+    }
+
+    /**
+     * Schedules canonical cone topology generation. The returned future never
+     * touches Minecraft or render-system state and may be polled with
+     * {@link CompletableFuture#getNow(Object)} from the render thread.
+     */
+    public static CompletableFuture<PreparedLayer> prepareLayerAsync(
+            float baseRange,
+            float baseAngleDegrees,
+            float sizeScale,
+            int segments
+    ) {
+        GeometryKey key = new GeometryKey(baseRange, baseAngleDegrees, sizeScale, segments);
+        CompletableFuture<PreparedLayer> cached = PREPARED_LAYERS.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        if (PREPARED_LAYERS.size() >= MAX_PREPARED_LAYERS) {
+            PREPARED_LAYERS.clear();
+        }
+        CompletableFuture<PreparedLayer> created = CompletableFuture.supplyAsync(
+                () -> prepareLayer(baseRange, baseAngleDegrees, sizeScale, segments),
+                AsyncLightExecutor.executor()
+        );
+        CompletableFuture<PreparedLayer> previous = PREPARED_LAYERS.putIfAbsent(key, created);
+        return previous != null ? previous : created;
+    }
+
+    /** Requests a layer build and returns it only when already completed. */
+    public static PreparedLayer preparedLayerNow(
+            float baseRange,
+            float baseAngleDegrees,
+            float sizeScale,
+            int segments
+    ) {
+        try {
+            return prepareLayerAsync(baseRange, baseAngleDegrees, sizeScale, segments).getNow(null);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private static PreparedLayer prepareLayer(
+            float baseRange,
+            float baseAngleDegrees,
+            float sizeScale,
+            int segments
+    ) {
+        if (segments <= 0 || !Float.isFinite(baseRange)
+                || !Float.isFinite(baseAngleDegrees) || !Float.isFinite(sizeScale)) {
+            return new PreparedLayer(new float[0], new int[0], 0, sizeScale);
+        }
+        float scaledRange = baseRange * sizeScale;
+        float scaledHalfAngle = baseAngleDegrees * sizeScale * 0.5f * Mth.DEG_TO_RAD;
+        float scaledRadius = scaledRange * Mth.sin(scaledHalfAngle) / Mth.cos(scaledHalfAngle);
+        if (!Float.isFinite(scaledRange) || !Float.isFinite(scaledRadius)) {
+            return new PreparedLayer(new float[0], new int[0], 0, sizeScale);
+        }
+        int vertexCount = segments * 3;
+        float[] positions = new float[vertexCount * 3];
+        int[] ringIndices = new int[vertexCount];
+        int vertex = 0;
+        for (int i = 0; i < segments; i++) {
+            vertex = writeVertex(positions, ringIndices, vertex, 0.0f, 0.0f, 0.0f, -1);
+            vertex = writeRingVertex(
+                    positions, ringIndices, vertex, scaledRange, scaledRadius, i, segments
+            );
+            vertex = writeRingVertex(
+                    positions, ringIndices, vertex, scaledRange, scaledRadius, i + 1, segments
+            );
+        }
+        return new PreparedLayer(positions, ringIndices, segments, sizeScale);
+    }
+
+    private static int writeRingVertex(
+            float[] positions,
+            int[] ringIndices,
+            int vertex,
+            float scaledRange,
+            float scaledRadius,
+            int index,
+            int segments
+    ) {
+        float theta = Mth.TWO_PI * index / segments;
+        float x = scaledRadius * Mth.cos(theta);
+        float y = scaledRadius * Mth.sin(theta);
+        return writeVertex(positions, ringIndices, vertex, x, y, scaledRange, index);
+    }
+
+    private static int writeVertex(
+            float[] positions,
+            int[] ringIndices,
+            int vertex,
+            float x,
+            float y,
+            float z,
+            int ringIndex
+    ) {
+        int offset = vertex * 3;
+        positions[offset] = x;
+        positions[offset + 1] = y;
+        positions[offset + 2] = z;
+        ringIndices[vertex] = ringIndex;
+        return vertex + 1;
+    }
+
+    /** Emits a prepared canonical layer after transforming it to world space. */
+    public static void emitPreparedLayer(
+            PreparedLayer layer,
+            Vec3 apex,
+            Vec3 direction,
+            List<float[]> colorStops,
+            float centerAlpha,
+            float edgeAlpha,
+            float[] layerColorOverride,
+            float noiseAmplitude,
+            float[] colorScratch,
+            PrimitiveVertexSink sink
+    ) {
+        if (layer.vertexCount() == 0) {
+            return;
+        }
+        double directionX = direction.x;
+        double directionY = direction.y;
+        double directionZ = direction.z;
+        double directionLength = Math.sqrt(
+                directionX * directionX + directionY * directionY + directionZ * directionZ
+        );
+        if (!Double.isFinite(directionLength) || directionLength <= 1.0E-8) {
+            return;
+        }
+        directionX /= directionLength;
+        directionY /= directionLength;
+        directionZ /= directionLength;
+
+        double referenceX = 0.0;
+        double referenceY = Math.abs(directionY) > 0.99 ? 0.0 : 1.0;
+        double referenceZ = Math.abs(directionY) > 0.99 ? 1.0 : 0.0;
+        double rightX = referenceY * directionZ - referenceZ * directionY;
+        double rightY = referenceZ * directionX - referenceX * directionZ;
+        double rightZ = referenceX * directionY - referenceY * directionX;
+        double rightLength = Math.sqrt(rightX * rightX + rightY * rightY + rightZ * rightZ);
+        if (!Double.isFinite(rightLength) || rightLength <= 1.0E-8) {
+            return;
+        }
+        rightX /= rightLength;
+        rightY /= rightLength;
+        rightZ /= rightLength;
+
+        double upX = directionY * rightZ - directionZ * rightY;
+        double upY = directionZ * rightX - directionX * rightZ;
+        double upZ = directionX * rightY - directionY * rightX;
+
+        float centerR;
+        float centerG;
+        float centerB;
+        if (layerColorOverride != null) {
+            centerR = layerColorOverride[0];
+            centerG = layerColorOverride[1];
+            centerB = layerColorOverride[2];
+        } else {
+            ColorUtils.colorAtInto(colorStops, 0.0f, colorScratch);
+            centerR = colorScratch[0];
+            centerG = colorScratch[1];
+            centerB = colorScratch[2];
+        }
+
+        long seed = Double.doubleToLongBits(apex.x)
+                ^ Double.doubleToLongBits(apex.y)
+                ^ Double.doubleToLongBits(apex.z)
+                ^ Double.doubleToLongBits(direction.x)
+                ^ Double.doubleToLongBits(direction.y)
+                ^ Double.doubleToLongBits(direction.z);
+        float baseT = Math.min(1.0f, 0.8f + (layer.sizeScale - 1.0f) * 0.6f);
+        for (int vertex = 0; vertex < layer.vertexCount(); vertex++) {
+            int offset = vertex * 3;
+            double localX = layer.positions[offset];
+            double localY = layer.positions[offset + 1];
+            double localZ = layer.positions[offset + 2];
+            double x = apex.x + rightX * localX + upX * localY + directionX * localZ;
+            double y = apex.y + rightY * localX + upY * localY + directionY * localZ;
+            double z = apex.z + rightZ * localX + upZ * localY + directionZ * localZ;
+
+            int ringIndex = layer.ringIndices[vertex];
+            if (ringIndex < 0) {
+                sink.vertex(x, y, z, centerR, centerG, centerB, clamp01(centerAlpha));
+                continue;
+            }
+            float thetaNormal = ringIndex / (float) layer.segments;
+            float n1 = Mth.sin((float) (thetaNormal * 7.23 + seed * 0.001));
+            float n2 = Mth.sin((float) (thetaNormal * 13.69 + seed * 0.002));
+            float n3 = Mth.sin((float) (thetaNormal * 19.41 + seed * 0.0007));
+            float r;
+            float g;
+            float b;
+            if (layerColorOverride != null) {
+                r = layerColorOverride[0];
+                g = layerColorOverride[1];
+                b = layerColorOverride[2];
+            } else {
+                ColorUtils.colorAtWithNoiseInto(colorStops, baseT, n1, n2, n3,
+                        noiseAmplitude, colorScratch);
+                r = colorScratch[0];
+                g = colorScratch[1];
+                b = colorScratch[2];
+            }
+            float alphaNoise = Mth.sin((float) (thetaNormal * 11.0 + seed * 0.001));
+            float localAlpha = clamp01(edgeAlpha)
+                    * (0.85f + 0.15f * (alphaNoise * 0.5f + 0.5f));
+            sink.vertex(x, y, z, r, g, b, localAlpha);
+        }
+    }
+
+    private record GeometryKey(
+            float baseRange,
+            float baseAngleDegrees,
+            float sizeScale,
+            int segments
+    ) {
     }
 
     public static void emitLayer(

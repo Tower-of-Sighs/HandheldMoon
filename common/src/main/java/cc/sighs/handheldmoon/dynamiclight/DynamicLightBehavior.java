@@ -1,5 +1,7 @@
 package cc.sighs.handheldmoon.dynamiclight;
 
+import cc.sighs.handheldmoon.util.SharedLightMath;
+
 /**
  * A client-side dynamic light source understood by the HandheldMoon engine.
  *
@@ -18,6 +20,47 @@ public interface DynamicLightBehavior {
 
     /** Returns whether the source should be removed from the engine. */
     boolean isRemoved();
+
+    /**
+     * Captures a world-independent light snapshot for optional background
+     * sampling. Sources that need world state (for example occlusion raycasts)
+     * must return {@code null}.
+     */
+    default BatchLightSnapshot getBatchLightSnapshot() {
+        return null;
+    }
+
+    /** Immutable, Minecraft-independent state used by section batch workers. */
+    record BatchLightSnapshot(
+            boolean cone,
+            double originX,
+            double originY,
+            double originZ,
+            double directionX,
+            double directionY,
+            double directionZ,
+            double range,
+            double luminance,
+            double cosInner,
+            double cosOuter,
+            double cosOuterSq
+    ) {
+        public double lightAt(int blockX, int blockY, int blockZ) {
+            if (cone) {
+                return SharedLightMath.coneLight(
+                        originX, originY, originZ,
+                        directionX, directionY, directionZ,
+                        luminance, blockX, blockY, blockZ, range,
+                        cosInner, cosOuter, cosOuterSq
+                );
+            }
+
+            return SharedLightMath.pointLight(
+                    originX, originY, originZ, luminance,
+                    blockX, blockY, blockZ, range
+            );
+        }
+    }
 
     final class Bounds {
         private final int minX;

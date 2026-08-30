@@ -49,6 +49,11 @@ public final class FullMoonEntityLightBehavior implements DynamicLightBehavior {
                 || !source.getLightProfile().realLight();
     }
 
+    @Override
+    public BatchLightSnapshot getBatchLightSnapshot() {
+        return delegate.getBatchLightSnapshot();
+    }
+
     private void refreshDelegate() {
         lastProfile = source.getLightProfile();
         EntityLightRuntimeState runtime = source.getLightRuntimeState();

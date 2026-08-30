@@ -17,6 +17,14 @@ class SharedLightMathTest {
         assertEquals(0.75, SharedLightMath.distanceAttenuation(7.0, 14.0), 1.0E-9);
         assertEquals(0.26530612244897955, SharedLightMath.distanceAttenuation(12.0, 14.0), 1.0E-9);
         assertEquals(0.0, SharedLightMath.distanceAttenuation(14.0, 14.0), 1.0E-9);
+        assertEquals(7.5, SharedLightMath.pointLight(
+                0.5, 0.5, 0.5, 10.0, 7, 0, 0, 14.0
+        ), 1.0E-9);
+        assertEquals(0.75, SharedLightMath.coneLight(
+                0.5, 0.5, 0.5, 0.0, 0.0, 1.0,
+                1.0, 0, 0, 7, 14.0,
+                Math.cos(0.2), Math.cos(0.5), Math.cos(0.5) * Math.cos(0.5)
+        ), 1.0E-9);
         assertEquals(24L, SharedLightMath.volume(0, 0, 0, 1, 2, 3));
     }
 

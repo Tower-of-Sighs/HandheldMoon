@@ -73,4 +73,9 @@ public class PlayerFlashlightLineLightBehavior implements DynamicLightBehavior {
     public boolean isRemoved() {
         return delegate.isRemoved();
     }
+
+    @Override
+    public BatchLightSnapshot getBatchLightSnapshot() {
+        return delegate.getBatchLightSnapshot();
+    }
 }
