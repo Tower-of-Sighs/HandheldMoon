@@ -122,6 +122,8 @@ dependencies {
     implementation("com.terraformersmc:modmenu:18.0.0-alpha.8")
     implementation("curse.maven:irisshaders-455508:7867943")
     implementation("curse.maven:sodium-394468:7867826")
+    // Sodium classes live in a nested jarjar; expose extracted classes for the mixin.
+    compileOnly(files("../../.tmp/sodium_classes"))
     implementation("maven.modrinth:trinkets-updated:ObfwZi0X")
 }
 

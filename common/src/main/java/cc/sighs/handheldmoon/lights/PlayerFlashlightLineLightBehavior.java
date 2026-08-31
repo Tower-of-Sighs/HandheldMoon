@@ -36,7 +36,8 @@ public class PlayerFlashlightLineLightBehavior implements DynamicLightBehavior {
                         .buildConfig(),
                         () -> player.getEyePosition(1.0f),
                         () -> LineLightMath.computeDirection(player.getYRot(), player.getXRot(), false),
-                        () -> Utils.isUsingFlashlight(player)
+                        () -> Utils.isUsingFlashlight(player),
+                        cc.sighs.handheldmoon.registry.Config.lightColorArgb()
                 );
     }
 

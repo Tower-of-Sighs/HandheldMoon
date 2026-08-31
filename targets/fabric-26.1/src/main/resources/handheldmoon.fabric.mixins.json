@@ -10,7 +10,10 @@
     "MouseHandlerMixin",
     "GameRendererAccessor",
     "PostChainAccessor",
-    "PostPassAccessor"
+    "PostPassAccessor",
+    "dynamiclight.DynamicLightBrightnessGetterMixin",
+    "dynamiclight.DynamicLightBlockModelLighterMixin",
+    "dynamiclight.SodiumDynamicLightBlockRendererMixin"
   ],
   "server": [],
   "injectors": {

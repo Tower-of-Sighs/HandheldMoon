@@ -163,6 +163,22 @@ public final class DynamicLightManager {
     }
 
     public static double getLightLevel(int blockX, int blockY, int blockZ) {
+        return query(blockX, blockY, blockZ).light;
+    }
+
+    /**
+     * Returns the ARGB color of the brightest dynamic light affecting the
+     * block, or {@code 0xFFFFFFFF} when no dynamic light reaches it.
+     */
+    public static int getLightColor(BlockPos pos) {
+        return getLightColor(pos.getX(), pos.getY(), pos.getZ());
+    }
+
+    public static int getLightColor(int blockX, int blockY, int blockZ) {
+        return query(blockX, blockY, blockZ).color;
+    }
+
+    private static LightQuery query(int blockX, int blockY, int blockZ) {
         SectionIndex index = sectionIndex;
         long sectionKey = sectionKey(
                 SectionPos.blockToSectionCoord(blockX),
@@ -171,7 +187,7 @@ public final class DynamicLightManager {
         );
         SectionBucket bucket = index.sources.get(sectionKey);
         if (bucket == null) {
-            return 0.0;
+            return LightQuery.NONE;
         }
         IndexedSource[] candidates = bucket.sources;
 
@@ -180,15 +196,17 @@ public final class DynamicLightManager {
         long revision = bucket.revision;
         float cached = cache.get(revision, blockKey);
         if (!Float.isNaN(cached)) {
-            return cached;
+            return new LightQuery(cached, cache.getColor(revision, blockKey));
         }
 
         double light = 0.0;
+        int color = 0xFFFFFFFF;
         BatchLightValues batchValues = getBatchLightValues(
                 sectionKey, bucket, revision, blockX, blockY, blockZ
         );
         if (batchValues != null) {
             light = batchValues.value(blockX, blockY, blockZ);
+            color = batchValues.color(blockX, blockY, blockZ);
         }
         for (IndexedSource source : candidates) {
             if (batchValues != null && source.batchSource != null) {
@@ -200,7 +218,11 @@ public final class DynamicLightManager {
                     || blockZ < bounds.minZ() || blockZ > bounds.maxZ()) {
                 continue;
             }
-            light = Math.max(light, source.behavior.lightAt(blockX, blockY, blockZ, 1.0));
+            double sourceLight = source.behavior.lightAt(blockX, blockY, blockZ, 1.0);
+            if (sourceLight > light) {
+                light = sourceLight;
+                color = source.behavior.color();
+            }
             if (light >= 15.0) {
                 light = 15.0;
                 break;
@@ -208,9 +230,14 @@ public final class DynamicLightManager {
         }
         light = Math.max(0.0, light);
         if (index == sectionIndex && bucket.revision == revision) {
-            cache.put(revision, blockKey, (float) light);
+            cache.put(revision, blockKey, (float) light, color);
         }
-        return light;
+        return new LightQuery(light, color);
+    }
+
+    /** Result of a dynamic light query: brightness plus the brightest source color. */
+    private record LightQuery(double light, int color) {
+        private static final LightQuery NONE = new LightQuery(0.0, 0xFFFFFFFF);
     }
 
     private static BatchLightValues getBatchLightValues(
@@ -302,6 +329,7 @@ public final class DynamicLightManager {
         int sectionY = sectionY(sectionKey);
         int sectionZ = sectionZ(sectionKey);
         float[] values = new float[16 * 16 * 16];
+        int[] colors = new int[16 * 16 * 16];
         int index = 0;
         for (int localZ = 0; localZ < 16; localZ++) {
             for (int localX = 0; localX < 16; localX++) {
@@ -310,6 +338,7 @@ public final class DynamicLightManager {
                     int blockY = (sectionY << 4) + localY;
                     int blockZ = (sectionZ << 4) + localZ;
                     double light = 0.0;
+                    int color = 0xFFFFFFFF;
                     for (BatchSource source : sources) {
                         Bounds bounds = source.bounds;
                         if (blockX < bounds.minX() || blockX > bounds.maxX()
@@ -317,17 +346,23 @@ public final class DynamicLightManager {
                                 || blockZ < bounds.minZ() || blockZ > bounds.maxZ()) {
                             continue;
                         }
-                        light = Math.max(light, source.snapshot.lightAt(blockX, blockY, blockZ));
+                        double sourceLight = source.snapshot.lightAt(blockX, blockY, blockZ);
+                        if (sourceLight > light) {
+                            light = sourceLight;
+                            color = source.snapshot.color();
+                        }
                         if (light >= 15.0) {
                             light = 15.0;
                             break;
                         }
                     }
-                    values[index++] = (float) Math.max(0.0, light);
+                    values[index] = (float) Math.max(0.0, light);
+                    colors[index] = color;
+                    index++;
                 }
             }
         }
-        return new BatchLightValues(values);
+        return new BatchLightValues(values, colors);
     }
 
     private static void refreshSnapshot() {
@@ -838,12 +873,19 @@ public final class DynamicLightManager {
         }
     }
 
-    private record BatchLightValues(float[] values) {
-        private float value(int blockX, int blockY, int blockZ) {
-            int index = (blockZ & 15) * 16 * 16
+    private record BatchLightValues(float[] values, int[] colors) {
+        private int index(int blockX, int blockY, int blockZ) {
+            return (blockZ & 15) * 16 * 16
                     + (blockX & 15) * 16
                     + (blockY & 15);
-            return values[index];
+        }
+
+        private float value(int blockX, int blockY, int blockZ) {
+            return values[index(blockX, blockY, blockZ)];
+        }
+
+        private int color(int blockX, int blockY, int blockZ) {
+            return colors == null ? 0xFFFFFFFF : colors[index(blockX, blockY, blockZ)];
         }
     }
 
@@ -878,6 +920,7 @@ public final class DynamicLightManager {
         private final long[] keys = new long[QUERY_CACHE_SLOTS_PER_THREAD];
         private final long[] revisions = new long[QUERY_CACHE_SLOTS_PER_THREAD];
         private final float[] values = new float[QUERY_CACHE_SLOTS_PER_THREAD];
+        private final int[] colors = new int[QUERY_CACHE_SLOTS_PER_THREAD];
 
         private float get(long currentRevision, long key) {
             int slot = slot(key);
@@ -887,10 +930,19 @@ public final class DynamicLightManager {
             return values[slot];
         }
 
-        private void put(long currentRevision, long key, float light) {
+        private int getColor(long currentRevision, long key) {
+            int slot = slot(key);
+            if (revisions[slot] != currentRevision || keys[slot] != key) {
+                return 0xFFFFFFFF;
+            }
+            return colors[slot];
+        }
+
+        private void put(long currentRevision, long key, float light, int color) {
             int slot = slot(key);
             keys[slot] = key;
             values[slot] = light;
+            colors[slot] = color;
             revisions[slot] = currentRevision;
         }
 

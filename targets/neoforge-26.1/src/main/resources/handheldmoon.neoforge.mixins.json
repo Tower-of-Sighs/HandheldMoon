@@ -8,7 +8,9 @@
     "client.EntityRendererMixin",
     "client.GameRendererAccessor",
     "client.PostPassAccessor",
-    "dynamiclight.DynamicLightBrightnessGetterMixin"
+    "dynamiclight.DynamicLightBrightnessGetterMixin",
+    "dynamiclight.DynamicLightBlockModelLighterMixin",
+    "dynamiclight.SodiumDynamicLightBlockRendererMixin"
   ],
   "server": [],
   "injectors": {

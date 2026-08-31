@@ -73,7 +73,8 @@ public final class FullMoonEntityLightBehavior implements DynamicLightBehavior {
                             .buildConfig(),
                     () -> lightPosition(profile),
                     () -> source.getLightRuntimeState().direction(),
-                    () -> profile.realLight() && source.getLightRuntimeState().enabled()
+                    () -> profile.realLight() && source.getLightRuntimeState().enabled(),
+                    colorArgb(profile.lightColor())
             );
         }
 
@@ -86,11 +87,23 @@ public final class FullMoonEntityLightBehavior implements DynamicLightBehavior {
                         .buildConfig(),
                 () -> lightPosition(profile),
                 () -> Vec3.ZERO,
-                () -> profile.realLight() && source.getLightRuntimeState().enabled()
+                () -> profile.realLight() && source.getLightRuntimeState().enabled(),
+                colorArgb(profile.lightColor())
         );
     }
 
     private Vec3 lightPosition(EntityLightProfile profile) {
         return source.getLightRuntimeState().position().add(profile.positionOffset());
+    }
+
+    private static int colorArgb(String webColor) {
+        if (webColor != null && !webColor.equals("#FFFFFF")) {
+        }
+        float[] rgba = cc.sighs.handheldmoon.util.ColorUtils.parseColorRGBAWithAlpha(webColor);
+        int r = (int) (rgba[0] * 255.0f);
+        int g = (int) (rgba[1] * 255.0f);
+        int b = (int) (rgba[2] * 255.0f);
+        int a = (int) (rgba[3] * 255.0f);
+        return (a & 0xFF) << 24 | (r & 0xFF) << 16 | (g & 0xFF) << 8 | (b & 0xFF);
     }
 }

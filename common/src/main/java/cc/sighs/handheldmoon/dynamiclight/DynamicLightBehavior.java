@@ -13,6 +13,14 @@ public interface DynamicLightBehavior {
     /** Returns the light contribution at a block coordinate. */
     double lightAt(int blockX, int blockY, int blockZ, double falloffRatio);
 
+    /**
+     * Returns the ARGB color of this light source. Used to tint surfaces lit
+     * by the dynamic light. Defaults to opaque white.
+     */
+    default int color() {
+        return 0xFFFFFFFF;
+    }
+
     /** Returns the current spatial bounds used for section invalidation. */
     Bounds getBounds();
 
@@ -45,7 +53,8 @@ public interface DynamicLightBehavior {
             double cosInner,
             double cosOuter,
             double cosOuterSq,
-            AttenuationCurve attenuationCurve
+            AttenuationCurve attenuationCurve,
+            int color
     ) {
         public BatchLightSnapshot(
                 boolean cone,
@@ -63,7 +72,7 @@ public interface DynamicLightBehavior {
         ) {
             this(cone, originX, originY, originZ, directionX, directionY, directionZ,
                     range, luminance, cosInner, cosOuter, cosOuterSq,
-                    AttenuationCurve.QUADRATIC);
+                    AttenuationCurve.QUADRATIC, 0xFFFFFFFF);
         }
 
         public BatchLightSnapshot {

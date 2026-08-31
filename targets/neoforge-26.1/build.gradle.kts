@@ -117,6 +117,10 @@ dependencies {
     implementation ("top.theillusivec4.curios:curios-neoforge:$curios_version")
     implementation("curse.maven:irisshaders-455508:7867946")
     implementation("curse.maven:sodium-394468:7867828")
+    // Sodium's classes live in a nested jar (jarjar) that is not on the
+    // compile classpath. Expose the extracted classes for the Sodium mixin
+    // only; the runtime still uses the packaged nested jar.
+    compileOnly(files("../../.tmp/sodium_classes"))
 }
 
 neoForge {

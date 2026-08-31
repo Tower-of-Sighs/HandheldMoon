@@ -44,6 +44,25 @@ public final class Config {
                 FullMoonDeviceConfig.builtInDefaults().withRealLight(REAL_LIGHT.get()));
     }
 
+    /**
+     * Returns the ARGB color of the first configured light color, falling back
+     * to opaque white when the list is empty. Used to tint real light sources.
+     */
+    public static int lightColorArgb() {
+        var colors = LampDeviceConfig.fromGlobalConfig().lightColorsARGB();
+        if (!colors.isEmpty()) {
+        }
+        if (colors == null || colors.isEmpty()) {
+            return 0xFFFFFFFF;
+        }
+        float[] rgba = cc.sighs.handheldmoon.util.ColorUtils.parseColorRGBAWithAlpha(colors.get(0));
+        int r = (int) (rgba[0] * 255.0f);
+        int g = (int) (rgba[1] * 255.0f);
+        int b = (int) (rgba[2] * 255.0f);
+        int a = (int) (rgba[3] * 255.0f);
+        return (a & 0xFF) << 24 | (r & 0xFF) << 16 | (g & 0xFF) << 8 | (b & 0xFF);
+    }
+
     /** Loads persisted values, creating a default config file on first run. */
     public static void load() {
         Path file = configFile();

@@ -70,6 +70,7 @@ public class RayLightBehavior implements DynamicLightBehavior {
     private final double cosInner;
     private final double cosOuter;
     private final double cosOuterSq;
+    private final int color;
 
     public RayLightBehavior(
             IRayLightConfig config,
@@ -77,10 +78,21 @@ public class RayLightBehavior implements DynamicLightBehavior {
             Supplier<Vec3> directionSupplier,
             BooleanSupplier activeSupplier
     ) {
+        this(config, positionSupplier, directionSupplier, activeSupplier, 0xFFFFFFFF);
+    }
+
+    public RayLightBehavior(
+            IRayLightConfig config,
+            Supplier<Vec3> positionSupplier,
+            Supplier<Vec3> directionSupplier,
+            BooleanSupplier activeSupplier,
+            int color
+    ) {
         this.config = config;
         this.positionSupplier = positionSupplier;
         this.directionSupplier = directionSupplier;
         this.activeSupplier = activeSupplier;
+        this.color = color;
         this.lastActive = activeSupplier.getAsBoolean();
         this.lastPos = positionSupplier.get();
         this.lastDir = config.type() == IRayLightConfig.LightType.CONE
@@ -112,6 +124,11 @@ public class RayLightBehavior implements DynamicLightBehavior {
     }
 
     // ---- DynamicLightBehavior ----
+
+    @Override
+    public int color() {
+        return color;
+    }
 
     @Override
     public double lightAt(int blockX, int blockY, int blockZ, double falloffRatio) {
@@ -290,7 +307,8 @@ public class RayLightBehavior implements DynamicLightBehavior {
                 pos.x, pos.y, pos.z,
                 dir.x, dir.y, dir.z,
                 lastRange, lastLuminance,
-                cosInner, cosOuter, cosOuterSq, lastAttenuation
+                cosInner, cosOuter, cosOuterSq, lastAttenuation,
+                color
         );
     }
 
