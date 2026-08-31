@@ -1,6 +1,5 @@
 package cc.sighs.handheldmoon.config;
 
-import cc.sighs.handheldmoon.api.light.AttenuationCurve;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -16,14 +15,12 @@ class DeviceConfigTest {
     void clampsFullMoonLuminance() {
         assertEquals(0.0, new FullMoonDeviceConfig(true, -1.0, false).realLightLuminance());
         assertEquals(15.0, new FullMoonDeviceConfig(true, 20.0, false).realLightLuminance());
-        assertEquals(18.0, new FullMoonDeviceConfig(true, 12.0, false).realLightRadius());
     }
 
     @Test
     void clampsLampValuesAndCopiesLists() {
         List<String> colors = new ArrayList<>(Collections.singletonList("FFFFFFFF"));
         LampDeviceConfig config = new LampDeviceConfig(
-                100.0,
                 2.0,
                 colors,
                 true,
@@ -32,21 +29,17 @@ class DeviceConfigTest {
                 false,
                 -2.0,
                 Arrays.asList("1.0"),
-                Arrays.asList("0.1"),
                 Arrays.asList("0.0"),
                 Collections.emptyList(),
                 5.0,
-                new LampDeviceConfig.FogSettings(true, 3.0, -1.0, 2.0, "80FFFFFF")
+                new LampDeviceConfig.FogSettings(true, 3.0, -1.0, 2.0, "FFFFFF80")
         );
 
         colors.clear();
 
-        assertEquals(64.0, config.lightRange());
         assertEquals(10.0, config.lightAngle());
         assertEquals(1.0, config.lightIntensity());
         assertEquals(0.0, config.realLightLuminance());
-        assertEquals(32.0, config.realLightRadius());
-        assertEquals(AttenuationCurve.QUADRATIC, config.realLightAttenuation());
         assertEquals(1.0, config.colorNoiseAmplitude());
         assertEquals(Collections.singletonList("FFFFFFFF"), config.lightColorsARGB());
         assertThrows(UnsupportedOperationException.class, () -> config.lightColorsARGB().add("FF000000"));

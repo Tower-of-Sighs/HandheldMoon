@@ -40,7 +40,6 @@ val curseforgeProjectId = providers.provider {
     if (loaderSpecific.isNotEmpty()) loaderSpecific else providers.gradleProperty("curseforge_project").orNull?.trim().orEmpty()
 }
 val curios_version: String by project
-val cloth_config_version: String by project
 val jei_version: String by project
 val iris_version: String by project
 val sodium_version: String by project
@@ -134,7 +133,6 @@ dependencies {
     implementation("curse.maven:sodium-extra-447673:5913377")
     implementation("maven.modrinth:iris:$iris_version")
 
-    implementation("me.shedaniel.cloth:cloth-config-neoforge:$cloth_config_version")
     implementation("curse.maven:tacz-1-21-1-1353462:7295633")
 
     implementation("curse.maven:mafglib-910766:6895587")

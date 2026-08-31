@@ -79,6 +79,11 @@ public final class NeoForgePlatformService implements PlatformService {
     @Override public RegistryService registry() { return registry; }
     @Override public ClientPlatformService client() { return client; }
 
+    @Override
+    public java.nio.file.Path configDirectory() {
+        return net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get();
+    }
+
     private static final class NeoForgeRegistryService implements RegistryService {
         private final DeferredRegister<Block> blocks = DeferredRegister.create(Registries.BLOCK, HandheldMoon.MOD_ID);
         private final DeferredRegister<Item> items = DeferredRegister.create(Registries.ITEM, HandheldMoon.MOD_ID);

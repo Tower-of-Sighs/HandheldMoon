@@ -3,8 +3,10 @@ package cc.sighs.handheldmoon.lights;
 import cc.sighs.handheldmoon.api.light.EntityLightProfile;
 import cc.sighs.handheldmoon.api.light.EntityLightProfileAccess;
 import cc.sighs.handheldmoon.api.light.EntityLightRuntimeState;
+import cc.sighs.handheldmoon.api.light.AttenuationCurve;
 import cc.sighs.handheldmoon.config.FullMoonDeviceConfig;
 import cc.sighs.handheldmoon.config.LampDeviceConfig;
+import cc.sighs.handheldmoon.dynamiclight.DynamicLightDefaults;
 import cc.sighs.handheldmoon.util.ColorUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
@@ -43,19 +45,17 @@ public interface FullMoonDynamicLightSource extends EntityLightProfileAccess {
             double outerAngle = config.lightAngle() * 0.5 * Mth.DEG_TO_RAD;
             String lightColor = config.lightColorsARGB().isEmpty()
                     ? EntityLightProfile.DEFAULT_LIGHT_COLOR
-                    : ColorUtils.argbToWebColor(config.lightColorsARGB().get(0));
+                    : ColorUtils.normalizeWebColor(config.lightColorsARGB().get(0));
             return EntityLightProfile.cone(
                     config.realLightLuminance(),
-                    // Use the same configured physical radius as the
-                    // hand-held light path.
-                    config.realLightRadius(),
+                    DynamicLightDefaults.FLASHLIGHT_RANGE,
                     outerAngle * 0.7,
                     outerAngle,
                     config.realLight(),
                     true,
                     config.lightOcclusion(),
                     Vec3.ZERO,
-                    config.realLightAttenuation(),
+                    AttenuationCurve.QUADRATIC,
                     lightColor
             );
         }
@@ -63,11 +63,11 @@ public interface FullMoonDynamicLightSource extends EntityLightProfileAccess {
         FullMoonDeviceConfig config = getFullMoonConfig();
         return EntityLightProfile.point(
                 config.realLightLuminance(),
-                config.realLightRadius(),
+                DynamicLightDefaults.FULL_MOON_RANGE,
                 config.realLight(),
                 config.lightOcclusion(),
                 Vec3.ZERO,
-                config.realLightAttenuation()
+                AttenuationCurve.QUADRATIC
         );
     }
 

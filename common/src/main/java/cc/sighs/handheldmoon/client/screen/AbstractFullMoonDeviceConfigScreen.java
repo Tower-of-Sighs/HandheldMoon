@@ -1,7 +1,6 @@
 package cc.sighs.handheldmoon.client.screen;
 
 import cc.sighs.handheldmoon.api.config.ConfigTarget;
-import cc.sighs.handheldmoon.api.light.AttenuationCurve;
 import cc.sighs.handheldmoon.config.FullMoonDeviceConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.components.Button;
@@ -17,8 +16,6 @@ public abstract class AbstractFullMoonDeviceConfigScreen extends Screen {
     private final ConfigTarget<FullMoonDeviceConfig> target;
     private final Screen parent;
     private EditBox luminanceEdit;
-    private EditBox radiusEdit;
-    private EditBox attenuationEdit;
     private boolean realLight;
     private boolean lightOcclusion;
 
@@ -40,7 +37,7 @@ public abstract class AbstractFullMoonDeviceConfigScreen extends Screen {
         this.lightOcclusion = config.lightOcclusion();
 
         int panelWidth = Math.min(420, this.width - 24);
-        int panelHeight = Math.min(290, this.height - 16);
+        int panelHeight = Math.min(240, this.height - 16);
         int left = (this.width - panelWidth) / 2;
         int top = (this.height - panelHeight) / 2;
         int contentLeft = left + 16;
@@ -85,26 +82,6 @@ public abstract class AbstractFullMoonDeviceConfigScreen extends Screen {
         this.luminanceEdit.setValue(doubleText(config.realLightLuminance()));
         addRenderableWidget(this.luminanceEdit);
 
-        StringWidget radiusLabel = new StringWidget(
-                contentLeft, top + 154, controlWidth, 18,
-                Component.translatable("config.handheldmoon.client_settings.realLightRadius"), this.font);
-        radiusLabel.active = false;
-        addRenderableWidget(radiusLabel);
-        this.radiusEdit = new EditBox(this.font, contentLeft, top + 174, controlWidth, 20,
-                Component.translatable("config.handheldmoon.client_settings.realLightRadius"));
-        this.radiusEdit.setValue(doubleText(config.realLightRadius()));
-        addRenderableWidget(this.radiusEdit);
-
-        StringWidget attenuationLabel = new StringWidget(
-                contentLeft, top + 198, controlWidth, 18,
-                Component.translatable("config.handheldmoon.client_settings.realLightAttenuation"), this.font);
-        attenuationLabel.active = false;
-        addRenderableWidget(attenuationLabel);
-        this.attenuationEdit = new EditBox(this.font, contentLeft, top + 218, controlWidth, 20,
-                Component.translatable("config.handheldmoon.client_settings.realLightAttenuation"));
-        this.attenuationEdit.setValue(config.realLightAttenuation().name());
-        addRenderableWidget(this.attenuationEdit);
-
         int buttonY = top + panelHeight - 30;
         int half = (controlWidth - 8) / 2;
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> applyAndClose())
@@ -127,8 +104,6 @@ public abstract class AbstractFullMoonDeviceConfigScreen extends Screen {
         target.apply(new FullMoonDeviceConfig(
                 this.realLight,
                 parseDouble(this.luminanceEdit.getValue(), old.realLightLuminance()),
-                parseDouble(this.radiusEdit.getValue(), old.realLightRadius()),
-                AttenuationCurve.parse(this.attenuationEdit.getValue()),
                 this.lightOcclusion
         ));
         onClose();
@@ -172,7 +147,7 @@ public abstract class AbstractFullMoonDeviceConfigScreen extends Screen {
     }
 
     protected final int panelHeight() {
-        return Math.min(290, this.height - 16);
+        return Math.min(240, this.height - 16);
     }
 
     protected final int panelLeft() {

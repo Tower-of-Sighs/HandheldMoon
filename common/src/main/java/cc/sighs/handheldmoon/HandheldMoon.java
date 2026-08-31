@@ -16,6 +16,7 @@ public final class HandheldMoon {
     public static void init(Object loaderContext) {
         PlatformServices.initialize(loaderContext);
         Config.register();
+        Config.load();
     }
 
     public static RegistryService registry() {

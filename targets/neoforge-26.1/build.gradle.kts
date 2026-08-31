@@ -102,7 +102,6 @@ val curseforgeProjectId = providers.provider {
     if (loaderSpecific.isNotEmpty()) loaderSpecific else providers.gradleProperty("curseforge_project").orNull?.trim().orEmpty()
 }
 val curios_version: String by project
-val cloth_config_version: String by project
 
 // Optional POM dependency whitelist for Maven publication.
 // Example:
@@ -116,7 +115,6 @@ extra["mavenDependencyWhitelist"] = emptySet<String>()
 dependencies {
     implementation(commonProject)
     implementation ("top.theillusivec4.curios:curios-neoforge:$curios_version")
-    implementation("me.shedaniel.cloth:cloth-config-neoforge:$cloth_config_version")
     implementation("curse.maven:irisshaders-455508:7867946")
     implementation("curse.maven:sodium-394468:7867828")
 }

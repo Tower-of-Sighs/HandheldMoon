@@ -14,11 +14,11 @@ class RayConeBuilderTest {
         IRayConeConfig config = RayConeBuilder.create()
                 .range(18.0)
                 .angle(42.0)
-                .colorStops(ColorUtils.parseColorStops(Arrays.asList("FFFF0000", "FF00FF00")))
+                .colorStops(ColorUtils.parseColorStops(Arrays.asList("FF0000FF", "00FF00FF")))
                 .addLayer(1.0f, 0.2f, 0.05f)
                 .noiseAmplitude(0.15)
                 .raycast(true)
-                .fog().enabled(true).sizeScale(1.3).color("80FFFFFF").end()
+                .fog().enabled(true).sizeScale(1.3).color("FFFFFF80").end()
                 .build();
 
         assertEquals(18.0, config.range(), 1.0E-9);

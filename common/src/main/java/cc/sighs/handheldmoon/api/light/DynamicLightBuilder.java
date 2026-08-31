@@ -17,8 +17,8 @@ import cc.sighs.handheldmoon.api.light.impl.RayLightConfigImpl;
  *
  * // Block lamp
  * IRayLightConfig lamp = DynamicLightBuilder.cone()
- *     .range(cfg.lightRange()).angle(cfg.innerAngle(), cfg.outerAngle())
- *     .luminance(cfg.luminance()).occlusion(cfg.lightOcclusion())
+ *     .range(24.0).angle(0.5, 0.7)
+ *     .luminance(12.0).occlusion(true)
  *     .buildConfig();
  * }</pre>
  */

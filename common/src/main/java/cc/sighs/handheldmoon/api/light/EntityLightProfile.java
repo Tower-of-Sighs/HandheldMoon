@@ -42,7 +42,7 @@ public record EntityLightProfile(
         AttenuationCurve attenuationCurve,
         String lightColor
 ) {
-    public static final String DEFAULT_LIGHT_COLOR = "#FFFFFFFF";
+    public static final String DEFAULT_LIGHT_COLOR = "#FFFFFF33";
 
     public static final Codec<EntityLightProfile> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.STRING.xmap(EntityLightProfile::parseShape, Shape::name)

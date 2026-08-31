@@ -5,6 +5,7 @@ import cc.sighs.handheldmoon.api.raycone.IRayConeConfig;
 import cc.sighs.handheldmoon.api.raycone.RayConeBuilder;
 import cc.sighs.handheldmoon.api.raycone.RayConeRenderer;
 import cc.sighs.handheldmoon.config.LampDeviceConfig;
+import cc.sighs.handheldmoon.dynamiclight.DynamicLightDefaults;
 import cc.sighs.handheldmoon.registry.Config;
 import cc.sighs.handheldmoon.util.ColorUtils;
 import cc.sighs.handheldmoon.util.Utils;
@@ -33,8 +34,26 @@ import java.util.UUID;
  */
 public final class RayEvent {
     private static final int ENTITY_CONE_LAYER_COUNT = 3;
+    /**
+     * The visible cone renders this many degrees narrower than the real-light
+     * cone so the beam stays visually tighter than its lighting footprint.
+     */
+    private static final double VISIBLE_CONE_ANGLE_OFFSET = 10.0;
+    /** Lower bound for the visible cone full angle in degrees. */
+    private static final double MIN_CONE_ANGLE = 1.0;
+    /**
+     * The visible cone extends to this fraction of the real-light range,
+     * keeping the beam visually shorter than its lighting footprint.
+     */
+    private static final double VISIBLE_CONE_RANGE_SCALE = 0.5;
     private static final float[] DEFAULT_LAYER_SIZE_SCALES = {1.00f, 1.08f, 1.16f};
-    private static final float[] DEFAULT_LAYER_CENTER_ALPHAS = {0.15f, 0.12f, 0.08f};
+    /**
+     * Center-alpha falloff per layer, derived from the legacy baseline
+     * {@code 0.15 / 0.12 / 0.08}: the inner layer uses the incoming color
+     * alpha directly, the middle layer keeps the {@code 0.12 / 0.15} ratio,
+     * and the outer layer keeps the cumulative {@code 0.08 / 0.15} ratio.
+     */
+    private static final float[] LAYER_CENTER_ALPHA_SCALES = {1.0f, 0.8f, 0.5333334f};
     private static final float[] DEFAULT_LAYER_EDGE_ALPHAS = {0.00f, 0.00f, 0.00f};
     private static final Map<UUID, Vec3> LAST_DIR = new HashMap<>();
     private static final GlobalConeConfigCache GLOBAL_CONFIG_CACHE = new GlobalConeConfigCache();
@@ -79,23 +98,23 @@ public final class RayEvent {
     }
 
     private static IRayConeConfig buildGlobalConeConfig() {
-        double range = Config.LIGHT_RANGE.get();
-        double angle = Config.LIGHT_ANGLE.get();
-        List<? extends String> colors = Config.LIGHT_COLORS_ARGB.get();
-        List<? extends String> sizeScales = Config.LAYER_SIZE_SCALES.get();
-        List<? extends String> centerAlphas = Config.LAYER_CENTER_ALPHAS.get();
-        List<? extends String> edgeAlphas = Config.LAYER_EDGE_ALPHAS.get();
-        List<? extends String> layerColors = Config.LAYER_COLORS_ARGB.get();
-        double noiseAmplitude = Config.COLOR_NOISE_AMPLITUDE.get();
-        boolean coneRaycast = Config.CONE_RAYCAST.get();
-        boolean fogEnabled = Config.FOG_ENABLED.get();
-        double fogSizeScale = Config.FOG_SIZE_SCALE.get();
-        double fogCenterAlpha = Config.FOG_CENTER_ALPHA.get();
-        double fogEdgeAlpha = Config.FOG_EDGE_ALPHA.get();
-        String fogColor = Config.FOG_COLOR_ARGB.get();
+        LampDeviceConfig cfg = LampDeviceConfig.fromGlobalConfig();
+        double range = DynamicLightDefaults.FLASHLIGHT_RANGE * VISIBLE_CONE_RANGE_SCALE;
+        double angle = Math.max(cfg.lightAngle() - VISIBLE_CONE_ANGLE_OFFSET, MIN_CONE_ANGLE);
+        List<? extends String> colors = cfg.lightColorsARGB();
+        List<? extends String> sizeScales = cfg.layerSizeScales();
+        List<? extends String> edgeAlphas = cfg.layerEdgeAlphas();
+        List<? extends String> layerColors = cfg.layerColorsARGB();
+        double noiseAmplitude = cfg.colorNoiseAmplitude();
+        boolean coneRaycast = cfg.coneRaycast();
+        boolean fogEnabled = cfg.fog().enabled();
+        double fogSizeScale = cfg.fog().sizeScale();
+        double fogCenterAlpha = cfg.fog().centerAlpha();
+        double fogEdgeAlpha = cfg.fog().edgeAlpha();
+        String fogColor = cfg.fog().colorARGB();
 
         if (GLOBAL_CONFIG_CACHE.matches(
-                range, angle, colors, sizeScales, centerAlphas, edgeAlphas,
+                range, angle, colors, sizeScales, edgeAlphas,
                 layerColors, noiseAmplitude, coneRaycast, fogEnabled,
                 fogSizeScale, fogCenterAlpha, fogEdgeAlpha, fogColor
         )) {
@@ -107,11 +126,16 @@ public final class RayEvent {
                 .angle(angle)
                 .colorStops(ColorUtils.parseColorStops(colors));
 
-        // layers
-        int count = Math.min(sizeScales.size(), Math.min(centerAlphas.size(), edgeAlphas.size()));
+        // layers: the inner alpha follows the first color stop's alpha, then
+        // falls off through the derived curve; edge alphas stay configured.
+        int count = Math.min(sizeScales.size(), edgeAlphas.size());
+        float[] centerAlphas = deriveLayerCenterAlphas(
+                ColorUtils.parseColorRGBAWithAlpha(
+                        colors.isEmpty() ? EntityLightProfile.DEFAULT_LIGHT_COLOR : colors.get(0))[3],
+                count);
         for (int i = 0; i < count; i++) {
             float ss = parseFloat(sizeScales.get(i), 1.0f);
-            float ca = clamp01(parseFloat(centerAlphas.get(i), 0.12f));
+            float ca = centerAlphas[i];
             float ea = clamp01(parseFloat(edgeAlphas.get(i), 0.02f));
             float[] lc = null;
             if (i < layerColors.size()) {
@@ -134,7 +158,7 @@ public final class RayEvent {
         }
 
         GLOBAL_CONFIG_CACHE.update(
-                range, angle, colors, sizeScales, centerAlphas, edgeAlphas,
+                range, angle, colors, sizeScales, edgeAlphas,
                 layerColors, noiseAmplitude, coneRaycast, fogEnabled,
                 fogSizeScale, fogCenterAlpha, fogEdgeAlpha, fogColor,
                 builder.build()
@@ -148,7 +172,6 @@ public final class RayEvent {
         private double angle;
         private List<? extends String> colors;
         private List<? extends String> sizeScales;
-        private List<? extends String> centerAlphas;
         private List<? extends String> edgeAlphas;
         private List<? extends String> layerColors;
         private double noiseAmplitude;
@@ -161,7 +184,7 @@ public final class RayEvent {
 
         private boolean matches(
                 double range, double angle, List<? extends String> colors,
-                List<? extends String> sizeScales, List<? extends String> centerAlphas,
+                List<? extends String> sizeScales,
                 List<? extends String> edgeAlphas, List<? extends String> layerColors,
                 double noiseAmplitude, boolean coneRaycast, boolean fogEnabled,
                 double fogSizeScale, double fogCenterAlpha, double fogEdgeAlpha,
@@ -172,7 +195,6 @@ public final class RayEvent {
                     && this.angle == angle
                     && this.colors == colors
                     && this.sizeScales == sizeScales
-                    && this.centerAlphas == centerAlphas
                     && this.edgeAlphas == edgeAlphas
                     && this.layerColors == layerColors
                     && this.noiseAmplitude == noiseAmplitude
@@ -186,7 +208,7 @@ public final class RayEvent {
 
         private void update(
                 double range, double angle, List<? extends String> colors,
-                List<? extends String> sizeScales, List<? extends String> centerAlphas,
+                List<? extends String> sizeScales,
                 List<? extends String> edgeAlphas, List<? extends String> layerColors,
                 double noiseAmplitude, boolean coneRaycast, boolean fogEnabled,
                 double fogSizeScale, double fogCenterAlpha, double fogEdgeAlpha,
@@ -196,7 +218,6 @@ public final class RayEvent {
             this.angle = angle;
             this.colors = colors;
             this.sizeScales = sizeScales;
-            this.centerAlphas = centerAlphas;
             this.edgeAlphas = edgeAlphas;
             this.layerColors = layerColors;
             this.noiseAmplitude = noiseAmplitude;
@@ -227,10 +248,12 @@ public final class RayEvent {
     public static IRayConeConfig buildLampConeConfig(
             LampDeviceConfig cfg, EntityLightProfile profile
     ) {
-        double range = profile != null ? profile.range() : cfg.lightRange();
+        double range = profile != null
+                ? profile.range() * VISIBLE_CONE_RANGE_SCALE
+                : DynamicLightDefaults.FLASHLIGHT_RANGE * VISIBLE_CONE_RANGE_SCALE;
         double angle = profile != null
-                ? Math.toDegrees(profile.outerAngle() * 2.0)
-                : cfg.lightAngle();
+                ? Math.max(Math.toDegrees(profile.outerAngle() * 2.0) - VISIBLE_CONE_ANGLE_OFFSET, MIN_CONE_ANGLE)
+                : Math.max(cfg.lightAngle() - VISIBLE_CONE_ANGLE_OFFSET, MIN_CONE_ANGLE);
         float[] profileColor = profile == null
                 ? null : ColorUtils.parseColorRGBAWithAlpha(profile.lightColor());
         List<float[]> colorStops = profileColor == null
@@ -242,23 +265,19 @@ public final class RayEvent {
                 .colorStops(colorStops);
 
         int count = profile == null
-                ? Math.min(cfg.layerSizeScales().size(),
-                Math.min(cfg.layerCenterAlphas().size(), cfg.layerEdgeAlphas().size()))
+                ? Math.min(cfg.layerSizeScales().size(), cfg.layerEdgeAlphas().size())
                 : ENTITY_CONE_LAYER_COUNT;
-        float[] centerAlphas = profileColor == null
-                ? null : deriveLayerAlphas(cfg.layerCenterAlphas(), DEFAULT_LAYER_CENTER_ALPHAS,
-                profileColor[3], count, true);
-        float[] edgeAlphas = profileColor == null
-                ? null : deriveLayerAlphas(cfg.layerEdgeAlphas(), DEFAULT_LAYER_EDGE_ALPHAS,
-                profileColor[3], count, false);
+        float colorAlpha = profileColor == null
+                ? ColorUtils.parseColorRGBAWithAlpha(
+                cfg.lightColorsARGB().isEmpty()
+                        ? EntityLightProfile.DEFAULT_LIGHT_COLOR : cfg.lightColorsARGB().get(0))[3]
+                : profileColor[3];
+        float[] centerAlphas = deriveLayerCenterAlphas(colorAlpha, count);
+        float[] edgeAlphas = deriveLayerEdgeAlphas(cfg.layerEdgeAlphas(), colorAlpha, count);
         for (int i = 0; i < count; i++) {
             float ss = parseFloatAt(cfg.layerSizeScales(), i, DEFAULT_LAYER_SIZE_SCALES[i]);
-            float ca = centerAlphas == null
-                    ? clamp01(parseFloat(cfg.layerCenterAlphas().get(i), 0.12f))
-                    : centerAlphas[i];
-            float ea = edgeAlphas == null
-                    ? clamp01(parseFloat(cfg.layerEdgeAlphas().get(i), 0.02f))
-                    : edgeAlphas[i];
+            float ca = centerAlphas[i];
+            float ea = edgeAlphas[i];
             float[] lc = profileColor == null
                     ? null : new float[]{profileColor[0], profileColor[1], profileColor[2]};
             if (profileColor == null && i < cfg.layerColorsARGB().size()) {
@@ -285,33 +304,42 @@ public final class RayEvent {
     }
 
     /**
-     * Derives each layer from the current three baseline alpha values. For
-     * center alphas, the first layer is the profile color alpha directly;
-     * following layers retain adjacent baseline ratios instead of hard-coded
-     * alpha values. Edge alphas keep their configured base scaling.
+     * Derives the per-layer center alpha from the incoming color alpha using
+     * the curve implied by the legacy baseline {@code 0.15 / 0.12 / 0.08}:
+     * the inner layer keeps the color alpha, and each outer layer falls off
+     * by the corresponding ratio of that baseline.
      */
-    private static float[] deriveLayerAlphas(
-            List<String> configured,
-            float[] defaults,
-            float colorAlpha,
-            int count,
-            boolean directFirstLayer
+    private static float[] deriveLayerCenterAlphas(float colorAlpha, int count) {
+        float[] result = new float[count];
+        for (int i = 0; i < count; i++) {
+            float scale = i < LAYER_CENTER_ALPHA_SCALES.length
+                    ? LAYER_CENTER_ALPHA_SCALES[i]
+                    : LAYER_CENTER_ALPHA_SCALES[LAYER_CENTER_ALPHA_SCALES.length - 1];
+            result[i] = clamp01(colorAlpha * scale);
+        }
+        return result;
+    }
+
+    /**
+     * Derives the per-layer edge alpha: the inner layer scales the color alpha
+     * by the configured base, and outer layers follow the same proportional
+     * decay as the configured edge baseline (defaults all zero).
+     */
+    private static float[] deriveLayerEdgeAlphas(
+            List<String> configured, float colorAlpha, int count
     ) {
         float[] result = new float[count];
         float previousBase = 0.0f;
         float previousValue = 0.0f;
         for (int i = 0; i < count; i++) {
-            float fallback = i < defaults.length ? defaults[i] : previousBase;
+            float fallback = i < DEFAULT_LAYER_EDGE_ALPHAS.length
+                    ? DEFAULT_LAYER_EDGE_ALPHAS[i] : previousBase;
             float currentBase = clamp01(parseFloatAt(configured, i, fallback));
-            // A wider layer should never become brighter than the layer it
-            // surrounds, even when a custom list is not monotonically ordered.
             if (i > 0) {
                 currentBase = Math.min(currentBase, previousBase);
             }
             if (i == 0) {
-                previousValue = directFirstLayer
-                        ? clamp01(colorAlpha)
-                        : clamp01(colorAlpha * currentBase);
+                previousValue = clamp01(colorAlpha * currentBase);
             } else if (previousBase > 1.0E-6f) {
                 previousValue = clamp01(previousValue * currentBase / previousBase);
             } else {

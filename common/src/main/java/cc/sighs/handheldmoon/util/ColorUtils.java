@@ -15,12 +15,12 @@ public final class ColorUtils {
             return res;
         }
         for (String s : list) {
-            String t = normalizeArgbHex(s);
+            String t = normalizeRgbaHex(s);
             if (t == null) continue;
             try {
-                int r = Integer.parseInt(t.substring(2, 4), 16);
-                int g = Integer.parseInt(t.substring(4, 6), 16);
-                int b = Integer.parseInt(t.substring(6, 8), 16);
+                int r = Integer.parseInt(t.substring(0, 2), 16);
+                int g = Integer.parseInt(t.substring(2, 4), 16);
+                int b = Integer.parseInt(t.substring(4, 6), 16);
                 res.add(new float[]{r / 255.0f, g / 255.0f, b / 255.0f});
             } catch (RuntimeException ignored) {
                 // Keep malformed device stops out of the gradient.
@@ -94,13 +94,14 @@ public final class ColorUtils {
         colorAtInto(stops, baseT + wobble, result);
     }
 
+    /** Parses an {@code RRGGBBAA} device color into RGB floats; alpha is ignored. */
     public static float[] parseColorARGB(String s) {
-        String t = normalizeArgbHex(s);
+        String t = normalizeRgbaHex(s);
         if (t == null) return new float[]{1.0f, 1.0f, 1.0f};
         try {
-            int r = Integer.parseInt(t.substring(2, 4), 16);
-            int g = Integer.parseInt(t.substring(4, 6), 16);
-            int b = Integer.parseInt(t.substring(6, 8), 16);
+            int r = Integer.parseInt(t.substring(0, 2), 16);
+            int g = Integer.parseInt(t.substring(2, 4), 16);
+            int b = Integer.parseInt(t.substring(4, 6), 16);
             return new float[]{r / 255.0f, g / 255.0f, b / 255.0f};
         } catch (RuntimeException ignored) {
             return new float[]{1.0f, 1.0f, 1.0f};
@@ -142,8 +143,8 @@ public final class ColorUtils {
         return null;
     }
 
-    /** Normalizes the legacy device color form ({@code AARRGGBB}). */
-    private static String normalizeArgbHex(String source) {
+    /** Normalizes an {@code RRGGBBAA} hex color (alpha last, no '#'). */
+    private static String normalizeRgbaHex(String source) {
         if (source == null) {
             return null;
         }
@@ -155,7 +156,7 @@ public final class ColorUtils {
             value = value.substring(1);
         }
         if (value.length() == 6) {
-            value = "FF" + value;
+            value = value + "FF";
         }
         return value.length() == 8 ? value : null;
     }
@@ -201,6 +202,20 @@ public final class ColorUtils {
         return formatWebColor(parseArgbColor(source));
     }
 
+    /** Converts a Web/CSS color to canonical uppercase RRGGBBAA form (alpha last, no '#'). */
+    public static String webColorToRgbaHex(String source) {
+        Color color = parseJavaColor(source);
+        return String.format(Locale.ROOT, "%02X%02X%02X%02X",
+                color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+    }
+
+    /** Converts a Web/CSS color to canonical uppercase AARRGGBB form. */
+    public static String webColorToArgb(String source) {
+        Color color = parseJavaColor(source);
+        return String.format(Locale.ROOT, "%02X%02X%02X%02X",
+                color.getAlpha(), color.getRed(), color.getGreen(), color.getBlue());
+    }
+
     /** Returns a canonical uppercase AARRGGBB string for legacy settings. */
     public static String normalizeColorARGB(String source) {
         Color color = parseArgbColor(source);
@@ -224,15 +239,12 @@ public final class ColorUtils {
         };
     }
 
-    /** Returns RGBA floats for a legacy AARRGGBB color. */
+    /**
+     * @deprecated colors are stored as {@code RRGGBBAA}; use {@link #parseColorRGBAWithAlpha(String)}.
+     */
+    @Deprecated
     public static float[] parseColorARGBWithAlpha(String source) {
-        Color color = parseArgbColor(source);
-        return new float[]{
-                color.getRed() / 255.0f,
-                color.getGreen() / 255.0f,
-                color.getBlue() / 255.0f,
-                color.getAlpha() / 255.0f
-        };
+        return parseColorRGBAWithAlpha(source);
     }
 
     private static float[] rgb(Color color) {

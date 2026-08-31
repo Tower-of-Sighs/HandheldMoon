@@ -1,13 +1,11 @@
 package cc.sighs.handheldmoon.lights;
 
 import cc.sighs.handheldmoon.api.light.DynamicLightBuilder;
-import cc.sighs.handheldmoon.api.light.AttenuationCurve;
 import cc.sighs.handheldmoon.api.light.impl.RayLightBehavior;
 import cc.sighs.handheldmoon.block.FullMoonBlock;
 import cc.sighs.handheldmoon.api.content.FullMoonBlockEntityAccess;
 import cc.sighs.handheldmoon.config.FullMoonDeviceConfig;
 import cc.sighs.handheldmoon.dynamiclight.DynamicLightBehavior;
-import cc.sighs.handheldmoon.registry.Config;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -27,8 +25,6 @@ public class FullMoonBlockBehavior implements DynamicLightBehavior {
     private double lastLuminance;
     private boolean lastRealLight;
     private boolean lastOcclusion;
-    private double lastRadius;
-    private AttenuationCurve lastAttenuation;
     private static final long WORLD_CHANGE_REFRESH_TICKS = 6L;
     private long cacheEpoch = Long.MIN_VALUE;
 
@@ -38,17 +34,14 @@ public class FullMoonBlockBehavior implements DynamicLightBehavior {
         this.lastLuminance = cfg.realLightLuminance();
         this.lastRealLight = cfg.realLight();
         this.lastOcclusion = cfg.lightOcclusion();
-        this.lastRadius = cfg.realLightRadius();
-        this.lastAttenuation = cfg.realLightAttenuation();
         this.delegate = createDelegate(cfg);
     }
 
     private RayLightBehavior createDelegate(FullMoonDeviceConfig cfg) {
         return new RayLightBehavior(
                 DynamicLightBuilder.point()
-                        .range(cfg.realLightRadius())
+                        .range(18.0)
                         .luminance(cfg.realLightLuminance())
-                        .attenuation(cfg.realLightAttenuation())
                         .occlusion(cfg.lightOcclusion())
                         .buildConfig(),
                         () -> pos.getCenter(),
@@ -73,15 +66,11 @@ public class FullMoonBlockBehavior implements DynamicLightBehavior {
         FullMoonDeviceConfig cfg = configFromLevel();
         boolean cfgChanged = Math.abs(cfg.realLightLuminance() - lastLuminance) > 0.001
                 || cfg.realLight() != lastRealLight
-                || cfg.lightOcclusion() != lastOcclusion
-                || Math.abs(cfg.realLightRadius() - lastRadius) > 0.001
-                || cfg.realLightAttenuation() != lastAttenuation;
+                || cfg.lightOcclusion() != lastOcclusion;
         if (cfgChanged) {
             lastLuminance = cfg.realLightLuminance();
             lastRealLight = cfg.realLight();
             lastOcclusion = cfg.lightOcclusion();
-            lastRadius = cfg.realLightRadius();
-            lastAttenuation = cfg.realLightAttenuation();
             delegate = createDelegate(cfg);
             return true;
         }
@@ -125,13 +114,7 @@ public class FullMoonBlockBehavior implements DynamicLightBehavior {
         if (level != null && getExistingBlockEntity(level) instanceof FullMoonBlockEntityAccess moon) {
             return moon.getFullMoonConfig();
         }
-        return new FullMoonDeviceConfig(
-                Config.REAL_LIGHT.get(),
-                Config.REAL_LIGHT_LUMINANCE.get(),
-                Config.FULL_MOON_RADIUS.get(),
-                AttenuationCurve.parse(Config.REAL_LIGHT_ATTENUATION.get()),
-                Config.LIGHT_OCCLUSION.get()
-        );
+        return FullMoonDeviceConfig.fromGlobalConfig();
     }
 
     private BlockEntity getExistingBlockEntity(Level level) {

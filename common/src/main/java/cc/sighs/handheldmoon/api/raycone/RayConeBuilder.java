@@ -57,11 +57,11 @@ public final class RayConeBuilder {
     // ---- color stops ----
 
     /**
-     * Add a colour stop as an ARGB hex string ({@code #RRGGBB} or {@code #AARRGGBB}).
+     * Add a colour stop as an {@code RRGGBBAA} hex string ({@code #RRGGBB} or {@code #RRGGBBAA}).
      * Stops are interpolated linearly along the cone length.
      */
-    public RayConeBuilder addColorStop(String argbHex) {
-        this.colorStops.add(parseHexColor(argbHex));
+    public RayConeBuilder addColorStop(String hex) {
+        this.colorStops.add(parseHexColor(hex));
         return this;
     }
 
@@ -203,9 +203,9 @@ public final class RayConeBuilder {
             return this;
         }
 
-        /** Fog colour as an ARGB hex string. */
-        public FogConfigBuilder color(String argbHex) {
-            this.color = parseHexColor(argbHex);
+        /** Fog colour as an {@code RRGGBBAA} hex string. */
+        public FogConfigBuilder color(String hex) {
+            this.color = parseHexColor(hex);
             return this;
         }
 
@@ -264,13 +264,13 @@ public final class RayConeBuilder {
         if (s == null || s.trim().isEmpty()) return new float[]{1, 1, 1};
         String t = s.trim();
         if (t.startsWith("#")) t = t.substring(1);
-        if (t.length() == 6) t = "FF" + t;
+        if (t.length() == 6) t = t + "FF";
         if (t.length() != 8) return new float[]{1, 1, 1};
         try {
             return new float[]{
+                    Integer.parseInt(t.substring(0, 2), 16) / 255f,
                     Integer.parseInt(t.substring(2, 4), 16) / 255f,
-                    Integer.parseInt(t.substring(4, 6), 16) / 255f,
-                    Integer.parseInt(t.substring(6, 8), 16) / 255f
+                    Integer.parseInt(t.substring(4, 6), 16) / 255f
             };
         } catch (Exception e) {
             return new float[]{1, 1, 1};

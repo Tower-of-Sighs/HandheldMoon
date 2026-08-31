@@ -57,6 +57,11 @@ public final class FabricPlatformService implements PlatformService {
     }
 
     @Override
+    public java.nio.file.Path configDirectory() {
+        return net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir();
+    }
+
+    @Override
     public void initialize(Object loaderContext) {
         registerPayloads();
         forceCommonRegistrations();

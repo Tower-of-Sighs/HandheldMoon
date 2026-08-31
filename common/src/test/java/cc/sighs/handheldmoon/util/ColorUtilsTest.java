@@ -21,7 +21,15 @@ class ColorUtilsTest {
 
     @Test
     void keepsInvalidColorStopsOutOfTheGradient() {
+        // "FF0000FF" is a valid RRGGBBAA red; the invalid token is dropped.
         assertEquals(1, ColorUtils.parseColorStops(java.util.List.of(
-                "not-a-color", "FFFF0000")).size());
+                "not-a-color", "FF0000FF")).size());
+    }
+
+    @Test
+    void convertsWebColorToCanonicalRgbaHex() {
+        assertEquals("FFFFFF22", ColorUtils.webColorToRgbaHex("#FFFFFF22"));
+        assertEquals("FFFFFF80", ColorUtils.webColorToRgbaHex("FFFFFF80"));
+        assertEquals("40A0FF80", ColorUtils.webColorToRgbaHex("#40A0FF80"));
     }
 }

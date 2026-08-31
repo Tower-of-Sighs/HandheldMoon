@@ -1,7 +1,8 @@
 package cc.sighs.handheldmoon.config;
 
-import cc.sighs.handheldmoon.api.light.AttenuationCurve;
-import cc.sighs.handheldmoon.dynamiclight.DynamicLightDefaults;
+import cc.sighs.handheldmoon.api.light.EntityLightProfile;
+import cc.sighs.handheldmoon.util.ColorUtils;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -14,7 +15,6 @@ public final class LampDeviceConfig {
     private static final Object GLOBAL_CONFIG_LOCK = new Object();
     private static volatile LampDeviceConfig globalConfigCache;
 
-    private final double lightRange;
     private final double lightAngle;
     private final List<String> lightColorsARGB;
     private final boolean realLight;
@@ -22,17 +22,13 @@ public final class LampDeviceConfig {
     private final boolean lightOcclusion;
     private final boolean coneRaycast;
     private final double realLightLuminance;
-    private final double realLightRadius;
-    private final AttenuationCurve realLightAttenuation;
     private final List<String> layerSizeScales;
-    private final List<String> layerCenterAlphas;
     private final List<String> layerEdgeAlphas;
     private final List<String> layerColorsARGB;
     private final double colorNoiseAmplitude;
     private final FogSettings fog;
 
     public LampDeviceConfig(
-            double lightRange,
             double lightAngle,
             List<String> lightColorsARGB,
             boolean realLight,
@@ -41,38 +37,11 @@ public final class LampDeviceConfig {
             boolean coneRaycast,
             double realLightLuminance,
             List<String> layerSizeScales,
-            List<String> layerCenterAlphas,
             List<String> layerEdgeAlphas,
             List<String> layerColorsARGB,
             double colorNoiseAmplitude,
             FogSettings fog
     ) {
-        this(lightRange, lightAngle, lightColorsARGB, realLight, lightIntensity,
-                lightOcclusion, coneRaycast, realLightLuminance,
-                DynamicLightDefaults.FLASHLIGHT_RANGE, AttenuationCurve.QUADRATIC,
-                layerSizeScales, layerCenterAlphas, layerEdgeAlphas, layerColorsARGB,
-                colorNoiseAmplitude, fog);
-    }
-
-    public LampDeviceConfig(
-            double lightRange,
-            double lightAngle,
-            List<String> lightColorsARGB,
-            boolean realLight,
-            double lightIntensity,
-            boolean lightOcclusion,
-            boolean coneRaycast,
-            double realLightLuminance,
-            double realLightRadius,
-            AttenuationCurve realLightAttenuation,
-            List<String> layerSizeScales,
-            List<String> layerCenterAlphas,
-            List<String> layerEdgeAlphas,
-            List<String> layerColorsARGB,
-            double colorNoiseAmplitude,
-            FogSettings fog
-    ) {
-        this.lightRange = clamp(lightRange, 1.0, 64.0);
         this.lightAngle = clamp(lightAngle, 10.0, 120.0);
         this.lightColorsARGB = immutableCopy(lightColorsARGB);
         this.realLight = realLight;
@@ -80,19 +49,11 @@ public final class LampDeviceConfig {
         this.lightOcclusion = lightOcclusion;
         this.coneRaycast = coneRaycast;
         this.realLightLuminance = clamp(realLightLuminance, 0.0, 15.0);
-        this.realLightRadius = clamp(realLightRadius, 0.0, 64.0);
-        this.realLightAttenuation = realLightAttenuation == null
-                ? AttenuationCurve.QUADRATIC : realLightAttenuation;
         this.layerSizeScales = immutableCopy(layerSizeScales);
-        this.layerCenterAlphas = immutableCopy(layerCenterAlphas);
         this.layerEdgeAlphas = immutableCopy(layerEdgeAlphas);
         this.layerColorsARGB = immutableCopy(layerColorsARGB);
         this.colorNoiseAmplitude = clamp(colorNoiseAmplitude, 0.0, 1.0);
         this.fog = fog;
-    }
-
-    public double lightRange() {
-        return lightRange;
     }
 
     public double lightAngle() {
@@ -123,22 +84,8 @@ public final class LampDeviceConfig {
         return realLightLuminance;
     }
 
-    /** Hard radius for the physical world-light contribution. */
-    public double realLightRadius() {
-        return realLightRadius;
-    }
-
-    /** Distance falloff preset for the physical world-light contribution. */
-    public AttenuationCurve realLightAttenuation() {
-        return realLightAttenuation;
-    }
-
     public List<String> layerSizeScales() {
         return layerSizeScales;
-    }
-
-    public List<String> layerCenterAlphas() {
-        return layerCenterAlphas;
     }
 
     public List<String> layerEdgeAlphas() {
@@ -155,6 +102,30 @@ public final class LampDeviceConfig {
 
     public FogSettings fog() {
         return fog;
+    }
+
+    /** Returns a copy of this config with {@code realLight} replaced. */
+    public LampDeviceConfig withRealLight(boolean realLight) {
+        return new LampDeviceConfig(
+                lightAngle, lightColorsARGB, realLight, lightIntensity, lightOcclusion,
+                coneRaycast, realLightLuminance, layerSizeScales,
+                layerEdgeAlphas, layerColorsARGB, colorNoiseAmplitude, fog);
+    }
+
+    /** Returns a copy of this config with {@code lightIntensity} replaced. */
+    public LampDeviceConfig withLightIntensity(double lightIntensity) {
+        return new LampDeviceConfig(
+                lightAngle, lightColorsARGB, realLight, lightIntensity, lightOcclusion,
+                coneRaycast, realLightLuminance, layerSizeScales,
+                layerEdgeAlphas, layerColorsARGB, colorNoiseAmplitude, fog);
+    }
+
+    /** Returns a copy of this config with {@code coneRaycast} replaced. */
+    public LampDeviceConfig withConeRaycast(boolean coneRaycast) {
+        return new LampDeviceConfig(
+                lightAngle, lightColorsARGB, realLight, lightIntensity, lightOcclusion,
+                coneRaycast, realLightLuminance, layerSizeScales,
+                layerEdgeAlphas, layerColorsARGB, colorNoiseAmplitude, fog);
     }
 
     /** Returns the memoized global config; invalidate it after live values change. */
@@ -196,19 +167,15 @@ public final class LampDeviceConfig {
             return false;
         }
         LampDeviceConfig that = (LampDeviceConfig) other;
-        return Double.compare(lightRange, that.lightRange) == 0
-                && Double.compare(lightAngle, that.lightAngle) == 0
+        return Double.compare(lightAngle, that.lightAngle) == 0
                 && realLight == that.realLight
                 && Double.compare(lightIntensity, that.lightIntensity) == 0
                 && lightOcclusion == that.lightOcclusion
                 && coneRaycast == that.coneRaycast
                 && Double.compare(realLightLuminance, that.realLightLuminance) == 0
-                && Double.compare(realLightRadius, that.realLightRadius) == 0
-                && realLightAttenuation == that.realLightAttenuation
                 && Double.compare(colorNoiseAmplitude, that.colorNoiseAmplitude) == 0
                 && lightColorsARGB.equals(that.lightColorsARGB)
                 && layerSizeScales.equals(that.layerSizeScales)
-                && layerCenterAlphas.equals(that.layerCenterAlphas)
                 && layerEdgeAlphas.equals(that.layerEdgeAlphas)
                 && layerColorsARGB.equals(that.layerColorsARGB)
                 && Objects.equals(fog, that.fog);
@@ -217,7 +184,6 @@ public final class LampDeviceConfig {
     @Override
     public int hashCode() {
         return Objects.hash(
-                lightRange,
                 lightAngle,
                 lightColorsARGB,
                 realLight,
@@ -225,10 +191,7 @@ public final class LampDeviceConfig {
                 lightOcclusion,
                 coneRaycast,
                 realLightLuminance,
-                realLightRadius,
-                realLightAttenuation,
                 layerSizeScales,
-                layerCenterAlphas,
                 layerEdgeAlphas,
                 layerColorsARGB,
                 colorNoiseAmplitude,
@@ -236,24 +199,21 @@ public final class LampDeviceConfig {
         );
     }
 
-    private static LampDeviceConfig builtInDefaults() {
+    /** Returns the built-in default device config, used as the single source of defaults. */
+    public static LampDeviceConfig builtInDefaults() {
         return new LampDeviceConfig(
-                14.0,
                 56.0,
-                Collections.singletonList("FFFFFFFF"),
+                Collections.singletonList(ColorUtils.webColorToRgbaHex(EntityLightProfile.DEFAULT_LIGHT_COLOR)),
                 true,
                 0.3,
                 false,
                 false,
                 15.0,
-                DynamicLightDefaults.FLASHLIGHT_RANGE,
-                AttenuationCurve.QUADRATIC,
                 Arrays.asList("1.00", "1.08", "1.16"),
-                Arrays.asList("0.15", "0.12", "0.08"),
                 Arrays.asList("0.00", "0.00", "0.00"),
                 Collections.emptyList(),
                 0.35,
-                new FogSettings(false, 1.30, 0.06, 0.05, "80FFFFFF")
+                new FogSettings(false, 1.30, 0.06, 0.05, "FFFFFF80")
         );
     }
 

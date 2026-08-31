@@ -29,15 +29,11 @@ public abstract class AbstractMoonlightLampDeviceConfigScreen extends Screen {
     private boolean lightOcclusion;
     private boolean coneRaycast;
     private boolean fogEnabled;
-    private String lightRangeText;
     private String lightAngleText;
     private String lightColorsText;
     private String lightIntensityText;
     private String realLightLuminanceText;
-    private String realLightRadiusText;
-    private String realLightAttenuationText;
     private String layerSizeScalesText;
-    private String layerCenterAlphasText;
     private String layerEdgeAlphasText;
     private String layerColorsText;
     private String colorNoiseAmplitudeText;
@@ -75,7 +71,7 @@ public abstract class AbstractMoonlightLampDeviceConfigScreen extends Screen {
     private void rebuildPage() {
         clearWidgets();
         int panelWidth = Math.min(640, this.width - 24);
-        int panelHeight = Math.min(390, this.height - 16);
+        int panelHeight = Math.min(330, this.height - 16);
         int left = (this.width - panelWidth) / 2;
         int top = (this.height - panelHeight) / 2;
         int contentLeft = left + 14;
@@ -102,16 +98,12 @@ public abstract class AbstractMoonlightLampDeviceConfigScreen extends Screen {
             y += rowStep;
             addRenderableWidget(makeToggle(Component.translatable("config.handheldmoon.client_settings.enableConeRaycast"), contentLeft, y, contentWidth, coneRaycast, value -> coneRaycast = value));
             y += rowStep;
-            y = addLabeledEditRow(contentLeft, contentWidth, y, Component.translatable("config.handheldmoon.client_settings.lightRange"), lightRangeText, value -> lightRangeText = value);
             y = addLabeledEditRow(contentLeft, contentWidth, y, Component.translatable("config.handheldmoon.client_settings.lightAngle"), lightAngleText, value -> lightAngleText = value);
             y = addLabeledEditRow(contentLeft, contentWidth, y, Component.translatable("config.handheldmoon.client_settings.realLightLuminance"), realLightLuminanceText, value -> realLightLuminanceText = value);
-            y = addLabeledEditRow(contentLeft, contentWidth, y, Component.translatable("config.handheldmoon.client_settings.realLightRadius"), realLightRadiusText, value -> realLightRadiusText = value);
-            y = addLabeledEditRow(contentLeft, contentWidth, y, Component.translatable("config.handheldmoon.client_settings.realLightAttenuation"), realLightAttenuationText, value -> realLightAttenuationText = value);
             y = addLabeledEditRow(contentLeft, contentWidth, y, Component.translatable("config.handheldmoon.client_settings.lightIntensity"), lightIntensityText, value -> lightIntensityText = value);
             addLabeledEditRow(contentLeft, contentWidth, y, Component.translatable("config.handheldmoon.client_settings.lightColorsARGB"), lightColorsText, value -> lightColorsText = value);
         } else if (page == Page.LAYER) {
             y = addLabeledEditRow(contentLeft, contentWidth, y, Component.translatable("config.handheldmoon.client_settings.layerSizeScales"), layerSizeScalesText, value -> layerSizeScalesText = value);
-            y = addLabeledEditRow(contentLeft, contentWidth, y, Component.translatable("config.handheldmoon.client_settings.layerCenterAlphas"), layerCenterAlphasText, value -> layerCenterAlphasText = value);
             y = addLabeledEditRow(contentLeft, contentWidth, y, Component.translatable("config.handheldmoon.client_settings.layerEdgeAlphas"), layerEdgeAlphasText, value -> layerEdgeAlphasText = value);
             y = addLabeledEditRow(contentLeft, contentWidth, y, Component.translatable("config.handheldmoon.client_settings.layerColorsARGB"), layerColorsText, value -> layerColorsText = value);
             addLabeledEditRow(contentLeft, contentWidth, y, Component.translatable("config.handheldmoon.client_settings.colorNoiseAmplitude"), colorNoiseAmplitudeText, value -> colorNoiseAmplitudeText = value);
@@ -170,7 +162,6 @@ public abstract class AbstractMoonlightLampDeviceConfigScreen extends Screen {
         LampDeviceConfig old = target.get();
         LampDeviceConfig.FogSettings oldFog = old.fog();
         target.apply(new LampDeviceConfig(
-                parseDouble(lightRangeText, old.lightRange()),
                 parseDouble(lightAngleText, old.lightAngle()),
                 parseList(lightColorsText, old.lightColorsARGB(), false),
                 realLight,
@@ -178,10 +169,7 @@ public abstract class AbstractMoonlightLampDeviceConfigScreen extends Screen {
                 lightOcclusion,
                 coneRaycast,
                 parseDouble(realLightLuminanceText, old.realLightLuminance()),
-                parseDouble(realLightRadiusText, old.realLightRadius()),
-                cc.sighs.handheldmoon.api.light.AttenuationCurve.parse(realLightAttenuationText),
                 parseList(layerSizeScalesText, old.layerSizeScales(), false),
-                parseList(layerCenterAlphasText, old.layerCenterAlphas(), false),
                 parseList(layerEdgeAlphasText, old.layerEdgeAlphas(), false),
                 parseList(layerColorsText, old.layerColorsARGB(), true),
                 parseDouble(colorNoiseAmplitudeText, old.colorNoiseAmplitude()),
@@ -203,15 +191,11 @@ public abstract class AbstractMoonlightLampDeviceConfigScreen extends Screen {
         this.lightOcclusion = config.lightOcclusion();
         this.coneRaycast = config.coneRaycast();
         this.fogEnabled = fog.enabled();
-        this.lightRangeText = doubleText(config.lightRange());
         this.lightAngleText = doubleText(config.lightAngle());
         this.lightColorsText = join(config.lightColorsARGB());
         this.lightIntensityText = doubleText(config.lightIntensity());
         this.realLightLuminanceText = doubleText(config.realLightLuminance());
-        this.realLightRadiusText = doubleText(config.realLightRadius());
-        this.realLightAttenuationText = config.realLightAttenuation().name();
         this.layerSizeScalesText = join(config.layerSizeScales());
-        this.layerCenterAlphasText = join(config.layerCenterAlphas());
         this.layerEdgeAlphasText = join(config.layerEdgeAlphas());
         this.layerColorsText = join(config.layerColorsARGB());
         this.colorNoiseAmplitudeText = doubleText(config.colorNoiseAmplitude());
@@ -269,7 +253,7 @@ public abstract class AbstractMoonlightLampDeviceConfigScreen extends Screen {
     }
 
     protected final int panelHeight() {
-        return Math.min(390, this.height - 16);
+        return Math.min(330, this.height - 16);
     }
 
     protected final int panelLeft() {
