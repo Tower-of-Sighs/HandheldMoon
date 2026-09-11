@@ -17,11 +17,11 @@ public enum AttenuationCurve {
             return 1.0 - t;
         }
     },
-    /** Existing quadratic profile, {@code 1 - t^2}. */
+    /** Softened quadratic profile, {@code (1 - t^2)^0.85}, retaining the hard radius. */
     QUADRATIC {
         @Override
         protected double sample(double t) {
-            return 1.0 - t * t;
+            return Math.pow(1.0 - t * t, 0.85);
         }
     },
     /** Exponential decrease normalized so the radius is still exactly zero. */

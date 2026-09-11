@@ -4,6 +4,7 @@ import cc.sighs.handheldmoon.dynamiclight.DynamicLightRenderHelper;
 import com.mojang.blaze3d.vertex.QuadInstance;
 import net.minecraft.client.renderer.block.BlockModelLighter;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.client.resources.model.geometry.BakedQuad;
@@ -24,7 +25,7 @@ public abstract class DynamicLightBlockModelLighterMixin {
             QuadInstance outputInstance,
             CallbackInfo ci
     ) {
-        outputInstance.multiplyColor(DynamicLightRenderHelper.tintCoefficient(pos));
+        tintSurface(level, state, pos, quad, outputInstance, "FLAT");
     }
 
     @Inject(method = "prepareQuadAmbientOcclusion", at = @At("TAIL"))
@@ -36,6 +37,26 @@ public abstract class DynamicLightBlockModelLighterMixin {
             QuadInstance outputInstance,
             CallbackInfo ci
     ) {
-        outputInstance.multiplyColor(DynamicLightRenderHelper.tintCoefficient(pos));
+        tintSurface(level, state, pos, quad, outputInstance, "SMOOTH");
+    }
+
+    private static void tintSurface(
+            BlockAndTintGetter level, BlockState state, BlockPos pos,
+            BakedQuad quad, QuadInstance outputInstance, String mode
+    ) {
+        Direction face = quad.direction();
+        BlockPos lightPos = state.isCollisionShapeFullBlock(level, pos)
+                ? pos.relative(face) : pos;
+        boolean smooth = "SMOOTH".equals(mode);
+        int flatTint = smooth ? -1 : DynamicLightRenderHelper.tintCoefficient(level, lightPos);
+        for (int i = 0; i < 4; i++) {
+            var vertex = quad.position(i);
+            int coefficient = smooth ? DynamicLightRenderHelper.tintCoefficientForVertex(
+                    level, lightPos, face, vertex.x(), vertex.y(), vertex.z(), outputInstance.getLightCoords(i)
+            ) : flatTint;
+            outputInstance.setColor(i, DynamicLightRenderHelper.multiplyArgb(
+                    outputInstance.getColor(i), coefficient
+            ));
+        }
     }
 }
