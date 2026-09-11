@@ -53,6 +53,17 @@ public final class DynamicLightManager {
     private static volatile DynamicLightBehavior[] snapshot = new DynamicLightBehavior[0];
     private static volatile SectionIndex sectionIndex = emptySectionIndex();
     private static ClientLevel currentLevel;
+    private static SectionReadyCheck sectionReadyCheck = (x, y, z) -> true;
+
+    @FunctionalInterface
+    public interface SectionReadyCheck {
+        boolean isReady(int x, int y, int z);
+    }
+
+    /** Loader renderer hook; checked before consuming a dirty notification. */
+    public static void setSectionReadyCheck(SectionReadyCheck check) {
+        sectionReadyCheck = check;
+    }
 
     private DynamicLightManager() {
     }
@@ -154,6 +165,9 @@ public final class DynamicLightManager {
             rebuildSectionIndex(minecraft, true);
         } else if (coverageChanges != null && !coverageChanges.isEmpty()) {
             rebuildSectionIndexIncremental(coverageChanges);
+        }
+        if (LightmapColorBridge.consumeChanged()) {
+            for (IndexedSource source : sectionIndex.byBehavior.values()) schedule(source.bounds);
         }
         rebuildDirtySections(minecraft);
     }
@@ -731,6 +745,7 @@ public final class DynamicLightManager {
                         iterator.remove();
                         continue;
                     }
+                    if (!isSectionReady(key)) continue;
                     iterator.remove();
                     pending[pendingCount++] = key;
                 }
@@ -749,6 +764,7 @@ public final class DynamicLightManager {
                         iterator.remove();
                         continue;
                     }
+                    if (!isSectionReady(key)) continue;
                     if (fairCount < fair.length) {
                         fair[fairCount++] = key;
                         continue;
@@ -810,11 +826,16 @@ public final class DynamicLightManager {
         if (level == null) {
             return true;
         }
+        if (level.isOutsideBuildHeight(sectionY(key) << 4)) return false;
         return level.hasChunkAt(new BlockPos(
                 sectionX(key) << 4,
                 sectionY(key) << 4,
                 sectionZ(key) << 4
         ));
+    }
+
+    private static boolean isSectionReady(long key) {
+        return sectionReadyCheck.isReady(sectionX(key), sectionY(key), sectionZ(key));
     }
 
     private static SectionIndex emptySectionIndex() {

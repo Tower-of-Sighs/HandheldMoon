@@ -38,7 +38,7 @@ public final class SharedLightMath {
             return range;
         }
         if (curve == null || curve == AttenuationCurve.QUADRATIC) {
-            double factor = 1.0 - threshold / luminance;
+            double factor = 1.0 - Math.pow(threshold / luminance, 1.0 / 0.85);
             return range * Math.sqrt(Math.max(0.0, factor));
         }
         double target = Math.max(0.0, Math.min(1.0, threshold / luminance));
