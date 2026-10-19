@@ -26,7 +26,12 @@ public record ServerHeldMoonlightLampConfigSyncPacket(int handId, LampDeviceConf
         InteractionHand hand = handId == 1 ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
         var stack = player.getItemInHand(hand);
         if (stack.is(ModItems.MOONLIGHT_LAMP.get())) {
-            stack.set(ModDataComponent.LAMP_CONFIG.get(), config);
+            // The lens slot is server-authoritative: keep whichever lens color
+            // is currently installed instead of trusting a possibly stale
+            // client copy sent along with the numeric settings.
+            LampDeviceConfig current = stack.getOrDefault(
+                    ModDataComponent.LAMP_CONFIG.get(), LampDeviceConfig.fromGlobalConfig());
+            stack.set(ModDataComponent.LAMP_CONFIG.get(), config.withLensColor(current.lensColor()));
             player.setItemInHand(hand, stack);
         }
     }

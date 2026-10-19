@@ -5,6 +5,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -20,6 +21,11 @@ public interface RegistryService {
 
     RegistrySupplier<? extends Item> registerFullMoonItem(String id);
 
+    RegistrySupplier<? extends Item> registerColorLensItem(String id);
+
+    /** Registers a menu type with the loader's menu registry. */
+    RegistrySupplier<MenuType<?>> registerMenu(String id, Supplier<MenuType<?>> factory);
+
     RegistrySupplier<? extends EntityType<?>> registerFullMoonEntity(
             String id, MobCategory category, float width, float height);
 
@@ -32,7 +38,10 @@ public interface RegistryService {
     <T> RegistrySupplier<DataComponentType<T>> registerDataComponent(String id, Supplier<DataComponentType<T>> factory);
 
     RegistrySupplier<CreativeModeTab> registerCreativeModeTab(
-            String id, RegistrySupplier<? extends Item> lamp, RegistrySupplier<? extends Item> fullMoon);
+            String id,
+            RegistrySupplier<? extends Item> lamp,
+            RegistrySupplier<? extends Item> fullMoon,
+            RegistrySupplier<? extends Item> colorLens);
 
     BlockEntity createBlockEntity(String id, BlockPos pos, BlockState state);
 }

@@ -8,13 +8,17 @@ import cc.sighs.handheldmoon.network.ServerHeldFullMoonConfigSyncPacket;
 import cc.sighs.handheldmoon.network.ServerHeldMoonlightLampConfigSyncPacket;
 import cc.sighs.handheldmoon.network.ServerMoonLightLampSyncPacket;
 import cc.sighs.handheldmoon.network.ServerMoonlightLampConfigSyncPacket;
+import cc.sighs.handheldmoon.network.ServerOpenLampBlockConfigPacket;
 import cc.sighs.handheldmoon.neoforge.registry.ModKeyBindings;
 import cc.sighs.handheldmoon.registry.ModRegistries;
 import cc.sighs.handheldmoon.neoforge.block.FullMoonBlockEntity;
 import cc.sighs.handheldmoon.neoforge.block.MoonlightLampBlockEntity;
 import cc.sighs.handheldmoon.neoforge.entity.FullMoonEntity;
 import cc.sighs.handheldmoon.neoforge.item.MoonlightLampItem;
+import cc.sighs.handheldmoon.item.ColorLensItem;
 import cc.sighs.handheldmoon.item.FullMoonItem;
+import cc.sighs.handheldmoon.menu.FlashlightConfigMenu;
+import cc.sighs.handheldmoon.network.ServerOpenFlashlightConfigPacket;
 import cc.sighs.handheldmoon.spi.ClientPlatformService;
 import cc.sighs.handheldmoon.spi.PlatformService;
 import cc.sighs.handheldmoon.spi.RegistryService;
@@ -27,11 +31,13 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -72,6 +78,10 @@ public final class NeoForgePlatformService implements PlatformService {
                     (message, context) -> context.enqueueWork(() -> message.apply((net.minecraft.server.level.ServerPlayer) context.player())));
             registrar.playToServer(ServerHeldFullMoonConfigSyncPacket.TYPE, ServerHeldFullMoonConfigSyncPacket.STREAM_CODEC,
                     (message, context) -> context.enqueueWork(() -> message.apply((net.minecraft.server.level.ServerPlayer) context.player())));
+            registrar.playToServer(ServerOpenFlashlightConfigPacket.TYPE, ServerOpenFlashlightConfigPacket.STREAM_CODEC,
+                    (message, context) -> context.enqueueWork(() -> message.apply((net.minecraft.server.level.ServerPlayer) context.player())));
+            registrar.playToServer(ServerOpenLampBlockConfigPacket.TYPE, ServerOpenLampBlockConfigPacket.STREAM_CODEC,
+                    (message, context) -> context.enqueueWork(() -> message.apply((net.minecraft.server.level.ServerPlayer) context.player())));
         });
         ModRegistries.initialize();
     }
@@ -91,16 +101,21 @@ public final class NeoForgePlatformService implements PlatformService {
         private final DeferredRegister<BlockEntityType<?>> blockEntities = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, HandheldMoon.MOD_ID);
         private final DeferredRegister<DataComponentType<?>> dataComponents = DeferredRegister.create(Registries.DATA_COMPONENT_TYPE, HandheldMoon.MOD_ID);
         private final DeferredRegister<CreativeModeTab> creativeTabs = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, HandheldMoon.MOD_ID);
+        private final DeferredRegister<MenuType<?>> menus = DeferredRegister.create(Registries.MENU, HandheldMoon.MOD_ID);
 
         void register(IEventBus eventBus) {
             blocks.register(eventBus); items.register(eventBus); entities.register(eventBus);
             blockEntities.register(eventBus); dataComponents.register(eventBus); creativeTabs.register(eventBus);
+            menus.register(eventBus);
         }
 
         private static <T> RegistrySupplier<T> supplier(Supplier<T> source) { return source::get; }
+        private static <T> RegistrySupplier<T> supplierWildcard(Supplier<? extends T> source) { return source::get; }
         @Override public <T extends Block> RegistrySupplier<T> registerBlock(String id, Supplier<T> factory) { return supplier(blocks.register(id, factory)); }
         @Override public RegistrySupplier<? extends Item> registerMoonlightLampItem(String id) { return supplier(items.register(id, MoonlightLampItem::new)); }
         @Override public RegistrySupplier<? extends Item> registerFullMoonItem(String id) { return supplier(items.register(id, FullMoonItem::new)); }
+        @Override public RegistrySupplier<? extends Item> registerColorLensItem(String id) { return supplier(items.register(id, ColorLensItem::new)); }
+        @Override public RegistrySupplier<MenuType<?>> registerMenu(String id, Supplier<MenuType<?>> factory) { return supplierWildcard(menus.register(id, factory)); }
         @Override public RegistrySupplier<? extends EntityType<?>> registerFullMoonEntity(String id, MobCategory category, float width, float height) {
             EntityType.EntityFactory<FullMoonEntity> factory = FullMoonEntity::new;
             return supplier(entities.register(id, () -> EntityType.Builder.of(factory, category).sized(width, height).build(
@@ -118,11 +133,15 @@ public final class NeoForgePlatformService implements PlatformService {
             return null;
         }
         @Override public <T> RegistrySupplier<DataComponentType<T>> registerDataComponent(String id, Supplier<DataComponentType<T>> factory) { return supplier(dataComponents.register(id, factory)); }
-        @Override public RegistrySupplier<CreativeModeTab> registerCreativeModeTab(String id, RegistrySupplier<? extends Item> lamp, RegistrySupplier<? extends Item> fullMoon) {
+        @Override public RegistrySupplier<CreativeModeTab> registerCreativeModeTab(String id, RegistrySupplier<? extends Item> lamp, RegistrySupplier<? extends Item> fullMoon, RegistrySupplier<? extends Item> colorLens) {
             return supplier(creativeTabs.register(id, () -> CreativeModeTab.builder()
                     .title(net.minecraft.network.chat.Component.translatable("itemGroup.tab.handheldmoon"))
                     .icon(() -> lamp.get().getDefaultInstance())
-                    .displayItems((parameters, output) -> { output.accept(lamp.get().getDefaultInstance()); output.accept(fullMoon.get()); })
+                    .displayItems((parameters, output) -> {
+                        output.accept(lamp.get().getDefaultInstance());
+                        output.accept(fullMoon.get());
+                        output.accept(colorLens.get().getDefaultInstance());
+                    })
                     .build()));
         }
     }
@@ -142,16 +161,31 @@ public final class NeoForgePlatformService implements PlatformService {
             cc.sighs.handheldmoon.neoforge.event.handler.ShaderEventHandler.onClientTick();
         }
 
-        void register(IEventBus eventBus) { eventBus.addListener((RegisterKeyMappingsEvent event) -> { event.register(ModKeyBindings.FLASHLIGHT_SWITCH); event.register(ModKeyBindings.OPEN_DEVICE_CONFIG); }); }
+        void register(IEventBus eventBus) {
+            eventBus.addListener((RegisterKeyMappingsEvent event) -> {
+                event.register(ModKeyBindings.FLASHLIGHT_SWITCH);
+                event.register(ModKeyBindings.CONE_SWITCH);
+                event.register(ModKeyBindings.OPEN_MOD_CONFIG);
+            });
+            eventBus.addListener((RegisterMenuScreensEvent event) -> event.register(
+                    (MenuType<FlashlightConfigMenu>) (MenuType<?>) cc.sighs.handheldmoon.registry.ModMenus.FLASHLIGHT_CONFIG.get(),
+                    cc.sighs.handheldmoon.neoforge.client.screen.FlashlightItemConfigScreen::new));
+        }
         @Override public void registerKeyBindings() { }
         @Override public int flashlightKeyCode() { return ModKeyBindings.FLASHLIGHT_SWITCH.getDefaultKey().getValue(); }
-        @Override public int deviceConfigKeyCode() { return ModKeyBindings.OPEN_DEVICE_CONFIG.getDefaultKey().getValue(); }
+        @Override public int coneSwitchKeyCode() { return ModKeyBindings.CONE_SWITCH.getDefaultKey().getValue(); }
+        @Override public int modConfigKeyCode() { return ModKeyBindings.OPEN_MOD_CONFIG.getDefaultKey().getValue(); }
         @Override public boolean isFlashlightKeyDown() { return ModKeyBindings.FLASHLIGHT_SWITCH.isDown(); }
-        @Override public void openLampConfig(cc.sighs.handheldmoon.api.config.ConfigTarget<LampDeviceConfig> target) {
-            net.minecraft.client.Minecraft.getInstance().setScreen(new cc.sighs.handheldmoon.neoforge.client.screen.MoonlightLampDeviceConfigScreen(target));
+        @Override public void requestOpenFlashlightConfig() {
+            FlashlightConfigMenu.clearPendingBlockTarget();
+            send(new ServerOpenFlashlightConfigPacket());
         }
-        @Override public void openFullMoonConfig(cc.sighs.handheldmoon.api.config.ConfigTarget<FullMoonDeviceConfig> target) {
-            net.minecraft.client.Minecraft.getInstance().setScreen(new cc.sighs.handheldmoon.neoforge.client.screen.FullMoonDeviceConfigScreen(target));
+        @Override public void requestOpenLampConfig(net.minecraft.core.BlockPos pos) {
+            FlashlightConfigMenu.expectBlockTarget(pos);
+            send(new ServerOpenLampBlockConfigPacket(pos));
+        }
+        @Override public void openModConfig() {
+            net.minecraft.client.Minecraft.getInstance().setScreen(new cc.sighs.handheldmoon.neoforge.client.screen.HandheldMoonConfigScreen());
         }
         @Override public void sendLampState(net.minecraft.core.BlockPos pos, float xRot, float yRot, boolean powered) { send(new ServerMoonLightLampSyncPacket(pos, xRot, yRot, powered)); }
         @Override public void sendLampConfig(net.minecraft.core.BlockPos pos, LampDeviceConfig config) { send(new ServerMoonlightLampConfigSyncPacket(pos, config)); }

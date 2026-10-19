@@ -68,8 +68,6 @@ public final class RayEvent {
             PoseStack poseStack, Vec3 cameraPos,
             Matrix4fc modelViewMatrix, float partialTick
     ) {
-        if (!Config.PLAYER_RAY.get()) return;
-
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return;
 
@@ -77,19 +75,26 @@ public final class RayEvent {
         IRayConeConfig globalConfig = buildGlobalConeConfig();
 
         // ---- player cones ----
-        for (Player player : mc.level.players()) {
-            if (player.getUUID().equals(mc.player.getUUID())) continue;
-            if (!Utils.isUsingFlashlight(player)) continue;
+        // Only other players' beams are drawn; the local player is skipped below.
+        // enablePlayerRay gates this loop alone, while each held flashlight's own
+        // enableVisibleCone decides whether that player's beam is drawn.
+        if (Config.PLAYER_RAY.get()) {
+            for (Player player : mc.level.players()) {
+                if (player.getUUID().equals(mc.player.getUUID())) continue;
+                if (!Utils.isUsingFlashlight(player)) continue;
+                LampDeviceConfig playerConfig = Utils.heldLampConfig(player);
+                if (playerConfig != null && !playerConfig.enableVisibleCone()) continue;
 
-            Vec3 eyePos = player.getEyePosition(partialTick);
-            Vec3 rawDir = player.getViewVector(partialTick).normalize();
-            Vec3 prevDir = LAST_DIR.getOrDefault(player.getUUID(), rawDir);
-            Vec3 smoothedDir = prevDir.scale(0.7).add(rawDir.scale(0.3)).normalize();
-            LAST_DIR.put(player.getUUID(), smoothedDir);
+                Vec3 eyePos = player.getEyePosition(partialTick);
+                Vec3 rawDir = player.getViewVector(partialTick).normalize();
+                Vec3 prevDir = LAST_DIR.getOrDefault(player.getUUID(), rawDir);
+                Vec3 smoothedDir = prevDir.scale(0.7).add(rawDir.scale(0.3)).normalize();
+                LAST_DIR.put(player.getUUID(), smoothedDir);
 
-            sources.add(new RayConeRenderer.ConeSource(
-                    eyePos, smoothedDir, globalConfig
-            ));
+                sources.add(new RayConeRenderer.ConeSource(
+                        eyePos, smoothedDir, globalConfig
+                ));
+            }
         }
 
         LampConeSourceHooks.append(mc, sources);
@@ -106,7 +111,7 @@ public final class RayEvent {
         List<? extends String> edgeAlphas = cfg.layerEdgeAlphas();
         List<? extends String> layerColors = cfg.layerColorsARGB();
         double noiseAmplitude = cfg.colorNoiseAmplitude();
-        boolean coneRaycast = cfg.coneRaycast();
+        boolean coneRaycast = Config.CONE_RAYCAST.get();
         boolean fogEnabled = cfg.fog().enabled();
         double fogSizeScale = cfg.fog().sizeScale();
         double fogCenterAlpha = cfg.fog().centerAlpha();
@@ -267,11 +272,12 @@ public final class RayEvent {
         int count = profile == null
                 ? Math.min(cfg.layerSizeScales().size(), cfg.layerEdgeAlphas().size())
                 : ENTITY_CONE_LAYER_COUNT;
-        float colorAlpha = profileColor == null
-                ? ColorUtils.parseColorRGBAWithAlpha(
+        // The profile alpha is the real-light tint amount; the visible cone keeps
+        // the transparency configured on the device color, so a lens tint cannot
+        // turn the beam opaque.
+        float colorAlpha = ColorUtils.parseColorRGBAWithAlpha(
                 cfg.lightColorsARGB().isEmpty()
-                        ? EntityLightProfile.DEFAULT_LIGHT_COLOR : cfg.lightColorsARGB().get(0))[3]
-                : profileColor[3];
+                        ? EntityLightProfile.DEFAULT_LIGHT_COLOR : cfg.lightColorsARGB().get(0))[3];
         float[] centerAlphas = deriveLayerCenterAlphas(colorAlpha, count);
         float[] edgeAlphas = deriveLayerEdgeAlphas(cfg.layerEdgeAlphas(), colorAlpha, count);
         for (int i = 0; i < count; i++) {
@@ -287,7 +293,7 @@ public final class RayEvent {
         }
 
         builder.noiseAmplitude(cfg.colorNoiseAmplitude())
-                .raycast(cfg.coneRaycast());
+                .raycast(Config.CONE_RAYCAST.get());
 
         LampDeviceConfig.FogSettings fog = cfg.fog();
         if (fog.enabled()) {

@@ -38,7 +38,7 @@ public final class SharedLightMath {
             return range;
         }
         if (curve == null || curve == AttenuationCurve.QUADRATIC) {
-            double factor = 1.0 - threshold / luminance;
+            double factor = 1.0 - Math.pow(threshold / luminance, 1.0 / 0.85);
             return range * Math.sqrt(Math.max(0.0, factor));
         }
         double target = Math.max(0.0, Math.min(1.0, threshold / luminance));
@@ -132,18 +132,35 @@ public final class SharedLightMath {
             return Math.max(luminance, 0.0);
         }
         double dot = directionX * vectorX + directionY * vectorY + directionZ * vectorZ;
-        if (dot <= 0.0 || dot * dot < cosOuterSq * distanceSquared) {
+        if (dot <= 0.0) {
             return 0.0;
         }
         double inverseDistance = 1.0 / Math.sqrt(distanceSquared);
         double dotNormal = dot * inverseDistance;
-        double angleAttenuation = Math.abs(cosInner - cosOuter) < 1.0E-9
-                ? (dotNormal >= cosOuter ? 1.0 : 0.0)
-                : (dotNormal >= cosInner
-                ? 1.0
-                : (dotNormal - cosOuter) / (cosInner - cosOuter));
+        double angleAttenuation = coneAttenuation(
+                dotNormal, 1.0 / inverseDistance, cosInner, cosOuter);
+        if (angleAttenuation <= 0.0) {
+            return 0.0;
+        }
         return Math.max(attenuatedIntensity(luminance, 1.0 / inverseDistance, range, curve)
                 * angleAttenuation, 0.0);
+    }
+
+    /**
+     * Cone edge falloff: linear in the angle between the inner and outer half
+     * angles. On the ground the ramp is
+     * {@code distance * (tan outer - tan inner)} blocks wide, i.e. proportional
+     * to distance, so near the apex it is thinner than one block. The resulting
+     * hard step is handled downstream by {@code DynamicLightRenderHelper}, which
+     * dims the outermost cells before the renderer averages them.
+     */
+    public static double coneAttenuation(
+            double dotNormal, double distance, double cosInner, double cosOuter
+    ) {
+        if (Math.abs(cosInner - cosOuter) < 1.0E-9) {
+            return dotNormal >= cosOuter ? 1.0 : 0.0;
+        }
+        return dotNormal >= cosInner ? 1.0 : (dotNormal - cosOuter) / (cosInner - cosOuter);
     }
 
     /** Pure-Java point sample used by background section batch workers. */

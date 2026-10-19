@@ -2,7 +2,6 @@ package cc.sighs.handheldmoon.lights;
 
 import cc.sighs.handheldmoon.api.light.EntityLightSource;
 import cc.sighs.handheldmoon.api.light.EntityLightSourceProvider;
-import cc.sighs.handheldmoon.registry.Config;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 
@@ -20,7 +19,7 @@ public final class FullMoonEntityDynamicLightTracker implements EntityLightSourc
 
     @Override
     public void collect(Minecraft minecraft, Consumer<EntityLightSource> sink) {
-        if (minecraft.level == null || !Config.REAL_LIGHT.get()) {
+        if (minecraft.level == null) {
             behaviors.clear();
             return;
         }

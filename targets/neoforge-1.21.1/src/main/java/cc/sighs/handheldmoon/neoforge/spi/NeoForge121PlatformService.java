@@ -87,6 +87,7 @@ public final class NeoForge121PlatformService implements PlatformService {
         eventBus.addListener((RegisterKeyMappingsEvent event) -> {
             event.register(ModKeyBindings.FLASHLIGHT_SWITCH);
             event.register(ModKeyBindings.OPEN_DEVICE_CONFIG);
+            event.register(ModKeyBindings.CONE_SWITCH);
         });
         FlashlightCompatHooks.install(
                 player -> CuriosCompat.isUsingCuriosFlashlight(player) || TaczCompat.isUsingAttachmentFlashlight(player),
@@ -227,6 +228,11 @@ public final class NeoForge121PlatformService implements PlatformService {
         @Override
         public int deviceConfigKeyCode() {
             return ModKeyBindings.OPEN_DEVICE_CONFIG.getDefaultKey().getValue();
+        }
+
+        @Override
+        public int coneSwitchKeyCode() {
+            return ModKeyBindings.CONE_SWITCH.getDefaultKey().getValue();
         }
 
         @Override

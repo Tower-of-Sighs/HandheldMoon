@@ -53,6 +53,17 @@ public final class DynamicLightManager {
     private static volatile DynamicLightBehavior[] snapshot = new DynamicLightBehavior[0];
     private static volatile SectionIndex sectionIndex = emptySectionIndex();
     private static ClientLevel currentLevel;
+    private static SectionReadyCheck sectionReadyCheck = (x, y, z) -> true;
+
+    @FunctionalInterface
+    public interface SectionReadyCheck {
+        boolean isReady(int x, int y, int z);
+    }
+
+    /** Loader renderer hook; checked before consuming a dirty notification. */
+    public static void setSectionReadyCheck(SectionReadyCheck check) {
+        sectionReadyCheck = check;
+    }
 
     private DynamicLightManager() {
     }
@@ -155,6 +166,9 @@ public final class DynamicLightManager {
         } else if (coverageChanges != null && !coverageChanges.isEmpty()) {
             rebuildSectionIndexIncremental(coverageChanges);
         }
+        if (LightmapColorBridge.consumeChanged()) {
+            for (IndexedSource source : sectionIndex.byBehavior.values()) schedule(source.bounds);
+        }
         rebuildDirtySections(minecraft);
     }
 
@@ -176,6 +190,24 @@ public final class DynamicLightManager {
 
     public static int getLightColor(int blockX, int blockY, int blockZ) {
         return query(blockX, blockY, blockZ).color;
+    }
+
+    /**
+     * Cheap guard for neighbour scans: whether any dynamic source is registered
+     * for the section that contains the given block. Cells in source-free
+     * sections can never sit on a beam rim.
+     */
+    public static boolean hasSourcesNear(BlockPos pos) {
+        return hasSourcesNear(pos.getX(), pos.getY(), pos.getZ());
+    }
+
+    public static boolean hasSourcesNear(int blockX, int blockY, int blockZ) {
+        SectionIndex index = sectionIndex;
+        return index.sources.get(sectionKey(
+                SectionPos.blockToSectionCoord(blockX),
+                SectionPos.blockToSectionCoord(blockY),
+                SectionPos.blockToSectionCoord(blockZ)
+        )) != null;
     }
 
     private static LightQuery query(int blockX, int blockY, int blockZ) {
@@ -731,6 +763,7 @@ public final class DynamicLightManager {
                         iterator.remove();
                         continue;
                     }
+                    if (!isSectionReady(key)) continue;
                     iterator.remove();
                     pending[pendingCount++] = key;
                 }
@@ -749,6 +782,7 @@ public final class DynamicLightManager {
                         iterator.remove();
                         continue;
                     }
+                    if (!isSectionReady(key)) continue;
                     if (fairCount < fair.length) {
                         fair[fairCount++] = key;
                         continue;
@@ -810,11 +844,16 @@ public final class DynamicLightManager {
         if (level == null) {
             return true;
         }
+        if (level.isOutsideBuildHeight(sectionY(key) << 4)) return false;
         return level.hasChunkAt(new BlockPos(
                 sectionX(key) << 4,
                 sectionY(key) << 4,
                 sectionZ(key) << 4
         ));
+    }
+
+    private static boolean isSectionReady(long key) {
+        return sectionReadyCheck.isReady(sectionX(key), sectionY(key), sectionZ(key));
     }
 
     private static SectionIndex emptySectionIndex() {

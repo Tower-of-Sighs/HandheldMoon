@@ -1,6 +1,7 @@
 package cc.sighs.handheldmoon.event.handler;
 
 import cc.sighs.handheldmoon.api.content.MoonlightLampBlockEntityAccess;
+import cc.sighs.handheldmoon.spi.PlatformServices;
 import cc.sighs.handheldmoon.util.ClientUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Direction;
@@ -33,10 +34,20 @@ public final class InteractEventHandler {
     }
 
     public static void onClientMainHandRightClickBlock() {
-        MoonlightLampBlockEntityAccess lamp = ClientUtils.getCursorMoonlightLampBlock();
-        if (lamp != null) {
-            lamp.setPowered(!lamp.getPowered());
-            LampInteractionHooks.refresh(lamp);
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) {
+            return;
         }
+        MoonlightLampBlockEntityAccess lamp = ClientUtils.getCursorMoonlightLampBlock();
+        if (lamp == null) {
+            return;
+        }
+        if (mc.player.isShiftKeyDown()) {
+            // Shift + right click opens the same flashlight page as the held item.
+            PlatformServices.require().client().requestOpenLampConfig(lamp.getBlockPos());
+            return;
+        }
+        lamp.setPowered(!lamp.getPowered());
+        LampInteractionHooks.refresh(lamp);
     }
 }

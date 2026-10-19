@@ -9,6 +9,8 @@ public final class ModItems {
             HandheldMoon.registry().registerMoonlightLampItem("moonlight_lamp");
     public static final RegistrySupplier<? extends Item> FULL_MOON =
             HandheldMoon.registry().registerFullMoonItem("full_moon");
+    public static final RegistrySupplier<? extends Item> COLOR_LENS =
+            HandheldMoon.registry().registerColorLensItem("color_lens");
 
     private ModItems() {
     }

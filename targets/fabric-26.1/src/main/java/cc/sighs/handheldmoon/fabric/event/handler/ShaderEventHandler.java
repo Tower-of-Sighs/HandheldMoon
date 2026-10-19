@@ -1,5 +1,6 @@
 package cc.sighs.handheldmoon.fabric.event.handler;
 
+import cc.sighs.handheldmoon.config.LampDeviceConfig;
 import cc.sighs.handheldmoon.registry.Config;
 import cc.sighs.handheldmoon.util.Utils;
 import net.minecraft.client.CameraType;
@@ -18,11 +19,6 @@ public final class ShaderEventHandler {
     }
 
     public static void onClientTick() {
-        if (Config.LIGHT_INTENSITY.get() < 0.1) {
-            EffectManager.clean("flashlight");
-            return;
-        }
-
         Minecraft mc = Minecraft.getInstance();
         if (mc.options.getCameraType() == CameraType.THIRD_PERSON_FRONT) {
             EffectManager.clean("flashlight");
@@ -32,6 +28,20 @@ public final class ShaderEventHandler {
         Player player = mc.player;
         if (player == null) {
             EffectManager.clean("flashlight");
+            return;
+        }
+
+        LampDeviceConfig config = Utils.heldLampConfig(player);
+        double filterIntensity = config != null
+                ? config.filterLightIntensity()
+                : LampDeviceConfig.DEFAULT_FILTER_LIGHT_INTENSITY;
+        // The screen-space filter is controlled only by filterLightIntensity;
+        // enableVisibleCone only affects world-space cone rendering.
+        if (filterIntensity < 0.1) {
+            EffectManager.clean("flashlight");
+            offsetX = offsetY = 0.0f;
+            previousYaw = player.getYRot();
+            previousPitch = player.getXRot();
             return;
         }
 
@@ -57,8 +67,7 @@ public final class ShaderEventHandler {
                 radius /= 2.0f;
             }
             float ratio = radius / Math.min(mc.getWindow().getWidth(), mc.getWindow().getHeight());
-            EffectManager.updateFlashlightUniforms(offsetX, -offsetY, ratio,
-                    Config.LIGHT_INTENSITY.get().floatValue());
+            EffectManager.updateFlashlightUniforms(offsetX, -offsetY, ratio, (float) filterIntensity);
         } else {
             EffectManager.clean("flashlight");
             offsetX = offsetY = 0.0f;

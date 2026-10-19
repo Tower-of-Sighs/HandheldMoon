@@ -25,6 +25,11 @@ public final class FullMoonEntityLightBehavior implements DynamicLightBehavior {
     }
 
     @Override
+    public int color() {
+        return delegate.color();
+    }
+
+    @Override
     public Bounds getBounds() {
         return delegate.getBounds();
     }

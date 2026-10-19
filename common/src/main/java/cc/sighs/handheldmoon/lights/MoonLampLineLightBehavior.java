@@ -45,7 +45,7 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
                 DynamicLightBuilder.cone()
                         .range(DynamicLightDefaults.FLASHLIGHT_RANGE)
                         .angle(INNER, OUTER)
-                        .luminance(cfg.realLightLuminance())
+                        .luminance(cfg.realLightIntensity())
                         .occlusion(cfg.lightOcclusion())
                         .buildConfig(),
                         () -> pos.getCenter(),
@@ -57,10 +57,13 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
                         },
                         () -> {
                             MoonlightLampBlockEntityAccess l = lamp();
-                            return l != null && l.getPowered() && l.getLampConfig().realLight();
-                        }
+                            return l != null && l.getPowered()
+                                    && l.getLampConfig().realLight()
+                                    && l.getLampConfig().realLightIntensity() > 0;
+                        },
+                        cc.sighs.handheldmoon.registry.Config.flashlightColorArgb(cfg)
                 );
-        this.lastLuminance = cfg.realLightLuminance();
+        this.lastLuminance = cfg.realLightIntensity();
         this.lastOcclusion = cfg.lightOcclusion();
         this.initialized = true;
     }
@@ -90,10 +93,10 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
         if (!initialized) return true;
 
         LampDeviceConfig cfg = lamp.getLampConfig();
-        boolean cfgChanged = Math.abs(cfg.realLightLuminance() - lastLuminance) > 0.001
+        boolean cfgChanged = Math.abs(cfg.realLightIntensity() - lastLuminance) > 0.001
                 || cfg.lightOcclusion() != lastOcclusion;
         if (cfgChanged) {
-            lastLuminance = cfg.realLightLuminance();
+            lastLuminance = cfg.realLightIntensity();
             lastOcclusion = cfg.lightOcclusion();
             delegate = null;
             initialized = false;
@@ -105,7 +108,9 @@ public class MoonLampLineLightBehavior implements DynamicLightBehavior {
     @Override
     public boolean isRemoved() {
         MoonlightLampBlockEntityAccess lamp = lamp();
-        return lamp == null || !lamp.getPowered() || !lamp.getLampConfig().realLight();
+        return lamp == null || !lamp.getPowered()
+                || !lamp.getLampConfig().realLight()
+                || lamp.getLampConfig().realLightIntensity() <= 0;
     }
 
     @Override

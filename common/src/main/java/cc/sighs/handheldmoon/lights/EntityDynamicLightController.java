@@ -5,7 +5,6 @@ import cc.sighs.handheldmoon.api.light.EntityLightSourceController;
 import cc.sighs.handheldmoon.api.light.EntityLightSourceProvider;
 import cc.sighs.handheldmoon.dynamiclight.DynamicLightBehavior;
 import cc.sighs.handheldmoon.dynamiclight.DynamicLightManager;
-import cc.sighs.handheldmoon.registry.Config;
 import net.minecraft.client.Minecraft;
 
 import java.util.ArrayList;
@@ -30,7 +29,7 @@ public final class EntityDynamicLightController implements EntityLightSourceCont
 
     @Override
     public void update(Minecraft minecraft) {
-        if (minecraft.level == null || !Config.REAL_LIGHT.get()) {
+        if (minecraft.level == null) {
             clearActive();
             providers.forEach(EntityLightSourceProvider::reset);
             return;

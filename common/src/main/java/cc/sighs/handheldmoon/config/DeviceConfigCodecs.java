@@ -22,15 +22,23 @@ public final class DeviceConfigCodecs {
             Codec.DOUBLE.fieldOf("lightAngle").forGetter(LampDeviceConfig::lightAngle),
             Codec.list(Codec.STRING).fieldOf("lightColorsARGB").forGetter(LampDeviceConfig::lightColorsARGB),
             Codec.BOOL.fieldOf("realLight").forGetter(LampDeviceConfig::realLight),
-            Codec.DOUBLE.fieldOf("lightIntensity").forGetter(LampDeviceConfig::lightIntensity),
+            Codec.DOUBLE.optionalFieldOf("filterLightIntensity", LampDeviceConfig.DEFAULT_FILTER_LIGHT_INTENSITY)
+                    .forGetter(LampDeviceConfig::filterLightIntensity),
             Codec.BOOL.fieldOf("lightOcclusion").forGetter(LampDeviceConfig::lightOcclusion),
-            Codec.BOOL.fieldOf("coneRaycast").forGetter(LampDeviceConfig::coneRaycast),
             Codec.DOUBLE.fieldOf("realLightLuminance").forGetter(LampDeviceConfig::realLightLuminance),
             Codec.list(Codec.STRING).fieldOf("layerSizeScales").forGetter(LampDeviceConfig::layerSizeScales),
             Codec.list(Codec.STRING).fieldOf("layerEdgeAlphas").forGetter(LampDeviceConfig::layerEdgeAlphas),
             Codec.list(Codec.STRING).fieldOf("layerColorsARGB").forGetter(LampDeviceConfig::layerColorsARGB),
             Codec.DOUBLE.fieldOf("colorNoiseAmplitude").forGetter(LampDeviceConfig::colorNoiseAmplitude),
-            FOG.fieldOf("fog").forGetter(LampDeviceConfig::fog)
+            FOG.fieldOf("fog").forGetter(LampDeviceConfig::fog),
+            Codec.DOUBLE.optionalFieldOf("realLightIntensity", LampDeviceConfig.DEFAULT_REAL_LIGHT_INTENSITY)
+                    .forGetter(LampDeviceConfig::realLightIntensity),
+            Codec.BOOL.optionalFieldOf("enableVisibleCone", LampDeviceConfig.DEFAULT_ENABLE_VISIBLE_CONE)
+                    .forGetter(LampDeviceConfig::enableVisibleCone),
+            Codec.INT.optionalFieldOf("lensColor", LampDeviceConfig.NO_LENS_COLOR)
+                    .forGetter(LampDeviceConfig::lensColor),
+            Codec.DOUBLE.optionalFieldOf("lensTintStrength", LampDeviceConfig.DEFAULT_LENS_TINT_STRENGTH)
+                    .forGetter(LampDeviceConfig::lensTintStrength)
     ).apply(instance, LampDeviceConfig::new));
 
     private DeviceConfigCodecs() {

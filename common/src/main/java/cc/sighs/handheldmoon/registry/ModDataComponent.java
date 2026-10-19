@@ -10,6 +10,14 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import cc.sighs.handheldmoon.spi.RegistrySupplier;
 
 public final class ModDataComponent {
+    /**
+     * Eager type instance so it can be used as an item's default component in
+     * {@code Item.Properties} before the registry event runs.
+     */
+    public static final DataComponentType<Integer> LENS_COLOR_TYPE = DataComponentType.<Integer>builder()
+            .persistent(Codec.INT).networkSynchronized(ByteBufCodecs.INT).build();
+    public static final RegistrySupplier<DataComponentType<Integer>> LENS_COLOR =
+            HandheldMoon.registry().registerDataComponent("lens_color", () -> LENS_COLOR_TYPE);
     public static final RegistrySupplier<DataComponentType<Integer>> POWERED =
             HandheldMoon.registry().registerDataComponent("powered", () -> DataComponentType.<Integer>builder()
                     .persistent(Codec.INT).networkSynchronized(ByteBufCodecs.INT).build());

@@ -13,7 +13,11 @@ import cc.sighs.handheldmoon.fabric.block.FullMoonBlockEntity;
 import cc.sighs.handheldmoon.fabric.block.MoonlightLampBlockEntity;
 import cc.sighs.handheldmoon.fabric.entity.FullMoonEntity;
 import cc.sighs.handheldmoon.fabric.item.MoonlightLampItem;
+import cc.sighs.handheldmoon.item.ColorLensItem;
 import cc.sighs.handheldmoon.item.FullMoonItem;
+import cc.sighs.handheldmoon.menu.FlashlightConfigMenu;
+import cc.sighs.handheldmoon.network.ServerOpenFlashlightConfigPacket;
+import cc.sighs.handheldmoon.network.ServerOpenLampBlockConfigPacket;
 import cc.sighs.handheldmoon.api.raycone.RayConeRenderer;
 import cc.sighs.handheldmoon.event.handler.PlacedLampConeSources;
 import cc.sighs.handheldmoon.event.handler.LampConeSourceHooks;
@@ -42,6 +46,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.client.gui.screens.MenuScreens;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -77,6 +83,8 @@ public final class FabricPlatformService implements PlatformService {
         PayloadTypeRegistry.serverboundPlay().register(ServerFullMoonConfigSyncPacket.TYPE, ServerFullMoonConfigSyncPacket.STREAM_CODEC);
         PayloadTypeRegistry.serverboundPlay().register(ServerHeldMoonlightLampConfigSyncPacket.TYPE, ServerHeldMoonlightLampConfigSyncPacket.STREAM_CODEC);
         PayloadTypeRegistry.serverboundPlay().register(ServerHeldFullMoonConfigSyncPacket.TYPE, ServerHeldFullMoonConfigSyncPacket.STREAM_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(ServerOpenFlashlightConfigPacket.TYPE, ServerOpenFlashlightConfigPacket.STREAM_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(ServerOpenLampBlockConfigPacket.TYPE, ServerOpenLampBlockConfigPacket.STREAM_CODEC);
         ServerPlayNetworking.registerGlobalReceiver(ServerMoonLightLampSyncPacket.TYPE,
                 (message, context) -> context.server().execute(() -> message.apply(context.player())));
         ServerPlayNetworking.registerGlobalReceiver(ServerMoonlightLampConfigSyncPacket.TYPE,
@@ -86,6 +94,10 @@ public final class FabricPlatformService implements PlatformService {
         ServerPlayNetworking.registerGlobalReceiver(ServerHeldMoonlightLampConfigSyncPacket.TYPE,
                 (message, context) -> context.server().execute(() -> message.apply(context.player())));
         ServerPlayNetworking.registerGlobalReceiver(ServerHeldFullMoonConfigSyncPacket.TYPE,
+                (message, context) -> context.server().execute(() -> message.apply(context.player())));
+        ServerPlayNetworking.registerGlobalReceiver(ServerOpenFlashlightConfigPacket.TYPE,
+                (message, context) -> context.server().execute(() -> message.apply(context.player())));
+        ServerPlayNetworking.registerGlobalReceiver(ServerOpenLampBlockConfigPacket.TYPE,
                 (message, context) -> context.server().execute(() -> message.apply(context.player())));
     }
 
@@ -102,6 +114,12 @@ public final class FabricPlatformService implements PlatformService {
         }
         @Override public RegistrySupplier<? extends Item> registerFullMoonItem(String id) {
             return supplier(Registry.register(BuiltInRegistries.ITEM, identifier(id), new FullMoonItem()));
+        }
+        @Override public RegistrySupplier<? extends Item> registerColorLensItem(String id) {
+            return supplier(Registry.register(BuiltInRegistries.ITEM, identifier(id), new ColorLensItem()));
+        }
+        @Override public RegistrySupplier<MenuType<?>> registerMenu(String id, Supplier<MenuType<?>> factory) {
+            return supplier(Registry.register(BuiltInRegistries.MENU, identifier(id), factory.get()));
         }
         @Override public RegistrySupplier<? extends EntityType<?>> registerFullMoonEntity(String id, MobCategory category, float width, float height) {
             EntityType.EntityFactory<FullMoonEntity> factory = FullMoonEntity::new;
@@ -122,11 +140,15 @@ public final class FabricPlatformService implements PlatformService {
         @Override public <T> RegistrySupplier<DataComponentType<T>> registerDataComponent(String id, Supplier<DataComponentType<T>> factory) {
             return supplier(Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, identifier(id), factory.get()));
         }
-        @Override public RegistrySupplier<CreativeModeTab> registerCreativeModeTab(String id, RegistrySupplier<? extends Item> lamp, RegistrySupplier<? extends Item> fullMoon) {
+        @Override public RegistrySupplier<CreativeModeTab> registerCreativeModeTab(String id, RegistrySupplier<? extends Item> lamp, RegistrySupplier<? extends Item> fullMoon, RegistrySupplier<? extends Item> colorLens) {
             CreativeModeTab tab = CreativeModeTab.builder(CreativeModeTab.Row.TOP, 0)
                     .title(net.minecraft.network.chat.Component.translatable("itemGroup.tab.handheldmoon"))
                     .icon(() -> lamp.get().getDefaultInstance())
-                    .displayItems((parameters, output) -> { output.accept(lamp.get().getDefaultInstance()); output.accept(fullMoon.get()); })
+                    .displayItems((parameters, output) -> {
+                        output.accept(lamp.get().getDefaultInstance());
+                        output.accept(fullMoon.get());
+                        output.accept(colorLens.get().getDefaultInstance());
+                    })
                     .build();
             return supplier(Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, identifier(id), tab));
         }
@@ -143,6 +165,10 @@ public final class FabricPlatformService implements PlatformService {
                     minecraft, java.util.List.of(), sources));
             LampInteractionHooks.install(HandheldMoonDynamicLightsInitializer::syncLampBehavior);
             registerKeyBindings();
+            @SuppressWarnings("unchecked")
+            MenuType<FlashlightConfigMenu> menuType =
+                    (MenuType<FlashlightConfigMenu>) (MenuType<?>) cc.sighs.handheldmoon.registry.ModMenus.FLASHLIGHT_CONFIG.get();
+            MenuScreens.register(menuType, cc.sighs.handheldmoon.fabric.client.screen.FlashlightItemConfigScreen::new);
             AccessoryCompat.init();
         }
         @Override public void tickClient() {
@@ -151,16 +177,23 @@ public final class FabricPlatformService implements PlatformService {
         }
         @Override public void registerKeyBindings() {
             KeyMappingHelper.registerKeyMapping(ModKeyBindings.FLASHLIGHT_SWITCH);
-            KeyMappingHelper.registerKeyMapping(ModKeyBindings.OPEN_DEVICE_CONFIG);
+            KeyMappingHelper.registerKeyMapping(ModKeyBindings.CONE_SWITCH);
+            KeyMappingHelper.registerKeyMapping(ModKeyBindings.OPEN_MOD_CONFIG);
         }
         @Override public int flashlightKeyCode() { return ModKeyBindings.FLASHLIGHT_SWITCH.getDefaultKey().getValue(); }
-        @Override public int deviceConfigKeyCode() { return ModKeyBindings.OPEN_DEVICE_CONFIG.getDefaultKey().getValue(); }
+        @Override public int coneSwitchKeyCode() { return ModKeyBindings.CONE_SWITCH.getDefaultKey().getValue(); }
+        @Override public int modConfigKeyCode() { return ModKeyBindings.OPEN_MOD_CONFIG.getDefaultKey().getValue(); }
         @Override public boolean isFlashlightKeyDown() { return ModKeyBindings.FLASHLIGHT_SWITCH.isDown(); }
-        @Override public void openLampConfig(ConfigTarget<cc.sighs.handheldmoon.config.LampDeviceConfig> target) {
-            net.minecraft.client.Minecraft.getInstance().setScreen(new cc.sighs.handheldmoon.fabric.client.screen.MoonlightLampDeviceConfigScreen(target));
+        @Override public void requestOpenFlashlightConfig() {
+            FlashlightConfigMenu.clearPendingBlockTarget();
+            ClientPlayNetworking.send(new ServerOpenFlashlightConfigPacket());
         }
-        @Override public void openFullMoonConfig(ConfigTarget<cc.sighs.handheldmoon.config.FullMoonDeviceConfig> target) {
-            net.minecraft.client.Minecraft.getInstance().setScreen(new cc.sighs.handheldmoon.fabric.client.screen.FullMoonDeviceConfigScreen(target));
+        @Override public void requestOpenLampConfig(net.minecraft.core.BlockPos pos) {
+            FlashlightConfigMenu.expectBlockTarget(pos);
+            ClientPlayNetworking.send(new ServerOpenLampBlockConfigPacket(pos));
+        }
+        @Override public void openModConfig() {
+            net.minecraft.client.Minecraft.getInstance().setScreen(new cc.sighs.handheldmoon.fabric.client.screen.HandheldMoonConfigScreen());
         }
         @Override public void sendLampState(net.minecraft.core.BlockPos pos, float xRot, float yRot, boolean powered) { ClientPlayNetworking.send(new ServerMoonLightLampSyncPacket(pos, xRot, yRot, powered)); }
         @Override public void sendLampConfig(net.minecraft.core.BlockPos pos, LampDeviceConfig config) { ClientPlayNetworking.send(new ServerMoonlightLampConfigSyncPacket(pos, config)); }

@@ -1,0 +1,259 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:component",
+    "component": "handheldmoon:lens_color",
+    "cases": [
+      {
+        "when": [
+          16777215
+        ],
+        "model": {
+          "type": "minecraft:model",
+          "model": "handheldmoon:item/color_lens",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 16777215
+            }
+          ]
+        }
+      },
+      {
+        "when": [
+          16738335
+        ],
+        "model": {
+          "type": "minecraft:model",
+          "model": "handheldmoon:item/color_lens",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 16738335
+            }
+          ]
+        }
+      },
+      {
+        "when": [
+          16711935
+        ],
+        "model": {
+          "type": "minecraft:model",
+          "model": "handheldmoon:item/color_lens",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 16711935
+            }
+          ]
+        }
+      },
+      {
+        "when": [
+          10141901
+        ],
+        "model": {
+          "type": "minecraft:model",
+          "model": "handheldmoon:item/color_lens",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 10141901
+            }
+          ]
+        }
+      },
+      {
+        "when": [
+          16776960
+        ],
+        "model": {
+          "type": "minecraft:model",
+          "model": "handheldmoon:item/color_lens",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 16776960
+            }
+          ]
+        }
+      },
+      {
+        "when": [
+          12582656
+        ],
+        "model": {
+          "type": "minecraft:model",
+          "model": "handheldmoon:item/color_lens",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 12582656
+            }
+          ]
+        }
+      },
+      {
+        "when": [
+          16738740
+        ],
+        "model": {
+          "type": "minecraft:model",
+          "model": "handheldmoon:item/color_lens",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 16738740
+            }
+          ]
+        }
+      },
+      {
+        "when": [
+          8421504
+        ],
+        "model": {
+          "type": "minecraft:model",
+          "model": "handheldmoon:item/color_lens",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 8421504
+            }
+          ]
+        }
+      },
+      {
+        "when": [
+          13882323
+        ],
+        "model": {
+          "type": "minecraft:model",
+          "model": "handheldmoon:item/color_lens",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 13882323
+            }
+          ]
+        }
+      },
+      {
+        "when": [
+          65535
+        ],
+        "model": {
+          "type": "minecraft:model",
+          "model": "handheldmoon:item/color_lens",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 65535
+            }
+          ]
+        }
+      },
+      {
+        "when": [
+          10494192
+        ],
+        "model": {
+          "type": "minecraft:model",
+          "model": "handheldmoon:item/color_lens",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 10494192
+            }
+          ]
+        }
+      },
+      {
+        "when": [
+          255
+        ],
+        "model": {
+          "type": "minecraft:model",
+          "model": "handheldmoon:item/color_lens",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 255
+            }
+          ]
+        }
+      },
+      {
+        "when": [
+          9127187
+        ],
+        "model": {
+          "type": "minecraft:model",
+          "model": "handheldmoon:item/color_lens",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 9127187
+            }
+          ]
+        }
+      },
+      {
+        "when": [
+          65280
+        ],
+        "model": {
+          "type": "minecraft:model",
+          "model": "handheldmoon:item/color_lens",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 65280
+            }
+          ]
+        }
+      },
+      {
+        "when": [
+          16711680
+        ],
+        "model": {
+          "type": "minecraft:model",
+          "model": "handheldmoon:item/color_lens",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 16711680
+            }
+          ]
+        }
+      },
+      {
+        "when": [
+          0
+        ],
+        "model": {
+          "type": "minecraft:model",
+          "model": "handheldmoon:item/color_lens",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 0
+            }
+          ]
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "handheldmoon:item/color_lens",
+      "tints": [
+        {
+          "type": "minecraft:constant",
+          "value": 65535
+        }
+      ]
+    }
+  }
+}

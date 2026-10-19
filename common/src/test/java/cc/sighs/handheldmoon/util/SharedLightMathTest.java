@@ -14,15 +14,15 @@ class SharedLightMathTest {
         assertEquals(0.0, direction.x(), 1.0E-9);
         assertEquals(0.0, direction.y(), 1.0E-9);
         assertEquals(1.0, direction.z(), 1.0E-9);
-        assertEquals(5.0, SharedLightMath.effectiveRange(2.0, 10.0, 1.5), 1.0E-9);
+        assertEquals(10.0 * Math.sqrt(1.0 - Math.pow(0.75, 1.0 / 0.85)), SharedLightMath.effectiveRange(2.0, 10.0, 1.5), 1.0E-9);
         assertEquals(1.0, SharedLightMath.distanceAttenuation(0.0, 14.0), 1.0E-9);
-        assertEquals(0.75, SharedLightMath.distanceAttenuation(7.0, 14.0), 1.0E-9);
-        assertEquals(0.26530612244897955, SharedLightMath.distanceAttenuation(12.0, 14.0), 1.0E-9);
+        assertEquals(Math.pow(0.75, 0.85), SharedLightMath.distanceAttenuation(7.0, 14.0), 1.0E-9);
+        assertEquals(Math.pow(0.26530612244897955, 0.85), SharedLightMath.distanceAttenuation(12.0, 14.0), 1.0E-9);
         assertEquals(0.0, SharedLightMath.distanceAttenuation(14.0, 14.0), 1.0E-9);
-        assertEquals(7.5, SharedLightMath.pointLight(
+        assertEquals(10 * Math.pow(0.75, 0.85), SharedLightMath.pointLight(
                 0.5, 0.5, 0.5, 10.0, 7, 0, 0, 14.0
         ), 1.0E-9);
-        assertEquals(0.75, SharedLightMath.coneLight(
+        assertEquals(Math.pow(0.75, 0.85), SharedLightMath.coneLight(
                 0.5, 0.5, 0.5, 0.0, 0.0, 1.0,
                 1.0, 0, 0, 7, 14.0,
                 Math.cos(0.2), Math.cos(0.5), Math.cos(0.5) * Math.cos(0.5)

@@ -102,6 +102,19 @@ val curseforgeProjectId = providers.provider {
     if (loaderSpecific.isNotEmpty()) loaderSpecific else providers.gradleProperty("curseforge_project").orNull?.trim().orEmpty()
 }
 val curios_version: String by project
+val sodiumNestedCompile = configurations.create("sodiumNestedCompile") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+val sodiumNestedPath = "META-INF/jarjar/net.caffeinemc.sodium-neoforge-0.8.9+mc26.1.1-mod.jar"
+val extractSodiumCompileJar = tasks.register<Copy>("extractSodiumCompileJar") {
+    from({ sodiumNestedCompile.files.map { zipTree(it) } }) {
+        include(sodiumNestedPath)
+    }
+    into(layout.buildDirectory.dir("sodium-compile"))
+}
+val sodiumCompileJar = files(layout.buildDirectory.file("sodium-compile/$sodiumNestedPath"))
+    .builtBy(extractSodiumCompileJar)
 
 // Optional POM dependency whitelist for Maven publication.
 // Example:
@@ -117,10 +130,10 @@ dependencies {
     implementation ("top.theillusivec4.curios:curios-neoforge:$curios_version")
     implementation("curse.maven:irisshaders-455508:7867946")
     implementation("curse.maven:sodium-394468:7867828")
-    // Sodium's classes live in a nested jar (jarjar) that is not on the
-    // compile classpath. Expose the extracted classes for the Sodium mixin
-    // only; the runtime still uses the packaged nested jar.
-    compileOnly(files("../../.tmp/sodium_classes"))
+    sodiumNestedCompile("curse.maven:sodium-394468:7867828")
+    // The implementation classes required by the compatibility mixin live in
+    // Sodium's jarjar payload rather than its outer bootstrap jar.
+    compileOnly(sodiumCompileJar)
 }
 
 neoForge {

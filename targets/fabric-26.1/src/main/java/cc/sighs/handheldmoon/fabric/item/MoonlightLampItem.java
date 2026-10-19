@@ -3,6 +3,7 @@ package cc.sighs.handheldmoon.fabric.item;
 import cc.sighs.handheldmoon.HandheldMoon;
 import cc.sighs.handheldmoon.registry.ModBlocks;
 import cc.sighs.handheldmoon.registry.ModDataComponent;
+import cc.sighs.handheldmoon.spi.PlatformServices;
 import cc.sighs.handheldmoon.util.RegistryPropertiesCompat;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
@@ -12,6 +13,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 
 public class MoonlightLampItem extends BlockItem {
@@ -21,9 +23,31 @@ public class MoonlightLampItem extends BlockItem {
 
     @Override
     public InteractionResult use(Level level, Player player, InteractionHand hand) {
+        if (player.isShiftKeyDown()) {
+            if (level.isClientSide()) {
+                PlatformServices.require().client().requestOpenFlashlightConfig();
+            }
+            return InteractionResult.SUCCESS;
+        }
         ItemStack itemStack = player.getItemInHand(hand);
         togglePowered(itemStack);
         return super.use(level, player, hand);
+    }
+
+    @Override
+    public InteractionResult useOn(UseOnContext context) {
+        Player player = context.getPlayer();
+        if (player != null && player.isShiftKeyDown()) {
+            if (context.getLevel().getBlockState(context.getClickedPos()).is(ModBlocks.MOONLIGHT_LAMP.get())) {
+                // A placed lamp opens its own device configuration instead.
+                return InteractionResult.PASS;
+            }
+            if (context.getLevel().isClientSide()) {
+                PlatformServices.require().client().requestOpenFlashlightConfig();
+            }
+            return InteractionResult.SUCCESS;
+        }
+        return super.useOn(context);
     }
 
     @Override

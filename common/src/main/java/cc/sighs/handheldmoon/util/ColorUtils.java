@@ -202,6 +202,12 @@ public final class ColorUtils {
         return formatWebColor(parseArgbColor(source));
     }
 
+    /** Formats an ARGB int as canonical Web/CSS {@code #RRGGBBAA} form. */
+    public static String argbToWebColor(int argb) {
+        return String.format(Locale.ROOT, "#%02X%02X%02X%02X",
+                (argb >> 16) & 0xFF, (argb >> 8) & 0xFF, argb & 0xFF, (argb >>> 24) & 0xFF);
+    }
+
     /** Converts a Web/CSS color to canonical uppercase RRGGBBAA form (alpha last, no '#'). */
     public static String webColorToRgbaHex(String source) {
         Color color = parseJavaColor(source);

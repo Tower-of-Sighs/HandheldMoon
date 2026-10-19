@@ -26,7 +26,10 @@ public record ServerMoonlightLampConfigSyncPacket(BlockPos blockPos, LampDeviceC
     public void apply(ServerPlayer player) {
         if (player.distanceToSqr(blockPos.getCenter()) <= MAX_DISTANCE_SQR
                 && player.level().getBlockEntity(blockPos) instanceof MoonlightLampBlockEntityAccess lamp) {
-            lamp.setLampConfig(config, true);
+            // The lens slot is server-authoritative; keep its color when a
+            // possibly stale client copy arrives with the numeric settings.
+            LampDeviceConfig current = lamp.getLampConfig();
+            lamp.setLampConfig(config.withLensColor(current.lensColor()), true);
         }
     }
 

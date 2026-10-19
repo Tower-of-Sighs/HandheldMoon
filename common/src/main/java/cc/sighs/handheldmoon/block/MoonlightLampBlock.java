@@ -70,6 +70,7 @@ public class MoonlightLampBlock extends BaseEntityBlock {
     public void setPlacedBy(Level level, BlockPos pos, BlockState state, LivingEntity placer, ItemStack stack) {
         var be = level.getBlockEntity(pos);
         if (be instanceof MoonlightLampBlockEntityAccess lamp) {
+            lamp.setSourceStack(stack.copy());
             lamp.setPowered(ItemState.powered(stack) == 1);
             if (stack.has(ModDataComponent.LAMP_CONFIG.get())) {
                 LampDeviceConfig cfg = stack.getOrDefault(ModDataComponent.LAMP_CONFIG.get(), LampDeviceConfig.fromGlobalConfig());
@@ -116,6 +117,10 @@ public class MoonlightLampBlock extends BaseEntityBlock {
 
         BlockEntity be = params.getParameter(LootContextParams.BLOCK_ENTITY);
         if (be instanceof MoonlightLampBlockEntityAccess lamp) {
+            ItemStack source = lamp.getSourceStack();
+            if (!source.isEmpty() && source.is(ModItems.MOONLIGHT_LAMP.get())) {
+                stack = source.copy();
+            }
             int poweredInt = lamp.getPowered() ? 1 : 0;
             stack.set(ModDataComponent.POWERED.get(), poweredInt);
             if (lamp.hasCustomLampConfig()) {

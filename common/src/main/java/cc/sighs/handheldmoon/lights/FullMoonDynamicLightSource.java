@@ -7,6 +7,7 @@ import cc.sighs.handheldmoon.api.light.AttenuationCurve;
 import cc.sighs.handheldmoon.config.FullMoonDeviceConfig;
 import cc.sighs.handheldmoon.config.LampDeviceConfig;
 import cc.sighs.handheldmoon.dynamiclight.DynamicLightDefaults;
+import cc.sighs.handheldmoon.registry.Config;
 import cc.sighs.handheldmoon.util.ColorUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
@@ -43,16 +44,16 @@ public interface FullMoonDynamicLightSource extends EntityLightProfileAccess {
         if (isLampBound()) {
             LampDeviceConfig config = getLampConfig();
             double outerAngle = config.lightAngle() * 0.5 * Mth.DEG_TO_RAD;
-            String lightColor = config.lightColorsARGB().isEmpty()
-                    ? EntityLightProfile.DEFAULT_LIGHT_COLOR
-                    : ColorUtils.normalizeWebColor(config.lightColorsARGB().get(0));
+            // A placed lamp behaves exactly like the held flashlight: same real
+            // light level and the same lens-tinted color (alpha = tint strength).
+            String lightColor = ColorUtils.argbToWebColor(Config.flashlightColorArgb(config));
             return EntityLightProfile.cone(
-                    config.realLightLuminance(),
+                    config.realLightIntensity(),
                     DynamicLightDefaults.FLASHLIGHT_RANGE,
                     outerAngle * 0.7,
                     outerAngle,
-                    config.realLight(),
-                    true,
+                    config.realLight() && config.realLightIntensity() > 0,
+                    config.enableVisibleCone(),
                     config.lightOcclusion(),
                     Vec3.ZERO,
                     AttenuationCurve.QUADRATIC,

@@ -8,9 +8,11 @@ public final class ModRegistries {
     public static void initialize() {
         ModBlocks.MOONLIGHT_LAMP.getClass();
         ModItems.MOONLIGHT_LAMP.getClass();
-        ModDataComponent.POWERED.getClass();
+        ModItems.COLOR_LENS.getClass();
+        ModDataComponent.LENS_COLOR.getClass();
         ModEntities.MOONLIGHT.getClass();
         ModBlockEntities.MOONLIGHT_LAMP.getClass();
         ModCreativeModeTab.CATBURGER_TAB.getClass();
+        ModMenus.FLASHLIGHT_CONFIG.getClass();
     }
 }

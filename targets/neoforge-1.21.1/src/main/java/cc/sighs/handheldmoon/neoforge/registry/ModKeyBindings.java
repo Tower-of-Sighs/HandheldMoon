@@ -18,6 +18,12 @@ public final class ModKeyBindings {
             GLFW.GLFW_KEY_G,
             "key.categories.handheldmoon"
     );
+    public static final KeyMapping CONE_SWITCH = new KeyMapping(
+            "key.handheldmoon.cone_switch.desc",
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_C,
+            "key.categories.handheldmoon"
+    );
 
     private ModKeyBindings() {
     }

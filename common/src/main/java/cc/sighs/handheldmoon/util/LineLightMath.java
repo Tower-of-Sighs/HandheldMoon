@@ -82,13 +82,11 @@ public final class LineLightMath {
         if (dist2 < 1.0E-12) return Math.max(luminance, 0.0);
         double dot = dx * vx + dy * vy + dz * vz;
         if (dot <= 0.0) return 0.0;
-        if (dot * dot < cosOuterSq * dist2) return 0.0;
         double invDistF = Mth.fastInvSqrt((float) dist2);
         double dist = 1.0 / invDistF;
         double dotNorm = dot * invDistF;
-        double angleAtt = Math.abs(cosInner - cosOuter) < 1.0E-9
-                ? (dotNorm >= cosOuter ? 1.0 : 0.0)
-                : (dotNorm >= cosInner ? 1.0 : (dotNorm - cosOuter) / (cosInner - cosOuter));
+        double angleAtt = SharedLightMath.coneAttenuation(dotNorm, dist, cosInner, cosOuter);
+        if (angleAtt <= 0.0) return 0.0;
         double res = SharedLightMath.attenuatedIntensity(luminance, dist, range, curve) * angleAtt;
         return Math.max(res, 0.0);
     }

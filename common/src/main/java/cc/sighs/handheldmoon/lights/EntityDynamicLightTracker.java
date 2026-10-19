@@ -4,7 +4,6 @@ import cc.sighs.handheldmoon.api.light.EntityLightSource;
 import cc.sighs.handheldmoon.api.light.EntityLightSourceProvider;
 import cc.sighs.handheldmoon.compat.FlashlightCompatHooks;
 import cc.sighs.handheldmoon.dynamiclight.EntityItemLightBehavior;
-import cc.sighs.handheldmoon.registry.Config;
 import cc.sighs.handheldmoon.registry.ModItems;
 import cc.sighs.handheldmoon.util.ItemState;
 import cc.sighs.handheldmoon.util.Utils;
@@ -31,7 +30,7 @@ public final class EntityDynamicLightTracker implements EntityLightSourceProvide
 
     @Override
     public void collect(Minecraft minecraft, Consumer<EntityLightSource> sink) {
-        if (minecraft.level == null || !Config.REAL_LIGHT.get()) {
+        if (minecraft.level == null) {
             playerBehaviors.clear();
             itemBehaviors.clear();
             return;

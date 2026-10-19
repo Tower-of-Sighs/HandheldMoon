@@ -1,13 +1,17 @@
 package cc.sighs.handheldmoon.event.handler;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import cc.sighs.handheldmoon.client.screen.DeviceConfigOpenHelper;
+import cc.sighs.handheldmoon.api.config.ConfigTarget;
+import cc.sighs.handheldmoon.client.screen.DeviceConfigTargets;
+import cc.sighs.handheldmoon.config.LampDeviceConfig;
 import cc.sighs.handheldmoon.registry.Config;
 import cc.sighs.handheldmoon.spi.PlatformServices;
 import cc.sighs.handheldmoon.util.Utils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
+import org.jetbrains.annotations.Nullable;
 
 public final class OperationEventHandler {
     private static double cacheGama = 0;
@@ -26,17 +30,21 @@ public final class OperationEventHandler {
             return;
         }
         var keys = PlatformServices.require().client();
-        if (key == keys.deviceConfigKeyCode() && action == InputConstants.PRESS) {
-            DeviceConfigOpenHelper.openForCursorTarget();
+        if (key == keys.modConfigKeyCode() && action == InputConstants.PRESS) {
+            keys.openModConfig();
+            return;
+        }
+        if (key == keys.coneSwitchKeyCode() && action == InputConstants.PRESS) {
+            toggleHeldVisibleCone(player);
             return;
         }
         if (key == keys.flashlightKeyCode()) {
             if (action == InputConstants.PRESS) {
-                cacheGama = Config.LIGHT_INTENSITY.get();
+                cacheGama = heldFilterIntensity(player);
                 vComboUsed = false;
             }
             if (action == InputConstants.RELEASE) {
-                if (!vComboUsed && cacheGama == Config.LIGHT_INTENSITY.get()) {
+                if (!vComboUsed && cacheGama == heldFilterIntensity(player)) {
                     Utils.toggleFlashlight(player);
                 }
             }
@@ -58,9 +66,7 @@ public final class OperationEventHandler {
                 return true;
             }
             if (button == 0) {
-                Config.REAL_LIGHT.set(!Config.REAL_LIGHT.get());
-                Config.REAL_LIGHT.save();
-                player.sendSystemMessage(Component.translatable("message.handheldmoon.real_light", Config.REAL_LIGHT.get().toString()));
+                toggleHeldRealLight(player);
                 vComboUsed = true;
             }
             if (button == 1) {
@@ -89,17 +95,61 @@ public final class OperationEventHandler {
     }
 
     public static void modifyValue(double delta) {
-        double value = Config.LIGHT_INTENSITY.get();
+        ConfigTarget<LampDeviceConfig> target = heldLampTarget();
+        if (target == null) {
+            return;
+        }
+        LampDeviceConfig config = target.get();
+        double value = config.filterLightIntensity();
         if (delta < 0) {
             value = Math.max(value - 0.1, 0);
         } else {
             value = Math.min(value + 0.1, 1);
         }
         value = Math.round(value * 10) / 10d;
-        Config.LIGHT_INTENSITY.set(value);
-        Config.LIGHT_INTENSITY.save();
+        target.apply(config.withFilterLightIntensity(value));
         if (Minecraft.getInstance().player != null) {
             Minecraft.getInstance().player.sendSystemMessage(Component.translatable("message.handheldmoon.light_tweak", String.format("%.1f", value)));
         }
+    }
+
+    /** Toggles the visible cone of the held flashlight item, not a global switch. */
+    private static void toggleHeldVisibleCone(Player player) {
+        ConfigTarget<LampDeviceConfig> target = heldLampTarget();
+        if (target == null) {
+            return;
+        }
+        LampDeviceConfig config = target.get();
+        boolean enabled = !config.enableVisibleCone();
+        target.apply(config.withEnableVisibleCone(enabled));
+        player.sendSystemMessage(Component.translatable(
+                "message.handheldmoon.visible_cone",
+                Component.translatable(enabled ? "options.on" : "options.off")));
+    }
+
+    /** Toggles the held flashlight's real light between off and full intensity. */
+    private static void toggleHeldRealLight(Player player) {
+        ConfigTarget<LampDeviceConfig> target = heldLampTarget();
+        if (target == null) {
+            return;
+        }
+        LampDeviceConfig config = target.get();
+        boolean enabled = config.realLightIntensity() <= 0;
+        double intensity = enabled ? LampDeviceConfig.DEFAULT_REAL_LIGHT_INTENSITY : 0.0;
+        target.apply(config.withRealLightIntensity(intensity));
+        player.sendSystemMessage(Component.translatable(
+                "message.handheldmoon.real_light",
+                Component.translatable(enabled ? "options.on" : "options.off")));
+    }
+
+    private static double heldFilterIntensity(Player player) {
+        LampDeviceConfig config = Utils.heldLampConfig(player);
+        return config != null ? config.filterLightIntensity() : LampDeviceConfig.DEFAULT_FILTER_LIGHT_INTENSITY;
+    }
+
+    private static @Nullable ConfigTarget<LampDeviceConfig> heldLampTarget() {
+        Minecraft minecraft = Minecraft.getInstance();
+        ConfigTarget<LampDeviceConfig> target = DeviceConfigTargets.heldLampItem(minecraft, InteractionHand.MAIN_HAND);
+        return target != null ? target : DeviceConfigTargets.heldLampItem(minecraft, InteractionHand.OFF_HAND);
     }
 }

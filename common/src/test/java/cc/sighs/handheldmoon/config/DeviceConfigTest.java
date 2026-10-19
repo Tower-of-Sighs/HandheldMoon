@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class DeviceConfigTest {
@@ -26,21 +27,28 @@ class DeviceConfigTest {
                 true,
                 2.0,
                 false,
-                false,
                 -2.0,
                 Arrays.asList("1.0"),
                 Arrays.asList("0.0"),
                 Collections.emptyList(),
                 5.0,
-                new LampDeviceConfig.FogSettings(true, 3.0, -1.0, 2.0, "FFFFFF80")
+                new LampDeviceConfig.FogSettings(true, 3.0, -1.0, 2.0, "FFFFFF80"),
+                20.0,
+                false,
+                -5,
+                2.0
         );
 
         colors.clear();
 
         assertEquals(10.0, config.lightAngle());
-        assertEquals(1.0, config.lightIntensity());
+        assertEquals(1.0, config.filterLightIntensity());
+        assertEquals(15.0, config.realLightIntensity());
         assertEquals(0.0, config.realLightLuminance());
         assertEquals(1.0, config.colorNoiseAmplitude());
+        assertFalse(config.enableVisibleCone());
+        assertEquals(LampDeviceConfig.NO_LENS_COLOR, config.lensColor());
+        assertEquals(1.0, config.lensTintStrength());
         assertEquals(Collections.singletonList("FFFFFFFF"), config.lightColorsARGB());
         assertThrows(UnsupportedOperationException.class, () -> config.lightColorsARGB().add("FF000000"));
         assertEquals(2.0, config.fog().sizeScale());

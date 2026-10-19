@@ -10,7 +10,9 @@
     "client.PostPassAccessor",
     "dynamiclight.DynamicLightBrightnessGetterMixin",
     "dynamiclight.DynamicLightBlockModelLighterMixin",
-    "dynamiclight.SodiumDynamicLightBlockRendererMixin"
+    "dynamiclight.SodiumDynamicLightBlockRendererMixin",
+    "dynamiclight.SodiumSectionReadinessMixin",
+    "dynamiclight.LightmapColorMixin"
   ],
   "server": [],
   "injectors": {

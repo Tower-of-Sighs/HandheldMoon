@@ -15,6 +15,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -26,6 +27,7 @@ public class MoonlightLampBlockEntity extends BlockEntity implements cc.sighs.ha
     private boolean powered = true;
     private LampDeviceConfig lampConfig = LampDeviceConfig.fromGlobalConfig();
     private boolean lampConfigCustomized = false;
+    private ItemStack sourceStack = ItemStack.EMPTY;
     private boolean clientInited = false;
     private UUID uuid = UUID.randomUUID();
 
@@ -49,7 +51,9 @@ public class MoonlightLampBlockEntity extends BlockEntity implements cc.sighs.ha
             return;
         }
         entity.bindToLamp(getBlockPos());
-        entity.setLampState(getXRot(), getYRot(), getPowered() ? 15 : 0);
+        LampDeviceConfig config = getLampConfig();
+        int luminance = getPowered() && config.realLightIntensity() > 0 ? 15 : 0;
+        entity.setLampState(getXRot(), getYRot(), luminance);
         MoonlightLampEntityHeartbeatCenter.report(level, entity.getUUID());
     }
 
@@ -114,6 +118,17 @@ public class MoonlightLampBlockEntity extends BlockEntity implements cc.sighs.ha
         }
     }
 
+    @Override
+    public ItemStack getSourceStack() {
+        return sourceStack;
+    }
+
+    @Override
+    public void setSourceStack(ItemStack stack) {
+        this.sourceStack = stack.copy();
+        setChanged();
+    }
+
     public boolean hasCustomLampConfig() {
         return lampConfigCustomized;
     }
@@ -137,6 +152,7 @@ public class MoonlightLampBlockEntity extends BlockEntity implements cc.sighs.ha
         output.putBoolean("powered", powered);
         output.putString("uuid", getUuid().toString());
         output.putBoolean("lampConfigCustomized", lampConfigCustomized);
+        output.store("sourceStack", ItemStack.OPTIONAL_CODEC, sourceStack);
         if (lampConfigCustomized) {
             output.store("lampConfig", DeviceConfigCodecs.LAMP, lampConfig);
         }
@@ -150,6 +166,7 @@ public class MoonlightLampBlockEntity extends BlockEntity implements cc.sighs.ha
         powered = input.getBooleanOr("powered", true);
         uuid = UUID.fromString(input.getStringOr("uuid", UUID.randomUUID().toString()));
         lampConfigCustomized = input.getBooleanOr("lampConfigCustomized", false);
+        sourceStack = input.read("sourceStack", ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY);
         lampConfig = input.read("lampConfig", DeviceConfigCodecs.LAMP).orElse(LampDeviceConfig.fromGlobalConfig());
     }
 
@@ -176,7 +193,9 @@ public class MoonlightLampBlockEntity extends BlockEntity implements cc.sighs.ha
         }
         entity = new FullMoonEntity(serverLevel);
         entity.bindToLamp(getBlockPos());
-        entity.setLampState(getXRot(), getYRot(), getPowered() ? 15 : 0);
+        LampDeviceConfig config = getLampConfig();
+        int luminance = getPowered() && config.realLightIntensity() > 0 ? 15 : 0;
+        entity.setLampState(getXRot(), getYRot(), luminance);
         serverLevel.addFreshEntity(entity);
         uuid = entity.getUUID();
         setChanged();
