@@ -1,30 +1,34 @@
 package cc.sighs.handheldmoon.neoforge.mixin.client;
 
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import cc.sighs.handheldmoon.dynamiclight.DynamicLightManager;
 import cc.sighs.handheldmoon.util.Utils;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(EntityRenderer.class)
 public class EntityRendererMixin {
-    @WrapOperation(
-            method = "getPackedLightCoords",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/renderer/entity/EntityRenderer;getBlockLightLevel(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/core/BlockPos;)I"
-            )
-    )
-    private int handheldMoon$onForceEntityLitUp(EntityRenderer<?, ?> instance, Entity entity, BlockPos pos, Operation<Integer> original) {
-        if (entity instanceof Player player) {
-            if (Utils.isUsingFlashlight(player)) {
-                return 15;
-            }
+    /**
+     * Adds the dynamic light level to the entity's packed light. Sampling the
+     * whole body (not just the eye probe) keeps entities standing in a beam as
+     * bright as the lit blocks around them.
+     */
+    @Inject(method = "getPackedLightCoords", at = @At("RETURN"), cancellable = true)
+    private void handheldmoon$applyDynamicLight(
+            Entity entity, float partialTick, CallbackInfoReturnable<Integer> cir
+    ) {
+        int packed = cir.getReturnValueI();
+        BlockPos probe = BlockPos.containing(entity.getLightProbePosition(partialTick));
+        int block = Math.max(LightCoordsUtil.block(packed), DynamicLightManager.entityLight(entity, probe));
+        if (entity instanceof Player player && Utils.isUsingFlashlight(player)) {
+            block = 15;
         }
-        return original.call(instance, entity, pos);
+        cir.setReturnValue(LightCoordsUtil.withBlock(packed, block));
     }
 }

@@ -46,6 +46,8 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
             FullMoonEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Boolean> LIGHT_PROFILE_OVERRIDE = SynchedEntityData.defineId(
             FullMoonEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<String> SOURCE_ID = SynchedEntityData.defineId(
+            FullMoonEntity.class, EntityDataSerializers.STRING);
 
     public FullMoonEntity(Level level) {
         this((EntityType<? extends FullMoonEntity>) ModEntities.MOONLIGHT.get(), level);
@@ -79,6 +81,18 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
     @Override
     public BlockPos getAnchorPos() {
         return entityData.get(ANCHOR_POS).orElse(null);
+    }
+
+    @Override
+    public String getSourceId() {
+        return entityData.get(SOURCE_ID);
+    }
+
+    public void setSourceId(String sourceId) {
+        String value = sourceId == null ? "" : sourceId;
+        if (!entityData.get(SOURCE_ID).equals(value)) {
+            entityData.set(SOURCE_ID, value);
+        }
     }
 
     @Override
@@ -181,6 +195,7 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
         builder.define(LAMP_Y_ROT, 0.0f);
         builder.define(LIGHT_PROFILE, "");
         builder.define(LIGHT_PROFILE_OVERRIDE, false);
+        builder.define(SOURCE_ID, "");
     }
 
     @Override
@@ -225,6 +240,7 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
         entityData.set(LAMP_X_ROT, input.getFloatOr("lamp_x_rot", 0.0f));
         entityData.set(LAMP_Y_ROT, input.getFloatOr("lamp_y_rot", 0.0f));
         entityData.set(LIGHT_PROFILE_OVERRIDE, input.getBooleanOr("light_profile_override", false));
+        entityData.set(SOURCE_ID, input.getStringOr("source_id", ""));
         input.read("light_profile", EntityLightProfile.CODEC).ifPresent(this::writeLightProfile);
         if (entityData.get(LIGHT_PROFILE).isEmpty()) {
             syncDefaultLightProfile();
@@ -245,6 +261,7 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
         output.putFloat("lamp_x_rot", entityData.get(LAMP_X_ROT));
         output.putFloat("lamp_y_rot", entityData.get(LAMP_Y_ROT));
         output.putBoolean("light_profile_override", entityData.get(LIGHT_PROFILE_OVERRIDE));
+        output.putString("source_id", getSourceId());
         output.store("light_profile", EntityLightProfile.CODEC, getLightProfile());
     }
 

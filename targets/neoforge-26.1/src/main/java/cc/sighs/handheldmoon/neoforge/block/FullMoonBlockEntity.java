@@ -75,6 +75,7 @@ public class FullMoonBlockEntity extends BlockEntity implements cc.sighs.handhel
         FullMoonEntity entity = getBoundEntity();
         if (entity != null) {
             entity.setAnchor(getBlockPos());
+            entity.setSourceId("handheldmoon:full_moon");
             return;
         }
         BlockPos pos = getBlockPos();
@@ -84,6 +85,7 @@ public class FullMoonBlockEntity extends BlockEntity implements cc.sighs.handhel
             entity = new FullMoonEntity(level);
             entity.setPos(pos.getX() + 0.5, pos.getY() + 0.4, pos.getZ() + 0.5);
             entity.setAnchor(pos);
+            entity.setSourceId("handheldmoon:full_moon");
             level.addFreshEntity(entity);
             uuid = entity.getUUID();
             setChanged();

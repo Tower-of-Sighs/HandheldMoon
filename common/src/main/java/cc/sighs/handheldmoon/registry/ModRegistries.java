@@ -9,6 +9,7 @@ public final class ModRegistries {
         ModBlocks.MOONLIGHT_LAMP.getClass();
         ModItems.MOONLIGHT_LAMP.getClass();
         ModItems.COLOR_LENS.getClass();
+        ModItems.MOONLIGHT_WAND.getClass();
         ModDataComponent.LENS_COLOR.getClass();
         ModEntities.MOONLIGHT.getClass();
         ModBlockEntities.MOONLIGHT_LAMP.getClass();

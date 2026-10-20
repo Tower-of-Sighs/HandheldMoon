@@ -49,6 +49,7 @@ public class MoonlightLampBlockEntity extends BlockEntity implements cc.sighs.ha
             return;
         }
         entity.bindToLamp(getBlockPos());
+        entity.setSourceId("handheldmoon:moonlight_lamp");
         LampDeviceConfig config = getLampConfig();
         int luminance = getPowered() && config.realLightIntensity() > 0 ? 15 : 0;
         entity.setLampState(getXRot(), getYRot(), luminance);
@@ -193,6 +194,7 @@ public class MoonlightLampBlockEntity extends BlockEntity implements cc.sighs.ha
         }
         entity = new FullMoonEntity(serverLevel);
         entity.bindToLamp(getBlockPos());
+        entity.setSourceId("handheldmoon:moonlight_lamp");
         LampDeviceConfig config = getLampConfig();
         int luminance = getPowered() && config.realLightIntensity() > 0 ? 15 : 0;
         entity.setLampState(getXRot(), getYRot(), luminance);

@@ -12,6 +12,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
+import net.minecraft.world.entity.Entity;
 
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -174,6 +175,23 @@ public final class DynamicLightManager {
 
     public static double getLightLevel(BlockPos pos) {
         return getLightLevel(pos.getX(), pos.getY(), pos.getZ());
+    }
+
+    /**
+     * Returns the strongest dynamic light over an entity's body. Sampling only
+     * the eye probe made standing entities dimmer than the lit blocks below
+     * them; taking the body maximum keeps them equally bright.
+     */
+    public static int entityLight(Entity entity, BlockPos probe) {
+        int best = (int) getLightLevel(probe);
+        double x = entity.getX();
+        double y = entity.getY();
+        double z = entity.getZ();
+        float height = entity.getBbHeight();
+        best = Math.max(best, (int) getLightLevel(BlockPos.containing(x, y + height * 0.15, z)));
+        best = Math.max(best, (int) getLightLevel(BlockPos.containing(x, y + height * 0.5, z)));
+        best = Math.max(best, (int) getLightLevel(BlockPos.containing(x, y + height * 0.85, z)));
+        return best;
     }
 
     public static double getLightLevel(int blockX, int blockY, int blockZ) {

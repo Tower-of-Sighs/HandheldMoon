@@ -13,6 +13,8 @@
     "PostPassAccessor",
     "dynamiclight.DynamicLightBrightnessGetterMixin",
     "dynamiclight.DynamicLightBlockModelLighterMixin",
+    "dynamiclight.EntityModelTintMixin",
+    "dynamiclight.EntityRendererLightMixin",
     "dynamiclight.SodiumDynamicLightBlockRendererMixin",
     "dynamiclight.SodiumSectionReadinessMixin",
     "dynamiclight.LightmapColorMixin"

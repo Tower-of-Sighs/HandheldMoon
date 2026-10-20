@@ -2,6 +2,7 @@ package cc.sighs.handheldmoon.fabric;
 
 import cc.sighs.handheldmoon.HandheldMoon;
 import cc.sighs.handheldmoon.client.HandheldMoonClient;
+import cc.sighs.handheldmoon.client.LightSourceHighlightRenderer;
 import cc.sighs.handheldmoon.fabric.client.renderer.FullMoonRenderer;
 import cc.sighs.handheldmoon.fabric.client.renderer.MoonlightLampRenderer;
 import cc.sighs.handheldmoon.fabric.client.renderer.item.MoonlightLampPoweredProperty;
@@ -52,6 +53,16 @@ public final class HandheldMoonFabricClientEvents {
             );
         });
         LevelRenderEvents.END_MAIN.register(context -> EffectManager.onLevelRender());
+
+        LevelRenderEvents.END_MAIN.register(context -> {
+            Minecraft mc = Minecraft.getInstance();
+            LightSourceHighlightRenderer.render(
+                    context.poseStack(),
+                    context.levelState().cameraRenderState.pos,
+                    context.levelState().cameraRenderState.viewRotationMatrix,
+                    mc.getDeltaTracker().getGameTimeDeltaPartialTick(true)
+            );
+        });
 
         EntityRenderers.register(
                 (EntityType<cc.sighs.handheldmoon.fabric.entity.FullMoonEntity>) ModEntities.MOONLIGHT.get(),

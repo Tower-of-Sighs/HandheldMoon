@@ -9,6 +9,7 @@ import cc.sighs.handheldmoon.network.ServerHeldMoonlightLampConfigSyncPacket;
 import cc.sighs.handheldmoon.network.ServerMoonLightLampSyncPacket;
 import cc.sighs.handheldmoon.network.ServerMoonlightLampConfigSyncPacket;
 import cc.sighs.handheldmoon.network.ServerOpenLampBlockConfigPacket;
+import cc.sighs.handheldmoon.network.ServerSetLightProfilePacket;
 import cc.sighs.handheldmoon.neoforge.registry.ModKeyBindings;
 import cc.sighs.handheldmoon.registry.ModRegistries;
 import cc.sighs.handheldmoon.neoforge.block.FullMoonBlockEntity;
@@ -17,6 +18,7 @@ import cc.sighs.handheldmoon.neoforge.entity.FullMoonEntity;
 import cc.sighs.handheldmoon.neoforge.item.MoonlightLampItem;
 import cc.sighs.handheldmoon.item.ColorLensItem;
 import cc.sighs.handheldmoon.item.FullMoonItem;
+import cc.sighs.handheldmoon.item.MoonlightWandItem;
 import cc.sighs.handheldmoon.menu.FlashlightConfigMenu;
 import cc.sighs.handheldmoon.network.ServerOpenFlashlightConfigPacket;
 import cc.sighs.handheldmoon.spi.ClientPlatformService;
@@ -82,6 +84,8 @@ public final class NeoForgePlatformService implements PlatformService {
                     (message, context) -> context.enqueueWork(() -> message.apply((net.minecraft.server.level.ServerPlayer) context.player())));
             registrar.playToServer(ServerOpenLampBlockConfigPacket.TYPE, ServerOpenLampBlockConfigPacket.STREAM_CODEC,
                     (message, context) -> context.enqueueWork(() -> message.apply((net.minecraft.server.level.ServerPlayer) context.player())));
+            registrar.playToServer(ServerSetLightProfilePacket.TYPE, ServerSetLightProfilePacket.STREAM_CODEC,
+                    (message, context) -> context.enqueueWork(() -> message.apply((net.minecraft.server.level.ServerPlayer) context.player())));
         });
         ModRegistries.initialize();
     }
@@ -115,6 +119,7 @@ public final class NeoForgePlatformService implements PlatformService {
         @Override public RegistrySupplier<? extends Item> registerMoonlightLampItem(String id) { return supplier(items.register(id, MoonlightLampItem::new)); }
         @Override public RegistrySupplier<? extends Item> registerFullMoonItem(String id) { return supplier(items.register(id, FullMoonItem::new)); }
         @Override public RegistrySupplier<? extends Item> registerColorLensItem(String id) { return supplier(items.register(id, ColorLensItem::new)); }
+        @Override public RegistrySupplier<? extends Item> registerMoonlightWandItem(String id) { return supplier(items.register(id, MoonlightWandItem::new)); }
         @Override public RegistrySupplier<MenuType<?>> registerMenu(String id, Supplier<MenuType<?>> factory) { return supplierWildcard(menus.register(id, factory)); }
         @Override public RegistrySupplier<? extends EntityType<?>> registerFullMoonEntity(String id, MobCategory category, float width, float height) {
             EntityType.EntityFactory<FullMoonEntity> factory = FullMoonEntity::new;
@@ -133,7 +138,7 @@ public final class NeoForgePlatformService implements PlatformService {
             return null;
         }
         @Override public <T> RegistrySupplier<DataComponentType<T>> registerDataComponent(String id, Supplier<DataComponentType<T>> factory) { return supplier(dataComponents.register(id, factory)); }
-        @Override public RegistrySupplier<CreativeModeTab> registerCreativeModeTab(String id, RegistrySupplier<? extends Item> lamp, RegistrySupplier<? extends Item> fullMoon, RegistrySupplier<? extends Item> colorLens) {
+        @Override public RegistrySupplier<CreativeModeTab> registerCreativeModeTab(String id, RegistrySupplier<? extends Item> lamp, RegistrySupplier<? extends Item> fullMoon, RegistrySupplier<? extends Item> colorLens, RegistrySupplier<? extends Item> wand) {
             return supplier(creativeTabs.register(id, () -> CreativeModeTab.builder()
                     .title(net.minecraft.network.chat.Component.translatable("itemGroup.tab.handheldmoon"))
                     .icon(() -> lamp.get().getDefaultInstance())
@@ -141,6 +146,7 @@ public final class NeoForgePlatformService implements PlatformService {
                         output.accept(lamp.get().getDefaultInstance());
                         output.accept(fullMoon.get());
                         output.accept(colorLens.get().getDefaultInstance());
+                        output.accept(wand.get().getDefaultInstance());
                     })
                     .build()));
         }
@@ -186,6 +192,12 @@ public final class NeoForgePlatformService implements PlatformService {
         }
         @Override public void openModConfig() {
             net.minecraft.client.Minecraft.getInstance().setScreen(new cc.sighs.handheldmoon.neoforge.client.screen.HandheldMoonConfigScreen());
+        }
+        @Override public void openLightSourceConfig(cc.sighs.handheldmoon.lights.FullMoonDynamicLightSource source, int entityId, java.util.UUID uuid, String sourceId) {
+            net.minecraft.client.Minecraft.getInstance().setScreen(new cc.sighs.handheldmoon.neoforge.client.screen.LightSourceConfigScreen(source, entityId, uuid, sourceId));
+        }
+        @Override public void sendLightProfile(int entityId, cc.sighs.handheldmoon.api.light.EntityLightProfile profile) {
+            send(new ServerSetLightProfilePacket(entityId, profile));
         }
         @Override public void sendLampState(net.minecraft.core.BlockPos pos, float xRot, float yRot, boolean powered) { send(new ServerMoonLightLampSyncPacket(pos, xRot, yRot, powered)); }
         @Override public void sendLampConfig(net.minecraft.core.BlockPos pos, LampDeviceConfig config) { send(new ServerMoonlightLampConfigSyncPacket(pos, config)); }
