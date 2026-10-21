@@ -59,7 +59,15 @@ public final class FlashlightConfigMenu extends AbstractContainerMenu {
                 return 1;
             }
         });
-        addStandardInventorySlots(inventory, INVENTORY_X, INVENTORY_Y);
+        for (int row = 0; row < 3; row++) {
+            for (int column = 0; column < 9; column++) {
+                addSlot(new Slot(inventory, column + (row + 1) * 9,
+                        INVENTORY_X + column * 18, INVENTORY_Y + row * 18));
+            }
+        }
+        for (int column = 0; column < 9; column++) {
+            addSlot(new Slot(inventory, column, INVENTORY_X + column * 18, INVENTORY_Y + 58));
+        }
     }
 
     /** Remembers the block whose page the client is about to request. */

@@ -54,12 +54,12 @@ public abstract class SodiumDynamicLightBlockRendererMixin {
                 ? net.caffeinemc.mods.sodium.client.model.light.LightMode.SMOOTH
                 : net.caffeinemc.mods.sodium.client.model.light.LightMode.FLAT;
         boolean smooth = mode == net.caffeinemc.mods.sodium.client.model.light.LightMode.SMOOTH;
-        int flatTint = smooth ? -1 : DynamicLightRenderHelper.tintCoefficient(level, lightPos);
+        int flatTint = smooth ? -1 : DynamicLightRenderHelper.tintCoefficient(level::getBrightness, lightPos);
         // Sodium keeps MutableQuadView colors in ARGB and converts them to ABGR
         // only inside bufferQuad. Store ARGB here to avoid swapping R/B twice.
         for (int i = 0; i < 4; i++) {
             int coefficient = smooth ? DynamicLightRenderHelper.tintCoefficientForVertex(
-                    level, lightPos, quad.getLightFace(), quad.getX(i), quad.getY(i), quad.getZ(i), quad.getLight(i)
+                    level::getBrightness, lightPos, quad.getLightFace(), quad.getX(i), quad.getY(i), quad.getZ(i), quad.getLight(i)
             ) : flatTint;
             int baseARGB = quad.baseColor(i);
             int tintedARGB = DynamicLightRenderHelper.multiplyArgb(baseARGB, coefficient);

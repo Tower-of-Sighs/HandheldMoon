@@ -2,11 +2,16 @@ package cc.sighs.handheldmoon.dynamiclight;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.world.level.LightLayer;
 
 /** Packed-light bridge used by renderer mixins. */
 public final class DynamicLightRenderHelper {
+    /** Version-independent subset of a light getter used by the tint helpers. */
+    @FunctionalInterface
+    public interface LightSampler {
+        int getBrightness(LightLayer layer, BlockPos pos);
+    }
+
     private static final int SKY_MASK = 0xFFF00000;
     private static final int BLOCK_MASK = 0x000FFFFF;
     /** Block light coordinate of level 1. */
@@ -122,7 +127,7 @@ public final class DynamicLightRenderHelper {
      * light color. The coefficient lerps from white (no change) to the light
      * color as brightness increases.
      */
-    public static int tintCoefficient(BlockAndTintGetter level, BlockPos pos) {
+    public static int tintCoefficient(LightSampler level, BlockPos pos) {
         return LightmapColorBridge.coefficient(DynamicLightManager.getLightLevel(pos),
                 level.getBrightness(LightLayer.BLOCK, pos), level.getBrightness(LightLayer.SKY, pos),
                 DynamicLightManager.getLightColor(pos));
@@ -151,7 +156,7 @@ public final class DynamicLightRenderHelper {
      * This is a color filter, not a replacement for the renderer's AO weights.
      */
     public static int tintCoefficientForVertex(
-            BlockAndTintGetter level, BlockPos lightPos, Direction face,
+            LightSampler level, BlockPos lightPos, Direction face,
             float x, float y, float z
     ) {
         Direction.Axis axis = face.getAxis();
@@ -168,7 +173,7 @@ public final class DynamicLightRenderHelper {
 
     /** Use the renderer's final brightness; neighbors supply hue only. */
     public static int tintCoefficientForVertex(
-            BlockAndTintGetter level, BlockPos pos, Direction face,
+            LightSampler level, BlockPos pos, Direction face,
             float x, float y, float z, int renderedLight
     ) {
         Direction.Axis axis = face.getAxis();
@@ -202,7 +207,7 @@ public final class DynamicLightRenderHelper {
     }
 
     private static TintSample sampleFaceTint(
-            BlockAndTintGetter level, BlockPos pos, Direction.Axis axis, int u, int v
+            LightSampler level, BlockPos pos, Direction.Axis axis, int u, int v
     ) {
         BlockPos sample = switch (axis) {
             case X -> pos.offset(0, v, u);

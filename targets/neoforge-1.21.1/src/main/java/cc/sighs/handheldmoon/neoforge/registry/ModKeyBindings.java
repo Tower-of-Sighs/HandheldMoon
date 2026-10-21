@@ -12,10 +12,10 @@ public final class ModKeyBindings {
             GLFW.GLFW_KEY_V,
             "key.categories.handheldmoon"
     );
-    public static final KeyMapping OPEN_DEVICE_CONFIG = new KeyMapping(
-            "key.handheldmoon.device_config.desc",
+    public static final KeyMapping OPEN_MOD_CONFIG = new KeyMapping(
+            "key.handheldmoon.mod_config.desc",
             InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_G,
+            GLFW.GLFW_KEY_K,
             "key.categories.handheldmoon"
     );
     public static final KeyMapping CONE_SWITCH = new KeyMapping(

@@ -48,11 +48,11 @@ public abstract class DynamicLightBlockModelLighterMixin {
         BlockPos lightPos = state.isCollisionShapeFullBlock(level, pos)
                 ? pos.relative(face) : pos;
         boolean smooth = "SMOOTH".equals(mode);
-        int flatTint = smooth ? -1 : DynamicLightRenderHelper.tintCoefficient(level, lightPos);
+        int flatTint = smooth ? -1 : DynamicLightRenderHelper.tintCoefficient(level::getBrightness, lightPos);
         for (int i = 0; i < 4; i++) {
             var vertex = quad.position(i);
             int coefficient = smooth ? DynamicLightRenderHelper.tintCoefficientForVertex(
-                    level, lightPos, face, vertex.x(), vertex.y(), vertex.z(), outputInstance.getLightCoords(i)
+                    level::getBrightness, lightPos, face, vertex.x(), vertex.y(), vertex.z(), outputInstance.getLightCoords(i)
             ) : flatTint;
             outputInstance.setColor(i, DynamicLightRenderHelper.multiplyArgb(
                     outputInstance.getColor(i), coefficient

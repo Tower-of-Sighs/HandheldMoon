@@ -32,6 +32,7 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
     private int radius = 16;
     private String lightProfileCacheKey;
     private EntityLightProfile lightProfileCache;
+    private boolean resolvingAnchor;
     private static final EntityDataAccessor<Optional<BlockPos>> ANCHOR_POS = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
     private static final EntityDataAccessor<Boolean> LAMP_BOUND = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> LAMP_LUMINANCE = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.INT);
@@ -39,6 +40,7 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
     private static final EntityDataAccessor<Float> LAMP_Y_ROT = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<String> LIGHT_PROFILE = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Boolean> LIGHT_PROFILE_OVERRIDE = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<String> SOURCE_ID = SynchedEntityData.defineId(FullMoonEntity.class, EntityDataSerializers.STRING);
 
     public FullMoonEntity(Level level) {
         this((EntityType<? extends FullMoonEntity>) ModEntities.MOONLIGHT.get(), level);
@@ -58,11 +60,13 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
         builder.define(LAMP_Y_ROT, 0.0f);
         builder.define(LIGHT_PROFILE, "");
         builder.define(LIGHT_PROFILE_OVERRIDE, false);
+        builder.define(SOURCE_ID, "");
     }
 
     public void setAnchor(BlockPos pos) {
         this.entityData.set(ANCHOR_POS, Optional.ofNullable(pos));
         this.entityData.set(LAMP_BOUND, false);
+        setSourceId("handheldmoon:full_moon");
         syncDefaultLightProfile();
         syncToAnchor();
     }
@@ -74,8 +78,21 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
     public void bindToLamp(BlockPos pos) {
         this.entityData.set(ANCHOR_POS, Optional.ofNullable(pos));
         this.entityData.set(LAMP_BOUND, true);
+        setSourceId("handheldmoon:moonlight_lamp");
         syncDefaultLightProfile();
         syncToAnchor();
+    }
+
+    @Override
+    public String getSourceId() {
+        return this.entityData.get(SOURCE_ID);
+    }
+
+    public void setSourceId(String sourceId) {
+        String value = sourceId == null ? "" : sourceId;
+        if (!this.entityData.get(SOURCE_ID).equals(value)) {
+            this.entityData.set(SOURCE_ID, value);
+        }
     }
 
     public boolean isLampBound() {
@@ -220,8 +237,21 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
     }
 
     private BlockEntity getAnchorBlockEntity() {
+        if (resolvingAnchor) {
+            // The anchor chunk may still be registering this block entity; a
+            // nested lookup would re-enter setLevel -> bindToLamp -> profile.
+            return null;
+        }
         BlockPos anchor = getAnchorPos();
-        return anchor != null ? level().getBlockEntity(anchor) : null;
+        if (anchor == null) {
+            return null;
+        }
+        resolvingAnchor = true;
+        try {
+            return level().getBlockEntity(anchor);
+        } finally {
+            resolvingAnchor = false;
+        }
     }
 
     private void syncToAnchor() {
@@ -286,6 +316,9 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
                 writeLightProfile(profile);
             }
         }
+        if (tag.contains("source_id")) {
+            setSourceId(tag.getString("source_id"));
+        }
         if (entityData.get(LIGHT_PROFILE).isEmpty()) {
             syncDefaultLightProfile();
         }
@@ -306,5 +339,6 @@ public class FullMoonEntity extends Entity implements FullMoonDynamicLightSource
         tag.putFloat("lamp_y_rot", getLampYRot());
         tag.putBoolean("light_profile_override", entityData.get(LIGHT_PROFILE_OVERRIDE));
         tag.put("light_profile", getLightProfile().toTag());
+        tag.putString("source_id", getSourceId());
     }
 }

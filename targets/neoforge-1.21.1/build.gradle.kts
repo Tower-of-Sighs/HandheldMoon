@@ -64,6 +64,22 @@ commonProject.extensions.configure<JavaPluginExtension> {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
 }
+// Dev runs load common's resources directly as part of the same mod folder.
+// Drop the 26.1 recipe JSON there so only this target's legacy recipes load.
+commonProject.tasks.named<org.gradle.language.jvm.tasks.ProcessResources>("processResources") {
+    exclude("data/handheldmoon/recipe/**")
+}
+// 26.1-only rendering/screen classes are replaced by 1.21.1 variants in the
+// legacy overlay; everything else in common is shared.
+commonMainSourceSet.java.apply {
+    exclude(
+        "cc/sighs/handheldmoon/client/LightSourceHighlightRenderer.java",
+        "cc/sighs/handheldmoon/client/screen/AbstractLightSourceConfigScreen.java",
+        "cc/sighs/handheldmoon/client/screen/AbstractFlashlightItemConfigScreen.java",
+        "cc/sighs/handheldmoon/dynamiclight/DynamicLightEntityTint.java",
+        "cc/sighs/handheldmoon/item/MoonlightWandItem.java"
+    )
+}
 
 // Optional POM dependency whitelist for Maven publication.
 // Example:
@@ -97,8 +113,17 @@ tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
 }
 
+val prepareCommonResources = tasks.register<org.gradle.api.tasks.Sync>("prepareCommonResources") {
+    // 1.21.1 recipes use the legacy ingredient JSON shape, so the 26.1 common
+    // recipe folder is replaced by this target's own files.
+    from("../../common/src/main/resources") {
+        exclude("data/handheldmoon/recipe/**")
+    }
+    into(layout.buildDirectory.dir("common-resources"))
+}
+
 sourceSets.named("main") {
-    resources.srcDir("../../common/src/main/resources")
+    resources.srcDir(prepareCommonResources)
 }
 
 tasks.named<ProcessResources>("processResources") {
