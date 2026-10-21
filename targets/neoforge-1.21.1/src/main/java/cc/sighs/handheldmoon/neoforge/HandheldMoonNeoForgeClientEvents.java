@@ -7,6 +7,8 @@ import cc.sighs.handheldmoon.event.handler.OperationEventHandler;
 import cc.sighs.handheldmoon.event.handler.RayEvent;
 import cc.sighs.handheldmoon.neoforge.client.HandheldMoonClient;
 import cc.sighs.handheldmoon.neoforge.client.screen.FlashlightItemConfigScreen;
+import cc.sighs.handheldmoon.item.ColorLensItem;
+import cc.sighs.handheldmoon.registry.ModItems;
 import cc.sighs.handheldmoon.registry.ModMenus;
 import cc.sighs.handheldmoon.menu.FlashlightConfigMenu;
 import cc.sighs.handheldmoon.neoforge.event.handler.EffectManager;
@@ -22,6 +24,7 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
+import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
@@ -41,6 +44,12 @@ public final class HandheldMoonNeoForgeClientEvents {
         MenuType<FlashlightConfigMenu> menuType =
                 (MenuType<FlashlightConfigMenu>) (MenuType<?>) ModMenus.FLASHLIGHT_CONFIG.get();
         event.register(menuType, FlashlightItemConfigScreen::new);
+    }
+
+    public static void onRegisterItemColors(RegisterColorHandlersEvent.Item event) {
+        // ItemColors expects ARGB; lens colors are stored as 0xRRGGBB.
+        event.register((stack, tintIndex) -> 0xFF000000 | ColorLensItem.getColor(stack),
+                ModItems.COLOR_LENS.get());
     }
 
     @SubscribeEvent

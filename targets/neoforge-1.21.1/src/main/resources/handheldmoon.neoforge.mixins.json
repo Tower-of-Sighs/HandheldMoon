@@ -6,7 +6,13 @@
   "mixins": [],
   "client": [
     "client.EntityRendererMixin",
-    "dynamiclight.DynamicLightLevelRendererMixin"
+    "dynamiclight.DynamicLightLevelRendererMixin",
+    "dynamiclight.LightTextureColorMixin",
+    "dynamiclight.ModelBlockRendererTintMixin",
+    "dynamiclight.SodiumBlockRenderContextAccessMixin",
+    "dynamiclight.SodiumDynamicLightBlockRendererMixin",
+    "dynamiclight.LivingEntityRendererTintMixin",
+    "dynamiclight.ModelPartCubeTintMixin"
   ],
   "injectors": {
     "defaultRequire": 1

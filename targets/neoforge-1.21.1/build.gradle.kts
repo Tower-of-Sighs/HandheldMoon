@@ -150,8 +150,26 @@ tasks.named<ProcessResources>("processResources") {
     inputs.properties(expandProps)
 }
 
+val sodiumFrapi = configurations.create("sodiumFrapi") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+val extractSodiumFrapi = tasks.register<Copy>("extractSodiumFrapi") {
+    from({ sodiumFrapi.files.map { zipTree(it) } }) {
+        include("META-INF/jarjar/fabric-*.jar")
+        eachFile { path = name }
+        includeEmptyDirs = false
+    }
+    into(layout.buildDirectory.dir("sodium-frapi"))
+}
+val sodiumFrapiJars = fileTree(layout.buildDirectory.dir("sodium-frapi")) { include("*.jar") }
+sodiumFrapiJars.builtBy(extractSodiumFrapi)
+
 dependencies {
     implementation(commonProject)
+    sodiumFrapi("maven.modrinth:sodium:$sodium_version")
+    // Sodium's FRAPI QuadEmitter/QuadView interfaces live in its nested jars.
+    compileOnly(sodiumFrapiJars)
     implementation("curse.maven:carry-on-274259:7393892")
     implementation("maven.modrinth:jei:$jei_version")
     implementation("maven.modrinth:curios:$curios_version")

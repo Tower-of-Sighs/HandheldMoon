@@ -41,6 +41,31 @@ public final class LightmapColorBridge {
         return true;
     }
 
+    /**
+     * Publishes a table captured from a legacy lightmap texture. The array is
+     * indexed {@code (sky * 16 + block) * 3 + channel} with values in 0..1.
+     */
+    public static void publish(double[] next) {
+        table = next;
+        changed = true;
+    }
+
+    /** Publishes only when the lightmap changed enough to matter. */
+    public static void publishIfChanged(double[] next) {
+        double[] previous = table;
+        if (previous != null) {
+            double delta = 0;
+            for (int i = 0; i < next.length; i++) {
+                delta = Math.max(delta, Math.abs(next[i] - previous[i]));
+            }
+            if (delta < 0.01) {
+                return;
+            }
+        }
+        table = next;
+        changed = true;
+    }
+
     public static int coefficient(double dynamic, double vanilla, double sky, int color) {
         double[] current = table;
         if (current == null || dynamic <= vanilla) return -1;
