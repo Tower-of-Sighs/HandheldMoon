@@ -2,7 +2,7 @@ package cc.sighs.handheldmoon.menu;
 
 import cc.sighs.handheldmoon.api.content.MoonlightLampBlockEntityAccess;
 import cc.sighs.handheldmoon.config.LampDeviceConfig;
-import cc.sighs.handheldmoon.item.ColorLensItem;
+import cc.sighs.handheldmoon.item.ColorLensData;
 import cc.sighs.handheldmoon.registry.ModDataComponent;
 import cc.sighs.handheldmoon.registry.ModItems;
 import cc.sighs.handheldmoon.registry.ModMenus;
@@ -196,7 +196,7 @@ public final class FlashlightConfigMenu extends AbstractContainerMenu {
             this.menu = menu;
             LampDeviceConfig config = menu.readConfig();
             if (config.hasLens()) {
-                super.setItem(0, ColorLensItem.create(config.lensColor()));
+                super.setItem(0, ColorLensData.create(config.lensColor()));
             }
             this.loading = false;
         }
@@ -218,7 +218,7 @@ public final class FlashlightConfigMenu extends AbstractContainerMenu {
             }
             ItemStack lens = getItem(0);
             int color = lens.is(ModItems.COLOR_LENS.get())
-                    ? ColorLensItem.getColor(lens)
+                    ? ColorLensData.getColor(lens)
                     : LampDeviceConfig.NO_LENS_COLOR;
             LampDeviceConfig config = menu.readConfig();
             LampDeviceConfig updated = config.withLensColor(color);

@@ -77,6 +77,8 @@ commonMainSourceSet.java.apply {
         "cc/sighs/handheldmoon/client/screen/AbstractLightSourceConfigScreen.java",
         "cc/sighs/handheldmoon/client/screen/AbstractFlashlightItemConfigScreen.java",
         "cc/sighs/handheldmoon/dynamiclight/DynamicLightEntityTint.java",
+        "cc/sighs/handheldmoon/item/ColorLensItem.java",
+        "cc/sighs/handheldmoon/item/FullMoonItem.java",
         "cc/sighs/handheldmoon/item/MoonlightWandItem.java"
     )
 }

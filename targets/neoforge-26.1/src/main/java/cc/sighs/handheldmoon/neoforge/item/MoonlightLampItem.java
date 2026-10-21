@@ -1,20 +1,34 @@
 package cc.sighs.handheldmoon.neoforge.item;
 
+import cc.sighs.handheldmoon.item.ItemTooltips;
 import cc.sighs.handheldmoon.registry.ModBlocks;
 import cc.sighs.handheldmoon.registry.ModDataComponent;
 import cc.sighs.handheldmoon.spi.PlatformServices;
 import cc.sighs.handheldmoon.util.RegistryPropertiesCompat;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+
+import java.util.function.Consumer;
 
 public class MoonlightLampItem extends BlockItem {
     public MoonlightLampItem() {
         super(ModBlocks.MOONLIGHT_LAMP.get(), RegistryPropertiesCompat.withId(new Properties().stacksTo(1), "item", "moonlight_lamp"));
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display,
+                                Consumer<Component> builder, TooltipFlag flag) {
+        ItemTooltips.addLines(builder,
+                "tooltip.handheldmoon.moonlight_lamp.1",
+                "tooltip.handheldmoon.moonlight_lamp.2");
     }
 
     @Override
