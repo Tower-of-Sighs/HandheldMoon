@@ -6,6 +6,7 @@ import net.caffeinemc.mods.sodium.client.render.chunk.compile.pipeline.BlockRend
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.material.Material;
 import net.caffeinemc.mods.sodium.client.render.frapi.mesh.MutableQuadViewImpl;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockAndTintGetter;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -25,12 +26,14 @@ public abstract class SodiumDynamicLightBlockRendererMixin {
         if (level == null || pos == null) {
             return;
         }
-        int coefficient = DynamicLightRenderHelper.tintCoefficient(level::getBrightness, pos);
-        if (coefficient == -1) {
-            return;
-        }
+        Direction face = quad.lightFace();
         for (int i = 0; i < 4; i++) {
-            quad.color(i, DynamicLightRenderHelper.multiplyArgb(quad.color(i), coefficient));
+            int coefficient = DynamicLightRenderHelper.tintCoefficientForVertex(
+                    level::getBrightness, pos, face,
+                    quad.x(i), quad.y(i), quad.z(i), quad.lightmap(i));
+            if (coefficient != -1) {
+                quad.color(i, DynamicLightRenderHelper.multiplyArgb(quad.color(i), coefficient));
+            }
         }
     }
 }

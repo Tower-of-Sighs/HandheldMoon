@@ -16,6 +16,7 @@ plugins {
 
 evaluationDependsOn(":common")
 val commonProject = project(":common")
+commonProject.layout.buildDirectory.set(layout.buildDirectory.dir("common"))
 val commonMainSourceSet = commonProject.extensions.getByType<SourceSetContainer>().named("main").get()
 commonProject.extensions.configure<JavaPluginExtension> {
     toolchain.languageVersion = JavaLanguageVersion.of(25)
