@@ -168,7 +168,12 @@ public abstract class AbstractLightSourceConfigScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        // Screen#render applies the blurred menu background before the widgets. The
+        // panel and its text have to be drawn after that background; drawing them from
+        // render() would leave them under the blur, which is what made the title,
+        // subtitle and the read-only UUID / source-id lines look fuzzy.
+        super.renderBackground(graphics, mouseX, mouseY, partialTick);
         int left = panelLeft();
         int top = panelTop();
         int contentLeft = left + 16;
@@ -186,8 +191,6 @@ public abstract class AbstractLightSourceConfigScreen extends Screen {
         graphics.drawString(this.font, Component.translatable("config.handheldmoon.light_source.sourceId")
                         .append(": ").append(Component.literal(sourceId.isBlank() ? "-" : sourceId)),
                 contentLeft, top + 164, 0xFFE8EEF6, false);
-
-        super.render(graphics, mouseX, mouseY, partialTick);
     }
 
     private void addSlider(

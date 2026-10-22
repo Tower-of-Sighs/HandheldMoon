@@ -1,10 +1,7 @@
 import net.darkhax.curseforgegradle.TaskPublishCurseForge
-import org.gradle.api.attributes.Attribute
-import org.gradle.api.plugins.JavaPluginExtension
-import org.gradle.api.tasks.SourceSetContainer
-import org.gradle.kotlin.dsl.getByType
 import org.gradle.jvm.tasks.Jar
 import org.gradle.language.jvm.tasks.ProcessResources
+import java.util.Properties
 
 plugins {
     id("java-library")
@@ -13,45 +10,92 @@ plugins {
     id("net.darkhax.curseforgegradle")
 }
 
-evaluationDependsOn(":common")
-val commonProject = project(":common")
-commonProject.layout.buildDirectory.set(layout.buildDirectory.dir("common"))
-val commonMainSourceSet = commonProject.extensions.getByType<SourceSetContainer>().named("main").get()
-commonProject.extensions.configure<JavaPluginExtension> {
-    toolchain.languageVersion = JavaLanguageVersion.of(25)
-    sourceCompatibility = JavaVersion.VERSION_25
-    targetCompatibility = JavaVersion.VERSION_25
+// Shared mod metadata lives in the repository root; this target's own file
+// supplies loader/version-specific values and overrides.
+val sharedProperties = Properties()
+file("../../gradle.properties").inputStream().use { sharedProperties.load(it) }
+file("gradle.properties").inputStream().use { sharedProperties.load(it) }
+sharedProperties.forEach { key, value -> extra.set(key.toString(), value.toString()) }
+
+group = sharedProperties.getProperty("group")
+version = sharedProperties.getProperty("version")
+
+val java_version: String by project
+val minecraft_version: String by project
+val minecraft_version_range: String by project
+val neoforge_version: String by project
+val neoforge_loader_version_range: String by project
+val mod_id: String by project
+val mod_name: String by project
+val license: String by project
+val mod_author: String by project
+val credits: String by project
+val curios_version: String by project
+val iris_id: String by project
+val sodium_id: String by project
+
+base {
+    archivesName.set("$mod_name-neoforge-$minecraft_version")
 }
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(25)
-    sourceCompatibility = JavaVersion.VERSION_25
-    targetCompatibility = JavaVersion.VERSION_25
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version.toInt())
     withSourcesJar()
-    withJavadocJar()
 }
 
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
 }
 
-sourceSets.named("main") {
-    resources.srcDir("../../common/src/main/resources")
+// common/ is a shared source tree that also compiles standalone
+// (`gradlew -p common build`, see common/build.gradle.kts). Everything without a
+// confirmed version difference lives there, so its sources are compiled into
+// this target by source-set sharing.
+sourceSets {
+    main {
+        java.srcDir(layout.buildDirectory.dir("generated/common-main"))
+        resources.srcDir("../../common/src/main/resources")
+    }
+    test {
+        java.srcDir("../../common/src/test/java")
+        resources.srcDir("../../common/src/test/resources")
+    }
+}
+
+tasks.register<Sync>("prepareCommonSources") {
+    from("../../common/src/main/java") {
+        // This target's version differences are registered here: exclude one
+        // path per common file that this target replaces with its own
+        // implementation.
+    }
+    into(layout.buildDirectory.dir("generated/common-main"))
+}
+
+tasks.named("compileJava") { dependsOn("prepareCommonSources") }
+
+tasks.named<Jar>("jar") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.named<Jar>("sourcesJar") {
+    dependsOn("prepareCommonSources")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 tasks.named<ProcessResources>("processResources") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     val expandProps = mapOf(
         "version" to project.version,
         "minecraft_version" to minecraft_version,
-        "minecraft_version_range" to project.property("minecraft_version_range"),
+        "minecraft_version_range" to minecraft_version_range,
         "mod_name" to mod_name,
         "mod_id" to mod_id,
         "neoforge_version" to neoforge_version,
-        "neoforge_loader_version_range" to project.property("neoforge_loader_version_range"),
-        "license" to project.property("license"),
-        "mod_author" to project.property("mod_author"),
-        "credits" to project.property("credits"),
-        "description" to project.description.orEmpty(),
+        "neoforge_loader_version_range" to neoforge_loader_version_range,
+        "license" to license,
+        "mod_author" to mod_author,
+        "credits" to credits,
+        "description" to (sharedProperties.getProperty("description") ?: ""),
     )
     val jsonExpandProps = expandProps.mapValues { (_, value) ->
         if (value is String) value.replace("\n", "\\\\n") else value
@@ -62,12 +106,8 @@ tasks.named<ProcessResources>("processResources") {
     inputs.properties(expandProps)
 }
 
-val neoforge_version: String by project
-val mod_id: String by project
-val minecraft_version: String by project
-val mod_name: String by project
-
 repositories {
+    mavenCentral()
     maven {
         name = "Shedaniel"
         url = uri("https://maven.shedaniel.me")
@@ -80,6 +120,84 @@ repositories {
     maven { name = "Modrinth"; url = uri("https://api.modrinth.com/maven") }
     maven { name = "Curios Api"; url = uri("https://maven.theillusivec4.top/") }
 }
+
+val sodiumNestedCompile = configurations.create("sodiumNestedCompile") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+val sodiumNestedPath = "META-INF/jarjar/net.caffeinemc.sodium-neoforge-0.8.9+mc26.1.1-mod.jar"
+val extractSodiumCompileJar = tasks.register<Copy>("extractSodiumCompileJar") {
+    from({ sodiumNestedCompile.files.map { zipTree(it) } }) {
+        include(sodiumNestedPath)
+    }
+    into(layout.buildDirectory.dir("sodium-compile"))
+}
+val sodiumCompileJar = files(layout.buildDirectory.file("sodium-compile/$sodiumNestedPath"))
+    .builtBy(extractSodiumCompileJar)
+
+dependencies {
+    implementation("top.theillusivec4.curios:curios-neoforge:$curios_version")
+    implementation("curse.maven:irisshaders-455508:$iris_id")
+    implementation("curse.maven:sodium-394468:$sodium_id")
+    sodiumNestedCompile("curse.maven:sodium-394468:$sodium_id")
+    // The implementation classes required by the compatibility mixin live in
+    // Sodium's jarjar payload rather than its outer bootstrap jar.
+    compileOnly(sodiumCompileJar)
+
+    testImplementation(platform("org.junit:junit-bom:5.11.4"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("it.unimi.dsi:fastutil:8.5.12")
+}
+
+neoForge {
+    version = neoforge_version
+
+    val at = file("../../common/accesstransformer.cfg")
+    if (at.exists()) {
+        accessTransformers.from(at.absolutePath)
+    }
+
+    runs {
+        configureEach {
+            systemProperty("neoforge.enabledGameTestNamespaces", mod_id)
+            ideName = "NeoForge ${name.replaceFirstChar { it.uppercase() }} (${project.path})"
+        }
+        create("client") {
+            client()
+            gameDirectory.set(project.file("runs/client"))
+        }
+        create("data") {
+            clientData()
+            gameDirectory.set(project.file("runs/data"))
+            programArguments.addAll(
+                "--mod",
+                mod_id,
+                "--all",
+                "--output",
+                project.file("src/generated/resources/").absolutePath,
+                "--existing",
+                project.file("src/main/resources/").absolutePath,
+            )
+        }
+        create("server") {
+            server()
+            gameDirectory.set(project.file("runs/server"))
+        }
+    }
+
+    mods {
+        create(mod_id) {
+            sourceSet(sourceSets.main.get())
+        }
+    }
+}
+
+tasks.named<Test>("test") {
+    useJUnitPlatform()
+}
+
+// Release publishing ---------------------------------------------------------
 
 val releaseType = providers.gradleProperty("release_type").orElse("release")
 val releaseDist = providers.gradleProperty("release_dist").orElse("both").map { value ->
@@ -101,130 +219,6 @@ val modrinthProjectId = providers.provider {
 val curseforgeProjectId = providers.provider {
     val loaderSpecific = providers.gradleProperty("curseforge_project_neoforge").orNull?.trim().orEmpty()
     if (loaderSpecific.isNotEmpty()) loaderSpecific else providers.gradleProperty("curseforge_project").orNull?.trim().orEmpty()
-}
-val curios_version: String by project
-val sodiumNestedCompile = configurations.create("sodiumNestedCompile") {
-    isCanBeConsumed = false
-    isCanBeResolved = true
-}
-val sodiumNestedPath = "META-INF/jarjar/net.caffeinemc.sodium-neoforge-0.8.9+mc26.1.1-mod.jar"
-val extractSodiumCompileJar = tasks.register<Copy>("extractSodiumCompileJar") {
-    from({ sodiumNestedCompile.files.map { zipTree(it) } }) {
-        include(sodiumNestedPath)
-    }
-    into(layout.buildDirectory.dir("sodium-compile"))
-}
-val sodiumCompileJar = files(layout.buildDirectory.file("sodium-compile/$sodiumNestedPath"))
-    .builtBy(extractSodiumCompileJar)
-
-// Optional POM dependency whitelist for Maven publication.
-// Example:
-// extra["mavenDependencyWhitelist"] = listOf(
-//     "group.id",
-//     "artifact-id",
-//     "group.id:artifact-id",
-// )
-extra["mavenDependencyWhitelist"] = emptySet<String>()
-
-dependencies {
-    implementation(commonProject)
-    implementation ("top.theillusivec4.curios:curios-neoforge:$curios_version")
-    implementation("curse.maven:irisshaders-455508:7867946")
-    implementation("curse.maven:sodium-394468:7867828")
-    sodiumNestedCompile("curse.maven:sodium-394468:7867828")
-    // The implementation classes required by the compatibility mixin live in
-    // Sodium's jarjar payload rather than its outer bootstrap jar.
-    compileOnly(sodiumCompileJar)
-}
-
-neoForge {
-    version = neoforge_version
-
-    // Automatically enable neoforge AccessTransformers if the file exists
-    val at = file("../../common/src/main/resources/META-INF/accesstransformer.cfg")
-    if (at.exists()) {
-        accessTransformers.from(at.absolutePath)
-    }
-
-    runs {
-        configureEach {
-            systemProperty("neoforge.enabledGameTestNamespaces", mod_id)
-            ideName = "NeoForge ${name.replaceFirstChar { it.uppercase() }} (${project.path})"
-        }
-        create("client") {
-            client()
-            gameDirectory.set(project.file("runs/client"))
-        }
-        create("data") {
-            clientData()
-            gameDirectory.set(project.file("runs/data"))
-            // DataGen can be run by - "./gradlew :neoforge:runData" in Terminal.
-            // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
-            programArguments.addAll(
-                "--mod",
-                mod_id,
-                "--all",
-                "--output",
-                project.file("src/generated/resources/").absolutePath,
-                "--existing",
-                project.file("src/main/resources/").absolutePath,
-            )
-        }
-        create("server") {
-            server()
-            gameDirectory.set(project.file("runs/server"))
-        }
-    }
-
-    mods {
-        create(mod_id) {
-            sourceSet(sourceSets.main.get())
-            sourceSet(commonMainSourceSet)
-        }
-    }
-}
-
-tasks.named("compileJava") {
-    dependsOn(commonProject.tasks.named("classes"))
-}
-
-val commonMinecraftCompileClasspath = configurations.create("commonMinecraftCompileClasspath") {
-    isCanBeConsumed = false
-    isCanBeResolved = true
-    extendsFrom(configurations.getByName("modDevCompileDependencies"))
-}
-commonProject.dependencies.add("compileOnly", files(commonMinecraftCompileClasspath))
-
-tasks.named<Jar>("jar") {
-    dependsOn(commonProject.tasks.named("classes"))
-    from(commonProject.extensions.getByType<org.gradle.api.tasks.SourceSetContainer>().named("main").map { it.output.classesDirs })
-}
-
-tasks.named<Jar>("sourcesJar") {
-    from(commonProject.extensions.getByType<org.gradle.api.tasks.SourceSetContainer>().named("main").map { it.java })
-}
-
-sourceSets.named("main") {
-    resources.srcDir("src/generated/resources")
-}
-
-// Implement mcgradleconventions loader attribute
-val loaderAttribute = Attribute.of("io.github.mcgradleconventions.loader", String::class.java)
-listOf("apiElements", "runtimeElements", "sourcesElements", "javadocElements").forEach { variant ->
-    configurations.named(variant) {
-        attributes {
-            attribute(loaderAttribute, "neoforge")
-        }
-    }
-}
-sourceSets.configureEach {
-    listOf(compileClasspathConfigurationName, runtimeClasspathConfigurationName, getTaskName(null, "jarJar")).forEach { variant ->
-        configurations.named(variant) {
-            attributes {
-                attribute(loaderAttribute, "neoforge")
-            }
-        }
-    }
 }
 
 modrinth {
@@ -268,8 +262,7 @@ tasks.register<TaskPublishCurseForge>("publishCurseForge") {
     }
 
     onlyIf {
-        !curseforgeToken.orNull.isNullOrBlank() &&
-            !curseforgeProjectId.orNull.isNullOrBlank()
+        !curseforgeToken.orNull.isNullOrBlank() && !curseforgeProjectId.orNull.isNullOrBlank()
     }
 }
 

@@ -15,7 +15,11 @@ public final class HandheldMoonConfigScreen extends AbstractHandheldMoonConfigSc
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        // Screen#render draws the blurred menu background before the widgets, so the
+        // panel and its text must be drawn after it; drawing them from render() would
+        // put the text underneath the blur and make it look fuzzy.
+        super.renderBackground(graphics, mouseX, mouseY, partialTick);
         int left = panelLeft();
         int top = panelTop();
         graphics.fill(left, top, left + panelWidth(), top + panelHeight(), 0xD0161A22);
@@ -24,6 +28,5 @@ public final class HandheldMoonConfigScreen extends AbstractHandheldMoonConfigSc
                 this.width / 2, top + 12, 0xFFFFFF);
         graphics.drawCenteredString(this.font, Component.translatable("screen.handheldmoon.mod_config.subtitle"),
                 this.width / 2, top + 28, 0xA0D8FF);
-        super.render(graphics, mouseX, mouseY, partialTick);
     }
 }

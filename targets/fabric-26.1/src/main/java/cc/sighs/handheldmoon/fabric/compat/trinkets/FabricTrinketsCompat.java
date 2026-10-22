@@ -1,7 +1,7 @@
 package cc.sighs.handheldmoon.fabric.compat.trinkets;
 
 import cc.sighs.handheldmoon.compat.accessory.IAccessoryCompat;
-import cc.sighs.handheldmoon.fabric.item.MoonlightLampItem;
+import cc.sighs.handheldmoon.item.MoonlightLampItem;
 import cc.sighs.handheldmoon.registry.ModItems;
 import cc.sighs.handheldmoon.util.Utils;
 import eu.pb4.trinkets.api.TrinketSlotAccess;

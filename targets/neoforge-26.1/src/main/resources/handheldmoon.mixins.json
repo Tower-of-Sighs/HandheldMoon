@@ -1,0 +1,26 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "cc.sighs.handheldmoon.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [],
+  "client": [
+    "client.EntityRendererMixin",
+    "client.GameRendererAccessor",
+    "client.PostPassAccessor",
+    "dynamiclight.DynamicLightBlockModelLighterMixin",
+    "dynamiclight.DynamicLightBrightnessGetterMixin",
+    "dynamiclight.DynamicLightEntityRendererMixin",
+    "dynamiclight.EntityModelTintMixin",
+    "dynamiclight.LightmapColorMixin",
+    "dynamiclight.SodiumDynamicLightBlockRendererMixin",
+    "dynamiclight.SodiumSectionReadinessMixin"
+  ],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

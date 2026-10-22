@@ -2,10 +2,10 @@ package cc.sighs.handheldmoon.neoforge;
 import cc.sighs.handheldmoon.HandheldMoon;
 import cc.sighs.handheldmoon.client.HandheldMoonClient;
 import cc.sighs.handheldmoon.client.LightSourceHighlightRenderer;
-import cc.sighs.handheldmoon.neoforge.client.renderer.FullMoonRenderer;
-import cc.sighs.handheldmoon.neoforge.client.renderer.MoonlightLampRenderer;
-import cc.sighs.handheldmoon.neoforge.client.renderer.item.MoonlightLampPoweredProperty;
-import cc.sighs.handheldmoon.neoforge.event.handler.EffectManager;
+import cc.sighs.handheldmoon.client.renderer.FullMoonRenderer;
+import cc.sighs.handheldmoon.client.renderer.MoonlightLampRenderer;
+import cc.sighs.handheldmoon.client.renderer.item.MoonlightLampPoweredProperty;
+import cc.sighs.handheldmoon.event.handler.EffectManager;
 import cc.sighs.handheldmoon.event.handler.InteractEventHandler;
 import cc.sighs.handheldmoon.event.handler.OperationEventHandler;
 import cc.sighs.handheldmoon.event.handler.RayEvent;
@@ -33,6 +33,6 @@ public final class HandheldMoonNeoForgeClientEvents {
  @SubscribeEvent public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock e){if(e.getSide().isClient()&&e.getHand()==InteractionHand.MAIN_HAND)InteractEventHandler.onClientMainHandRightClickBlock();}
  @SubscribeEvent public static void onAfterTranslucentBlocks(RenderLevelStageEvent.AfterWeather e){Minecraft mc=Minecraft.getInstance();float p=mc.getDeltaTracker().getGameTimeDeltaPartialTick(true);RayEvent.renderPlayerViewConesWithRadialGradient(e.getPoseStack(),e.getLevelRenderState().cameraRenderState.pos,e.getModelViewMatrix(),p);LightSourceHighlightRenderer.render(e.getPoseStack(),e.getLevelRenderState().cameraRenderState.pos,e.getModelViewMatrix(),p);}
  @SubscribeEvent public static void onAfterLevel(RenderLevelStageEvent.AfterLevel e){EffectManager.onLevelRender();}
- @SubscribeEvent public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers e){e.registerEntityRenderer((net.minecraft.world.entity.EntityType<cc.sighs.handheldmoon.neoforge.entity.FullMoonEntity>) ModEntities.MOONLIGHT.get(),FullMoonRenderer::new);e.registerBlockEntityRenderer((net.minecraft.world.level.block.entity.BlockEntityType<cc.sighs.handheldmoon.neoforge.block.MoonlightLampBlockEntity>) ModBlockEntities.MOONLIGHT_LAMP.get(),MoonlightLampRenderer::new);}
+ @SubscribeEvent public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers e){e.registerEntityRenderer((net.minecraft.world.entity.EntityType<cc.sighs.handheldmoon.entity.FullMoonEntity>) ModEntities.MOONLIGHT.get(),FullMoonRenderer::new);e.registerBlockEntityRenderer((net.minecraft.world.level.block.entity.BlockEntityType<cc.sighs.handheldmoon.block.MoonlightLampBlockEntity>) ModBlockEntities.MOONLIGHT_LAMP.get(),MoonlightLampRenderer::new);}
  @SubscribeEvent public static void onRegisterConditionalItemProperties(RegisterConditionalItemModelPropertyEvent e){e.register(Identifier.fromNamespaceAndPath(HandheldMoon.MOD_ID,"powered"),MoonlightLampPoweredProperty.MAP_CODEC);}
 }

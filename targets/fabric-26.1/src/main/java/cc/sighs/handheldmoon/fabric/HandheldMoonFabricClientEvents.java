@@ -3,10 +3,10 @@ package cc.sighs.handheldmoon.fabric;
 import cc.sighs.handheldmoon.HandheldMoon;
 import cc.sighs.handheldmoon.client.HandheldMoonClient;
 import cc.sighs.handheldmoon.client.LightSourceHighlightRenderer;
-import cc.sighs.handheldmoon.fabric.client.renderer.FullMoonRenderer;
-import cc.sighs.handheldmoon.fabric.client.renderer.MoonlightLampRenderer;
-import cc.sighs.handheldmoon.fabric.client.renderer.item.MoonlightLampPoweredProperty;
-import cc.sighs.handheldmoon.fabric.event.handler.EffectManager;
+import cc.sighs.handheldmoon.client.renderer.FullMoonRenderer;
+import cc.sighs.handheldmoon.client.renderer.MoonlightLampRenderer;
+import cc.sighs.handheldmoon.client.renderer.item.MoonlightLampPoweredProperty;
+import cc.sighs.handheldmoon.event.handler.EffectManager;
 import cc.sighs.handheldmoon.event.handler.InteractEventHandler;
 import cc.sighs.handheldmoon.event.handler.OperationEventHandler;
 import cc.sighs.handheldmoon.event.handler.RayEvent;
@@ -65,10 +65,10 @@ public final class HandheldMoonFabricClientEvents {
         });
 
         EntityRenderers.register(
-                (EntityType<cc.sighs.handheldmoon.fabric.entity.FullMoonEntity>) ModEntities.MOONLIGHT.get(),
+                (EntityType<cc.sighs.handheldmoon.entity.FullMoonEntity>) ModEntities.MOONLIGHT.get(),
                 FullMoonRenderer::new);
         BlockEntityRenderers.register(
-                (BlockEntityType<cc.sighs.handheldmoon.fabric.block.MoonlightLampBlockEntity>) ModBlockEntities.MOONLIGHT_LAMP.get(),
+                (BlockEntityType<cc.sighs.handheldmoon.block.MoonlightLampBlockEntity>) ModBlockEntities.MOONLIGHT_LAMP.get(),
                 MoonlightLampRenderer::new);
         ConditionalItemModelProperties.ID_MAPPER.put(
                 Identifier.fromNamespaceAndPath(HandheldMoon.MOD_ID, "powered"),

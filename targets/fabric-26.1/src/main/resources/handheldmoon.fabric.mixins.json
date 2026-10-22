@@ -7,17 +7,7 @@
   "mixins": [],
   "client": [
     "KeyboardHandlerMixin",
-    "MouseHandlerMixin",
-    "GameRendererAccessor",
-    "PostChainAccessor",
-    "PostPassAccessor",
-    "dynamiclight.DynamicLightBrightnessGetterMixin",
-    "dynamiclight.DynamicLightBlockModelLighterMixin",
-    "dynamiclight.EntityModelTintMixin",
-    "dynamiclight.EntityRendererLightMixin",
-    "dynamiclight.SodiumDynamicLightBlockRendererMixin",
-    "dynamiclight.SodiumSectionReadinessMixin",
-    "dynamiclight.LightmapColorMixin"
+    "MouseHandlerMixin"
   ],
   "server": [],
   "injectors": {

@@ -1,11 +1,7 @@
 import net.darkhax.curseforgegradle.TaskPublishCurseForge
-import org.gradle.api.attributes.Attribute
-import org.gradle.api.plugins.JavaPluginExtension
-import org.gradle.api.artifacts.component.ModuleComponentIdentifier
-import org.gradle.api.tasks.SourceSetContainer
-import org.gradle.kotlin.dsl.getByType
 import org.gradle.jvm.tasks.Jar
 import org.gradle.language.jvm.tasks.ProcessResources
+import java.util.Properties
 
 plugins {
     id("java-library")
@@ -14,32 +10,75 @@ plugins {
     id("net.darkhax.curseforgegradle")
 }
 
-evaluationDependsOn(":common")
-val commonProject = project(":common")
-commonProject.layout.buildDirectory.set(layout.buildDirectory.dir("common"))
-val commonMainSourceSet = commonProject.extensions.getByType<SourceSetContainer>().named("main").get()
-commonProject.extensions.configure<JavaPluginExtension> {
-    toolchain.languageVersion = JavaLanguageVersion.of(25)
-    sourceCompatibility = JavaVersion.VERSION_25
-    targetCompatibility = JavaVersion.VERSION_25
+// Shared mod metadata lives in the repository root; this target's own file
+// supplies loader/version-specific values and overrides.
+val sharedProperties = Properties()
+file("../../gradle.properties").inputStream().use { sharedProperties.load(it) }
+file("gradle.properties").inputStream().use { sharedProperties.load(it) }
+sharedProperties.forEach { key, value -> extra.set(key.toString(), value.toString()) }
+
+group = sharedProperties.getProperty("group")
+version = sharedProperties.getProperty("version")
+
+val java_version: String by project
+val minecraft_version: String by project
+val fabric_version: String by project
+val fabric_loader_version: String by project
+val mod_id: String by project
+val mod_name: String by project
+val license: String by project
+val mod_author: String by project
+val iris_id: String by project
+val sodium_id: String by project
+val trinkets_version: String by project
+
+base {
+    archivesName.set("$mod_name-fabric-$minecraft_version")
 }
-commonProject.dependencies.add("compileOnly", files(configurations.getByName("compileClasspath").incoming.artifactView {
-    componentFilter { component -> component is ModuleComponentIdentifier }
-}.files))
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(25)
-    sourceCompatibility = JavaVersion.VERSION_25
-    targetCompatibility = JavaVersion.VERSION_25
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version.toInt())
     withSourcesJar()
-    withJavadocJar()
 }
 
-sourceSets.named("main") {
-    resources.srcDir("../../common/src/main/resources")
+tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
+    options.release = java_version.toInt()
+}
+
+// common/ is a shared source tree that also compiles standalone
+// (`gradlew -p common build`, see common/build.gradle.kts). Everything without a
+// confirmed version difference lives there, so its sources are compiled into
+// this target by source-set sharing.
+sourceSets {
+    main {
+        java.srcDir(layout.buildDirectory.dir("generated/common-main"))
+        resources.srcDir("../../common/src/main/resources")
+    }
+    test {
+        java.srcDir("../../common/src/test/java")
+        resources.srcDir("../../common/src/test/resources")
+    }
+}
+
+tasks.register<Sync>("prepareCommonSources") {
+    from("../../common/src/main/java") {
+        // This target's version differences are registered here: exclude one
+        // path per common file that this target replaces with its own
+        // implementation.
+    }
+    into(layout.buildDirectory.dir("generated/common-main"))
+}
+
+tasks.named("compileJava") { dependsOn("prepareCommonSources") }
+
+tasks.named<Jar>("sourcesJar") {
+    dependsOn("prepareCommonSources")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 tasks.named<ProcessResources>("processResources") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     val expandProps = mapOf(
         "version" to project.version,
         "minecraft_version" to minecraft_version,
@@ -47,10 +86,10 @@ tasks.named<ProcessResources>("processResources") {
         "mod_id" to mod_id,
         "fabric_loader_version" to fabric_loader_version,
         "fabric_version" to fabric_version,
-        "java_version" to project.property("java_version"),
-        "license" to project.property("license"),
-        "mod_author" to project.property("mod_author"),
-        "description" to project.description.orEmpty(),
+        "java_version" to java_version,
+        "license" to license,
+        "mod_author" to mod_author,
+        "description" to (sharedProperties.getProperty("description") ?: ""),
     )
     val jsonExpandProps = expandProps.mapValues { (_, value) ->
         if (value is String) value.replace("\n", "\\\\n") else value
@@ -61,20 +100,66 @@ tasks.named<ProcessResources>("processResources") {
     inputs.properties(expandProps)
 }
 
-val minecraft_version: String by project
-val fabric_loader_version: String by project
-val fabric_version: String by project
-val mod_id: String by project
-val mod_name: String by project
-
 repositories {
+    mavenCentral()
     maven {
         name = "Curse Maven"
         url = uri("https://www.cursemaven.com")
         content { includeGroup("curse.maven") }
     }
     maven { name = "Modrinth"; url = uri("https://api.modrinth.com/maven") }
+    maven {
+        name = "Terraformers"
+        url = uri("https://maven.terraformersmc.com/releases/")
+    }
 }
+
+dependencies {
+    minecraft("com.mojang:minecraft:$minecraft_version")
+    implementation("net.fabricmc:fabric-loader:$fabric_loader_version")
+    implementation("net.fabricmc.fabric-api:fabric-api:$fabric_version")
+    implementation("com.terraformersmc:modmenu:18.0.0-alpha.8")
+    implementation("curse.maven:irisshaders-455508:$iris_id")
+    implementation("curse.maven:sodium-394468:$sodium_id")
+    implementation("maven.modrinth:trinkets-updated:$trinkets_version")
+
+    testImplementation(platform("org.junit:junit-bom:5.11.4"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("it.unimi.dsi:fastutil:8.5.12")
+}
+
+loom {
+    val aw = file("src/main/resources/${mod_id}.classtweaker")
+    if (aw.exists()) {
+        accessWidenerPath.set(aw)
+    }
+    mods {
+        create(mod_id) {
+            sourceSet(sourceSets.main.get())
+        }
+    }
+    runs {
+        named("client") {
+            client()
+            configName = "Fabric Client"
+            ideConfigGenerated(true)
+            runDir("runs/client")
+        }
+        named("server") {
+            server()
+            configName = "Fabric Server"
+            ideConfigGenerated(true)
+            runDir("runs/server")
+        }
+    }
+}
+
+tasks.named<Test>("test") {
+    useJUnitPlatform()
+}
+
+// Release publishing ---------------------------------------------------------
 
 val releaseType = providers.gradleProperty("release_type").orElse("release")
 val releaseDist = providers.gradleProperty("release_dist").orElse("both").map { value ->
@@ -99,92 +184,6 @@ val curseforgeProjectId = providers.provider {
 }
 val publishArtifact = provider {
     tasks.findByName("remapJar") ?: tasks.named("jar").get()
-}
-// Optional POM dependency whitelist for Maven publication.
-// Example:
-// extra["mavenDependencyWhitelist"] = listOf(
-//     "group.id",
-//     "artifact-id",
-//     "group.id:artifact-id",
-// )
-extra["mavenDependencyWhitelist"] = emptySet<String>()
-
-repositories {
-    maven {
-        name = "Terraformers"
-        url = uri("https://maven.terraformersmc.com/releases/")
-    }
-}
-dependencies {
-    implementation(commonProject)
-    minecraft("com.mojang:minecraft:$minecraft_version")
-    implementation("net.fabricmc:fabric-loader:$fabric_loader_version")
-    implementation("net.fabricmc.fabric-api:fabric-api:$fabric_version")
-    implementation("com.terraformersmc:modmenu:18.0.0-alpha.8")
-    implementation("curse.maven:irisshaders-455508:7867943")
-    implementation("curse.maven:sodium-394468:7867826")
-    // Sodium ships its classes at the artifact root on Fabric, so this
-    // dependency already puts them on the compile classpath.
-    implementation("maven.modrinth:trinkets-updated:ObfwZi0X")
-}
-
-tasks.named("compileJava") {
-    dependsOn(commonProject.tasks.named("classes"))
-}
-
-tasks.named<Jar>("jar") {
-    dependsOn(commonProject.tasks.named("classes"))
-    from(commonProject.extensions.getByType<org.gradle.api.tasks.SourceSetContainer>().named("main").map { it.output.classesDirs })
-}
-
-tasks.named<Jar>("sourcesJar") {
-    from(commonProject.extensions.getByType<org.gradle.api.tasks.SourceSetContainer>().named("main").map { it.java })
-}
-
-loom {
-    val aw = file("../../common/src/main/resources/${mod_id}.classtweaker")
-    if (aw.exists()) {
-        accessWidenerPath.set(aw)
-    }
-    mods {
-        create(mod_id) {
-            sourceSet(sourceSets.main.get())
-            sourceSet(commonMainSourceSet)
-        }
-    }
-    runs {
-        named("client") {
-            client()
-            configName = "Fabric Client"
-            ideConfigGenerated(true)
-            runDir("runs/client")
-        }
-        named("server") {
-            server()
-            configName = "Fabric Server"
-            ideConfigGenerated(true)
-            runDir("runs/server")
-        }
-    }
-}
-
-// Implement mcgradleconventions loader attribute
-val loaderAttribute = Attribute.of("io.github.mcgradleconventions.loader", String::class.java)
-listOf("apiElements", "runtimeElements", "sourcesElements", "javadocElements", "includeInternal", "modCompileClasspath").forEach { variant ->
-    configurations.named(variant) {
-        attributes {
-            attribute(loaderAttribute, "fabric")
-        }
-    }
-}
-sourceSets.configureEach {
-    listOf(compileClasspathConfigurationName, runtimeClasspathConfigurationName).forEach { variant ->
-        configurations.named(variant) {
-            attributes {
-                attribute(loaderAttribute, "fabric")
-            }
-        }
-    }
 }
 
 modrinth {
@@ -228,8 +227,7 @@ tasks.register<TaskPublishCurseForge>("publishCurseForge") {
     }
 
     onlyIf {
-        !curseforgeToken.orNull.isNullOrBlank() &&
-            !curseforgeProjectId.orNull.isNullOrBlank()
+        !curseforgeToken.orNull.isNullOrBlank() && !curseforgeProjectId.orNull.isNullOrBlank()
     }
 }
 

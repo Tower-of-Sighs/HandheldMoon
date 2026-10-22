@@ -2,28 +2,6 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
         mavenCentral()
-        exclusiveContent {
-            forRepository {
-                maven {
-                    name = "Fabric"
-                    url = uri("https://maven.fabricmc.net")
-                }
-            }
-            filter {
-                includeGroupAndSubgroups("net.fabricmc")
-            }
-        }
-        exclusiveContent {
-            forRepository {
-                maven {
-                    name = "Sponge"
-                    url = uri("https://repo.spongepowered.org/repository/maven-public")
-                }
-            }
-            filter {
-                includeGroupAndSubgroups("org.spongepowered")
-            }
-        }
     }
 }
 
@@ -32,4 +10,7 @@ plugins {
 }
 
 rootProject.name = providers.gradleProperty("mod_name").get()
-include("common")
+
+// common/ is a shared source tree with its own settings file. It is attached to
+// each target as a composite build (includeBuild) and compiled into that target
+// through source-set sharing, so it is not included here.

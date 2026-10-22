@@ -1,8 +1,6 @@
 package cc.sighs.handheldmoon.neoforge.spi;
 
 import cc.sighs.handheldmoon.HandheldMoon;
-import cc.sighs.handheldmoon.config.FullMoonDeviceConfig;
-import cc.sighs.handheldmoon.config.LampDeviceConfig;
 import cc.sighs.handheldmoon.network.ServerFullMoonConfigSyncPacket;
 import cc.sighs.handheldmoon.network.ServerHeldFullMoonConfigSyncPacket;
 import cc.sighs.handheldmoon.network.ServerHeldMoonlightLampConfigSyncPacket;
@@ -10,25 +8,24 @@ import cc.sighs.handheldmoon.network.ServerMoonLightLampSyncPacket;
 import cc.sighs.handheldmoon.network.ServerMoonlightLampConfigSyncPacket;
 import cc.sighs.handheldmoon.network.ServerOpenLampBlockConfigPacket;
 import cc.sighs.handheldmoon.network.ServerSetLightProfilePacket;
-import cc.sighs.handheldmoon.neoforge.registry.ModKeyBindings;
+import cc.sighs.handheldmoon.registry.ModKeyBindings;
 import cc.sighs.handheldmoon.registry.ModRegistries;
-import cc.sighs.handheldmoon.neoforge.block.FullMoonBlockEntity;
-import cc.sighs.handheldmoon.neoforge.block.MoonlightLampBlockEntity;
-import cc.sighs.handheldmoon.neoforge.entity.FullMoonEntity;
-import cc.sighs.handheldmoon.neoforge.item.MoonlightLampItem;
+import cc.sighs.handheldmoon.block.FullMoonBlockEntity;
+import cc.sighs.handheldmoon.block.MoonlightLampBlockEntity;
+import cc.sighs.handheldmoon.entity.FullMoonEntity;
+import cc.sighs.handheldmoon.item.MoonlightLampItem;
 import cc.sighs.handheldmoon.item.ColorLensItem;
 import cc.sighs.handheldmoon.item.FullMoonItem;
 import cc.sighs.handheldmoon.item.MoonlightWandItem;
 import cc.sighs.handheldmoon.menu.FlashlightConfigMenu;
 import cc.sighs.handheldmoon.network.ServerOpenFlashlightConfigPacket;
+import cc.sighs.handheldmoon.spi.AbstractClientPlatformService;
 import cc.sighs.handheldmoon.spi.ClientPlatformService;
 import cc.sighs.handheldmoon.spi.PlatformService;
 import cc.sighs.handheldmoon.spi.RegistryService;
 import cc.sighs.handheldmoon.spi.RegistrySupplier;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.CreativeModeTab;
@@ -41,7 +38,6 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
-import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import cc.sighs.handheldmoon.api.raycone.RayConeRenderer;
 import cc.sighs.handheldmoon.event.handler.PlacedLampConeSources;
@@ -52,7 +48,6 @@ import cc.sighs.handheldmoon.compat.accessory.AccessoryCompat;
 
 import java.util.Set;
 import java.util.function.Supplier;
-import java.util.function.BiFunction;
 
 public final class NeoForgePlatformService implements PlatformService {
     private final NeoForgeRegistryService registry = new NeoForgeRegistryService();
@@ -152,19 +147,14 @@ public final class NeoForgePlatformService implements PlatformService {
         }
     }
 
-    private static final class NeoForgeClientPlatformService implements ClientPlatformService {
+    private static final class NeoForgeClientPlatformService extends AbstractClientPlatformService {
         @Override public void initializeClient() {
-            RayConeRenderer.installBackend(cc.sighs.handheldmoon.neoforge.api.raycone.impl.RayConeRendererImpl::render);
+            RayConeRenderer.installBackend(cc.sighs.handheldmoon.api.raycone.impl.RayConeRendererImpl::render);
             LampConeSourceHooks.install((minecraft, sources) -> PlacedLampConeSources.append(
                     minecraft, java.util.List.of(), sources));
             LampInteractionHooks.install(HandheldMoonDynamicLightsInitializer::syncLampBehavior);
             registerKeyBindings();
             AccessoryCompat.init();
-        }
-
-        @Override public void tickClient() {
-            cc.sighs.handheldmoon.client.ClientRuntime.tick();
-            cc.sighs.handheldmoon.neoforge.event.handler.ShaderEventHandler.onClientTick();
         }
 
         void register(IEventBus eventBus) {
@@ -175,35 +165,17 @@ public final class NeoForgePlatformService implements PlatformService {
             });
             eventBus.addListener((RegisterMenuScreensEvent event) -> event.register(
                     (MenuType<FlashlightConfigMenu>) (MenuType<?>) cc.sighs.handheldmoon.registry.ModMenus.FLASHLIGHT_CONFIG.get(),
-                    cc.sighs.handheldmoon.neoforge.client.screen.FlashlightItemConfigScreen::new));
+                    cc.sighs.handheldmoon.client.screen.FlashlightItemConfigScreen::new));
         }
-        @Override public void registerKeyBindings() { }
-        @Override public int flashlightKeyCode() { return ModKeyBindings.FLASHLIGHT_SWITCH.getDefaultKey().getValue(); }
-        @Override public int coneSwitchKeyCode() { return ModKeyBindings.CONE_SWITCH.getDefaultKey().getValue(); }
-        @Override public int modConfigKeyCode() { return ModKeyBindings.OPEN_MOD_CONFIG.getDefaultKey().getValue(); }
-        @Override public boolean isFlashlightKeyDown() { return ModKeyBindings.FLASHLIGHT_SWITCH.isDown(); }
-        @Override public void requestOpenFlashlightConfig() {
-            FlashlightConfigMenu.clearPendingBlockTarget();
-            send(new ServerOpenFlashlightConfigPacket());
+
+        /** Key mappings are registered through the mod event bus. */
+        @Override public void registerKeyBindings() {
         }
-        @Override public void requestOpenLampConfig(net.minecraft.core.BlockPos pos) {
-            FlashlightConfigMenu.expectBlockTarget(pos);
-            send(new ServerOpenLampBlockConfigPacket(pos));
+
+        @Override
+        protected void send(net.minecraft.network.protocol.common.custom.CustomPacketPayload payload) {
+            net.minecraft.client.Minecraft.getInstance().getConnection()
+                    .send(new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(payload));
         }
-        @Override public void openModConfig() {
-            net.minecraft.client.Minecraft.getInstance().setScreen(new cc.sighs.handheldmoon.neoforge.client.screen.HandheldMoonConfigScreen());
-        }
-        @Override public void openLightSourceConfig(cc.sighs.handheldmoon.lights.FullMoonDynamicLightSource source, int entityId, java.util.UUID uuid, String sourceId) {
-            net.minecraft.client.Minecraft.getInstance().setScreen(new cc.sighs.handheldmoon.neoforge.client.screen.LightSourceConfigScreen(source, entityId, uuid, sourceId));
-        }
-        @Override public void sendLightProfile(int entityId, cc.sighs.handheldmoon.api.light.EntityLightProfile profile) {
-            send(new ServerSetLightProfilePacket(entityId, profile));
-        }
-        @Override public void sendLampState(net.minecraft.core.BlockPos pos, float xRot, float yRot, boolean powered) { send(new ServerMoonLightLampSyncPacket(pos, xRot, yRot, powered)); }
-        @Override public void sendLampConfig(net.minecraft.core.BlockPos pos, LampDeviceConfig config) { send(new ServerMoonlightLampConfigSyncPacket(pos, config)); }
-        @Override public void sendFullMoonConfig(net.minecraft.core.BlockPos pos, FullMoonDeviceConfig config) { send(new ServerFullMoonConfigSyncPacket(pos, config)); }
-        @Override public void sendHeldLampConfig(InteractionHand hand, LampDeviceConfig config) { send(new ServerHeldMoonlightLampConfigSyncPacket(hand == InteractionHand.OFF_HAND ? 1 : 0, config)); }
-        @Override public void sendHeldFullMoonConfig(InteractionHand hand, FullMoonDeviceConfig config) { send(new ServerHeldFullMoonConfigSyncPacket(hand == InteractionHand.OFF_HAND ? 1 : 0, config)); }
-        private void send(net.minecraft.network.protocol.common.custom.CustomPacketPayload payload) { net.minecraft.client.Minecraft.getInstance().getConnection().send(new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(payload)); }
     }
 }

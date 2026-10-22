@@ -1,18 +1,16 @@
 package cc.sighs.handheldmoon.fabric.spi;
 
 import cc.sighs.handheldmoon.HandheldMoon;
-import cc.sighs.handheldmoon.config.FullMoonDeviceConfig;
-import cc.sighs.handheldmoon.config.LampDeviceConfig;
 import cc.sighs.handheldmoon.network.ServerFullMoonConfigSyncPacket;
 import cc.sighs.handheldmoon.network.ServerHeldFullMoonConfigSyncPacket;
 import cc.sighs.handheldmoon.network.ServerHeldMoonlightLampConfigSyncPacket;
 import cc.sighs.handheldmoon.network.ServerMoonLightLampSyncPacket;
 import cc.sighs.handheldmoon.network.ServerMoonlightLampConfigSyncPacket;
-import cc.sighs.handheldmoon.fabric.registry.ModKeyBindings;
-import cc.sighs.handheldmoon.fabric.block.FullMoonBlockEntity;
-import cc.sighs.handheldmoon.fabric.block.MoonlightLampBlockEntity;
-import cc.sighs.handheldmoon.fabric.entity.FullMoonEntity;
-import cc.sighs.handheldmoon.fabric.item.MoonlightLampItem;
+import cc.sighs.handheldmoon.registry.ModKeyBindings;
+import cc.sighs.handheldmoon.block.FullMoonBlockEntity;
+import cc.sighs.handheldmoon.block.MoonlightLampBlockEntity;
+import cc.sighs.handheldmoon.entity.FullMoonEntity;
+import cc.sighs.handheldmoon.item.MoonlightLampItem;
 import cc.sighs.handheldmoon.item.ColorLensItem;
 import cc.sighs.handheldmoon.item.FullMoonItem;
 import cc.sighs.handheldmoon.item.MoonlightWandItem;
@@ -26,8 +24,8 @@ import cc.sighs.handheldmoon.event.handler.LampConeSourceHooks;
 import cc.sighs.handheldmoon.event.handler.LampInteractionHooks;
 import cc.sighs.handheldmoon.lights.HandheldMoonDynamicLightsInitializer;
 import cc.sighs.handheldmoon.compat.accessory.AccessoryCompat;
-import cc.sighs.handheldmoon.api.config.ConfigTarget;
 import cc.sighs.handheldmoon.registry.ModRegistries;
+import cc.sighs.handheldmoon.spi.AbstractClientPlatformService;
 import cc.sighs.handheldmoon.spi.ClientPlatformService;
 import cc.sighs.handheldmoon.spi.PlatformService;
 import cc.sighs.handheldmoon.spi.RegistryService;
@@ -42,8 +40,6 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.CreativeModeTab;
@@ -167,9 +163,9 @@ public final class FabricPlatformService implements PlatformService {
         }
     }
 
-    private static final class FabricClientPlatformService implements ClientPlatformService {
+    private static final class FabricClientPlatformService extends AbstractClientPlatformService {
         @Override public void initializeClient() {
-            RayConeRenderer.installBackend(cc.sighs.handheldmoon.fabric.api.raycone.impl.RayConeRendererImpl::render);
+            RayConeRenderer.installBackend(cc.sighs.handheldmoon.api.raycone.impl.RayConeRendererImpl::render);
             LampConeSourceHooks.install((minecraft, sources) -> PlacedLampConeSources.append(
                     minecraft, java.util.List.of(), sources));
             LampInteractionHooks.install(HandheldMoonDynamicLightsInitializer::syncLampBehavior);
@@ -177,43 +173,19 @@ public final class FabricPlatformService implements PlatformService {
             @SuppressWarnings("unchecked")
             MenuType<FlashlightConfigMenu> menuType =
                     (MenuType<FlashlightConfigMenu>) (MenuType<?>) cc.sighs.handheldmoon.registry.ModMenus.FLASHLIGHT_CONFIG.get();
-            MenuScreens.register(menuType, cc.sighs.handheldmoon.fabric.client.screen.FlashlightItemConfigScreen::new);
+            MenuScreens.register(menuType, cc.sighs.handheldmoon.client.screen.FlashlightItemConfigScreen::new);
             AccessoryCompat.init();
         }
-        @Override public void tickClient() {
-            cc.sighs.handheldmoon.client.ClientRuntime.tick();
-            cc.sighs.handheldmoon.fabric.event.handler.ShaderEventHandler.onClientTick();
-        }
+
         @Override public void registerKeyBindings() {
             KeyMappingHelper.registerKeyMapping(ModKeyBindings.FLASHLIGHT_SWITCH);
             KeyMappingHelper.registerKeyMapping(ModKeyBindings.CONE_SWITCH);
             KeyMappingHelper.registerKeyMapping(ModKeyBindings.OPEN_MOD_CONFIG);
         }
-        @Override public int flashlightKeyCode() { return ModKeyBindings.FLASHLIGHT_SWITCH.getDefaultKey().getValue(); }
-        @Override public int coneSwitchKeyCode() { return ModKeyBindings.CONE_SWITCH.getDefaultKey().getValue(); }
-        @Override public int modConfigKeyCode() { return ModKeyBindings.OPEN_MOD_CONFIG.getDefaultKey().getValue(); }
-        @Override public boolean isFlashlightKeyDown() { return ModKeyBindings.FLASHLIGHT_SWITCH.isDown(); }
-        @Override public void requestOpenFlashlightConfig() {
-            FlashlightConfigMenu.clearPendingBlockTarget();
-            ClientPlayNetworking.send(new ServerOpenFlashlightConfigPacket());
+
+        @Override
+        protected void send(net.minecraft.network.protocol.common.custom.CustomPacketPayload payload) {
+            ClientPlayNetworking.send(payload);
         }
-        @Override public void requestOpenLampConfig(net.minecraft.core.BlockPos pos) {
-            FlashlightConfigMenu.expectBlockTarget(pos);
-            ClientPlayNetworking.send(new ServerOpenLampBlockConfigPacket(pos));
-        }
-        @Override public void openModConfig() {
-            net.minecraft.client.Minecraft.getInstance().setScreen(new cc.sighs.handheldmoon.fabric.client.screen.HandheldMoonConfigScreen());
-        }
-        @Override public void openLightSourceConfig(cc.sighs.handheldmoon.lights.FullMoonDynamicLightSource source, int entityId, java.util.UUID uuid, String sourceId) {
-            net.minecraft.client.Minecraft.getInstance().setScreen(new cc.sighs.handheldmoon.fabric.client.screen.LightSourceConfigScreen(source, entityId, uuid, sourceId));
-        }
-        @Override public void sendLightProfile(int entityId, cc.sighs.handheldmoon.api.light.EntityLightProfile profile) {
-            ClientPlayNetworking.send(new ServerSetLightProfilePacket(entityId, profile));
-        }
-        @Override public void sendLampState(net.minecraft.core.BlockPos pos, float xRot, float yRot, boolean powered) { ClientPlayNetworking.send(new ServerMoonLightLampSyncPacket(pos, xRot, yRot, powered)); }
-        @Override public void sendLampConfig(net.minecraft.core.BlockPos pos, LampDeviceConfig config) { ClientPlayNetworking.send(new ServerMoonlightLampConfigSyncPacket(pos, config)); }
-        @Override public void sendFullMoonConfig(net.minecraft.core.BlockPos pos, FullMoonDeviceConfig config) { ClientPlayNetworking.send(new ServerFullMoonConfigSyncPacket(pos, config)); }
-        @Override public void sendHeldLampConfig(InteractionHand hand, LampDeviceConfig config) { ClientPlayNetworking.send(new ServerHeldMoonlightLampConfigSyncPacket(hand == InteractionHand.OFF_HAND ? 1 : 0, config)); }
-        @Override public void sendHeldFullMoonConfig(InteractionHand hand, FullMoonDeviceConfig config) { ClientPlayNetworking.send(new ServerHeldFullMoonConfigSyncPacket(hand == InteractionHand.OFF_HAND ? 1 : 0, config)); }
     }
 }

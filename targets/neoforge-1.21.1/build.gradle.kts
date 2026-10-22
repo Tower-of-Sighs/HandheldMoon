@@ -1,10 +1,8 @@
 import net.darkhax.curseforgegradle.TaskPublishCurseForge
 import org.gradle.api.attributes.Attribute
-import org.gradle.api.plugins.JavaPluginExtension
-import org.gradle.api.tasks.SourceSetContainer
-import org.gradle.kotlin.dsl.getByType
 import org.gradle.jvm.tasks.Jar
 import org.gradle.language.jvm.tasks.ProcessResources
+import java.util.Properties
 
 plugins {
     id("java-library")
@@ -13,32 +11,25 @@ plugins {
     id("net.darkhax.curseforgegradle")
 }
 
-val neoforge_version: String by project
-val mod_id: String by project
-val minecraft_version: String by project
-val mod_name: String by project
+// Shared mod metadata lives in the repository root; this target's own file
+// supplies loader/version-specific values and overrides.
+val sharedProperties = Properties()
+file("../../gradle.properties").inputStream().use { sharedProperties.load(it) }
+file("gradle.properties").inputStream().use { sharedProperties.load(it) }
+sharedProperties.forEach { key, value -> extra.set(key.toString(), value.toString()) }
 
-val releaseType = providers.gradleProperty("release_type").orElse("release")
-val releaseDist = providers.gradleProperty("release_dist").orElse("both").map { value ->
-    when (value.trim().lowercase()) {
-        "client", "server", "both" -> value.trim().lowercase()
-        else -> "both"
-    }
-}
-val releaseChangelog = providers.gradleProperty("release_changelog").orElse("No changelog was specified.")
-val publishChangelog = providers.provider {
-    "[dist=${releaseDist.get()}]\n\n${releaseChangelog.get()}"
-}
-val modrinthToken = providers.gradleProperty("modrinth_token").orElse(providers.environmentVariable("MODRINTH_TOKEN"))
-val curseforgeToken = providers.gradleProperty("curseforge_token").orElse(providers.environmentVariable("CURSEFORGE_TOKEN"))
-val modrinthProjectId = providers.provider {
-    val loaderSpecific = providers.gradleProperty("modrinth_project_neoforge").orNull?.trim().orEmpty()
-    if (loaderSpecific.isNotEmpty()) loaderSpecific else providers.gradleProperty("modrinth_project").orNull?.trim().orEmpty()
-}
-val curseforgeProjectId = providers.provider {
-    val loaderSpecific = providers.gradleProperty("curseforge_project_neoforge").orNull?.trim().orEmpty()
-    if (loaderSpecific.isNotEmpty()) loaderSpecific else providers.gradleProperty("curseforge_project").orNull?.trim().orEmpty()
-}
+group = sharedProperties.getProperty("group")
+version = sharedProperties.getProperty("version")
+
+val java_version: String by project
+val minecraft_version: String by project
+val minecraft_version_range: String by project
+val neoforge_version: String by project
+val neoforge_loader_version_range: String by project
+val mod_id: String by project
+val mod_name: String by project
+val license: String by project
+val mod_author: String by project
 val curios_version: String by project
 val jei_version: String by project
 val iris_version: String by project
@@ -46,7 +37,129 @@ val sodium_version: String by project
 val sable_version: String by project
 val sable_companion_version: String by project
 
+base {
+    archivesName.set("$mod_name-neoforge-$minecraft_version")
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version.toInt())
+    withSourcesJar()
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
+}
+
+// common/ is a shared source tree that also compiles standalone
+// (`gradlew -p common build`, see common/build.gradle.kts). Its sources are
+// compiled into this target by source-set sharing; the exclusions below are the
+// files whose 26.1 APIs have a confirmed 1.21.1 difference. This target ships
+// its own implementation for each excluded path.
+sourceSets {
+    main {
+        java.srcDir(layout.buildDirectory.dir("generated/common-main"))
+    }
+    test {
+        java.srcDir("../../common/src/test/java")
+        resources.srcDir("../../common/src/test/resources")
+    }
+}
+
+tasks.register<Sync>("prepareCommonSources") {
+    from("../../common/src/main/java") {
+        exclude(
+            // 26.1 client rendering, screens and item models.
+            "cc/sighs/handheldmoon/client/LightSourceHighlightRenderer.java",
+            "cc/sighs/handheldmoon/client/screen/AbstractLightSourceConfigScreen.java",
+            "cc/sighs/handheldmoon/client/screen/AbstractFlashlightItemConfigScreen.java",
+            "cc/sighs/handheldmoon/client/screen/FlashlightItemConfigScreen.java",
+            "cc/sighs/handheldmoon/client/screen/HandheldMoonConfigScreen.java",
+            "cc/sighs/handheldmoon/client/screen/LightSourceConfigScreen.java",
+            "cc/sighs/handheldmoon/client/renderer/FullMoonRenderer.java",
+            "cc/sighs/handheldmoon/client/renderer/MoonlightLampRenderer.java",
+            "cc/sighs/handheldmoon/client/renderer/item/MoonlightLampPoweredProperty.java",
+            "cc/sighs/handheldmoon/api/raycone/impl/RayConeRendererImpl.java",
+            // 26.1 block entities, entity, item and accessory items.
+            "cc/sighs/handheldmoon/block/FullMoonBlockEntity.java",
+            "cc/sighs/handheldmoon/block/MoonlightLampBlockEntity.java",
+            "cc/sighs/handheldmoon/entity/FullMoonEntity.java",
+            "cc/sighs/handheldmoon/item/MoonlightLampItem.java",
+            "cc/sighs/handheldmoon/item/ColorLensItem.java",
+            "cc/sighs/handheldmoon/item/FullMoonItem.java",
+            "cc/sighs/handheldmoon/item/MoonlightWandItem.java",
+            // 26.1 post-processing and dynamic-light mixins.
+            "cc/sighs/handheldmoon/event/handler/EffectManager.java",
+            "cc/sighs/handheldmoon/event/handler/ShaderEventHandler.java",
+            "cc/sighs/handheldmoon/mixin/client/EntityRendererMixin.java",
+            "cc/sighs/handheldmoon/mixin/client/GameRendererAccessor.java",
+            "cc/sighs/handheldmoon/mixin/client/PostChainAccessor.java",
+            "cc/sighs/handheldmoon/mixin/client/PostPassAccessor.java",
+            "cc/sighs/handheldmoon/mixin/dynamiclight/DynamicLightBlockModelLighterMixin.java",
+            "cc/sighs/handheldmoon/mixin/dynamiclight/DynamicLightBrightnessGetterMixin.java",
+            "cc/sighs/handheldmoon/mixin/dynamiclight/EntityModelTintMixin.java",
+            "cc/sighs/handheldmoon/mixin/dynamiclight/LightmapColorMixin.java",
+            "cc/sighs/handheldmoon/mixin/dynamiclight/SodiumDynamicLightBlockRendererMixin.java",
+            "cc/sighs/handheldmoon/mixin/dynamiclight/SodiumSectionReadinessMixin.java",
+            // 26.1 key bindings and shader-pipeline bridge.
+            "cc/sighs/handheldmoon/registry/ModKeyBindings.java",
+            "cc/sighs/handheldmoon/spi/AbstractClientPlatformService.java",
+            "cc/sighs/handheldmoon/util/IrisCompat.java",
+            "cc/sighs/handheldmoon/dynamiclight/DynamicLightEntityTint.java",
+        )
+    }
+    into(layout.buildDirectory.dir("generated/common-main"))
+}
+
+tasks.named("compileJava") { dependsOn("prepareCommonSources") }
+
+tasks.named<Jar>("sourcesJar") {
+    dependsOn("prepareCommonSources")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// 1.21.1 recipes use the legacy ingredient JSON shape, so the 26.1 common
+// recipe folder is replaced by this target's own files.
+val prepareCommonResources = tasks.register<Sync>("prepareCommonResources") {
+    from("../../common/src/main/resources") {
+        // 1.21.1 ships its own legacy-shaped recipes, block models, core
+        // shaders and item renderers; the 26.1 variants must not leak into it.
+        exclude("data/handheldmoon/recipe/**")
+        exclude("assets/handheldmoon/models/block/**")
+        exclude("assets/handheldmoon/items/**")
+        exclude("assets/handheldmoon/post_effect/**")
+        exclude("assets/handheldmoon/shaders/post/**")
+        exclude("META-INF/accesstransformer.cfg")
+    }
+    into(layout.buildDirectory.dir("common-resources"))
+}
+
+sourceSets.named("main") {
+    resources.srcDir(prepareCommonResources)
+    resources.srcDir("src/generated/resources")
+}
+
+tasks.named<ProcessResources>("processResources") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    val expandProps = mapOf(
+        "version" to project.version,
+        "minecraft_version" to minecraft_version,
+        "minecraft_version_range" to minecraft_version_range,
+        "mod_name" to mod_name,
+        "mod_id" to mod_id,
+        "neoforge_version" to neoforge_version,
+        "neoforge_loader_version_range" to neoforge_loader_version_range,
+        "license" to license,
+        "mod_author" to mod_author,
+        "description" to (sharedProperties.getProperty("description") ?: ""),
+    )
+    filesMatching(listOf("META-INF/neoforge.mods.toml", "*.mixins.json")) {
+        expand(expandProps)
+    }
+    inputs.properties(expandProps)
+}
+
 repositories {
+    mavenCentral()
     maven {
         name = "Curse Maven"
         url = uri("https://www.cursemaven.com")
@@ -54,46 +167,6 @@ repositories {
     }
     maven { name = "Modrinth"; url = uri("https://api.modrinth.com/maven") }
     maven { name = "Curios Api"; url = uri("https://maven.theillusivec4.top/") }
-}
-
-evaluationDependsOn(":common")
-val commonProject = project(":common")
-commonProject.layout.buildDirectory.set(layout.buildDirectory.dir("common"))
-val commonMainSourceSet = commonProject.extensions.getByType<SourceSetContainer>().named("main").get()
-commonProject.extensions.configure<JavaPluginExtension> {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-}
-// Dev runs load common's resources directly as part of the same mod folder.
-// Drop the 26.1 recipe JSON there so only this target's legacy recipes load.
-commonProject.tasks.named<org.gradle.language.jvm.tasks.ProcessResources>("processResources") {
-    exclude("data/handheldmoon/recipe/**")
-}
-// 26.1-only rendering/screen classes are replaced by 1.21.1 variants in the
-// legacy overlay; everything else in common is shared.
-commonMainSourceSet.java.apply {
-    exclude(
-        "cc/sighs/handheldmoon/client/LightSourceHighlightRenderer.java",
-        "cc/sighs/handheldmoon/client/screen/AbstractLightSourceConfigScreen.java",
-        "cc/sighs/handheldmoon/client/screen/AbstractFlashlightItemConfigScreen.java",
-        "cc/sighs/handheldmoon/dynamiclight/DynamicLightEntityTint.java",
-        "cc/sighs/handheldmoon/item/ColorLensItem.java",
-        "cc/sighs/handheldmoon/item/FullMoonItem.java",
-        "cc/sighs/handheldmoon/item/MoonlightWandItem.java"
-    )
-}
-
-// Optional POM dependency whitelist for Maven publication.
-// Example:
-// extra["mavenDependencyWhitelist"] = listOf(
-//     "group.id",
-//     "artifact-id",
-//     "group.id:artifact-id",
-// )
-extra["mavenDependencyWhitelist"] = emptyList<String>()
-
-repositories {
     maven {
         name = "Shedaniel"
         url = uri("https://maven.shedaniel.me")
@@ -102,53 +175,6 @@ repositories {
         name = "RyanHCode"
         url = uri("https://maven.ryanhcode.dev/releases")
     }
-}
-
-java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-    withSourcesJar()
-    withJavadocJar()
-}
-
-tasks.withType<JavaCompile>().configureEach {
-    options.encoding = "UTF-8"
-}
-
-val prepareCommonResources = tasks.register<org.gradle.api.tasks.Sync>("prepareCommonResources") {
-    // 1.21.1 recipes use the legacy ingredient JSON shape, so the 26.1 common
-    // recipe folder is replaced by this target's own files.
-    from("../../common/src/main/resources") {
-        exclude("data/handheldmoon/recipe/**")
-    }
-    into(layout.buildDirectory.dir("common-resources"))
-}
-
-sourceSets.named("main") {
-    resources.srcDir(prepareCommonResources)
-}
-
-tasks.named<ProcessResources>("processResources") {
-    // Keep the legacy 1.21.1 model/recipe variants in this source set when
-    // they intentionally share paths with newer common resources.
-    duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.EXCLUDE
-    val expandProps = mapOf(
-        "version" to project.version,
-        "minecraft_version" to minecraft_version,
-        "minecraft_version_range" to project.property("minecraft_version_range"),
-        "mod_name" to mod_name,
-        "mod_id" to mod_id,
-        "neoforge_version" to neoforge_version,
-        "neoforge_loader_version_range" to project.property("neoforge_loader_version_range"),
-        "license" to project.property("license"),
-        "mod_author" to project.property("mod_author"),
-        "description" to project.description.orEmpty(),
-    )
-    filesMatching(listOf("META-INF/neoforge.mods.toml", "*.mixins.json")) {
-        expand(expandProps)
-    }
-    inputs.properties(expandProps)
 }
 
 val sodiumFrapi = configurations.create("sodiumFrapi") {
@@ -167,7 +193,6 @@ val sodiumFrapiJars = fileTree(layout.buildDirectory.dir("sodium-frapi")) { incl
 sodiumFrapiJars.builtBy(extractSodiumFrapi)
 
 dependencies {
-    implementation(commonProject)
     sodiumFrapi("maven.modrinth:sodium:$sodium_version")
     // Sodium's FRAPI QuadEmitter/QuadView interfaces live in its nested jars.
     compileOnly(sodiumFrapiJars)
@@ -196,27 +221,16 @@ dependencies {
     implementation("curse.maven:architectury-api-419699:5786327")
 
     compileOnly("io.github.llamalad7:mixinextras-common:0.3.5")
-}
 
-tasks.named("compileJava") {
-    dependsOn(commonProject.tasks.named("classes"))
-}
-
-tasks.named<Jar>("jar") {
-    dependsOn(commonProject.tasks.named("classes"))
-    from(commonProject.extensions.getByType<org.gradle.api.tasks.SourceSetContainer>().named("main").map { it.output.classesDirs })
-}
-
-tasks.named<Jar>("sourcesJar") {
-    // Keep the target source set's legacy resources when paths overlap common.
-    duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.EXCLUDE
-    from(commonProject.extensions.getByType<org.gradle.api.tasks.SourceSetContainer>().named("main").map { it.java })
+    testImplementation(platform("org.junit:junit-bom:5.11.4"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("it.unimi.dsi:fastutil:8.5.12")
 }
 
 neoForge {
     version = neoforge_version
 
-    // Automatically enable neoforge AccessTransformers if the file exists
     val at = file("src/main/resources/META-INF/accesstransformer.cfg")
     if (at.exists()) {
         accessTransformers.from(at.absolutePath)
@@ -234,8 +248,6 @@ neoForge {
         create("data") {
             data()
             gameDirectory.set(project.file("runs/data"))
-            // DataGen can be run by - "./gradlew :neoforge:runData" in Terminal.
-            // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
             programArguments.addAll(
                 "--mod",
                 mod_id,
@@ -255,25 +267,17 @@ neoForge {
     mods {
         create(mod_id) {
             sourceSet(sourceSets.main.get())
-            sourceSet(commonMainSourceSet)
         }
     }
 }
 
-val commonMinecraftCompileClasspath = configurations.create("commonMinecraftCompileClasspath") {
-    isCanBeConsumed = false
-    isCanBeResolved = true
-    extendsFrom(configurations.getByName("modDevCompileDependencies"))
-}
-commonProject.dependencies.add("compileOnly", files(commonMinecraftCompileClasspath))
-
-sourceSets.named("main") {
-    resources.srcDir("src/generated/resources")
+tasks.named<Test>("test") {
+    useJUnitPlatform()
 }
 
 // Implement mcgradleconventions loader attribute
 val loaderAttribute = Attribute.of("io.github.mcgradleconventions.loader", String::class.java)
-listOf("apiElements", "runtimeElements", "sourcesElements", "javadocElements").forEach { variant ->
+listOf("apiElements", "runtimeElements", "sourcesElements").forEach { variant ->
     configurations.named(variant) {
         attributes {
             attribute(loaderAttribute, "neoforge")
@@ -290,11 +294,35 @@ sourceSets.configureEach {
     }
 }
 
+// Release publishing ---------------------------------------------------------
+
+val releaseType = providers.gradleProperty("release_type").orElse("release")
+val releaseDist = providers.gradleProperty("release_dist").orElse("both").map { value ->
+    when (value.trim().lowercase()) {
+        "client", "server", "both" -> value.trim().lowercase()
+        else -> "both"
+    }
+}
+val releaseChangelog = providers.gradleProperty("release_changelog").orElse("No changelog was specified.")
+val publishChangelog = providers.provider {
+    "[dist=${releaseDist.get()}]\n\n${releaseChangelog.get()}"
+}
+val modrinthToken = providers.gradleProperty("modrinth_token").orElse(providers.environmentVariable("MODRINTH_TOKEN"))
+val curseforgeToken = providers.gradleProperty("curseforge_token").orElse(providers.environmentVariable("CURSEFORGE_TOKEN"))
+val modrinthProjectId = providers.provider {
+    val loaderSpecific = providers.gradleProperty("modrinth_project_neoforge").orNull?.trim().orEmpty()
+    if (loaderSpecific.isNotEmpty()) loaderSpecific else providers.gradleProperty("modrinth_project").orNull?.trim().orEmpty()
+}
+val curseforgeProjectId = providers.provider {
+    val loaderSpecific = providers.gradleProperty("curseforge_project_neoforge").orNull?.trim().orEmpty()
+    if (loaderSpecific.isNotEmpty()) loaderSpecific else providers.gradleProperty("curseforge_project").orNull?.trim().orEmpty()
+}
+
 modrinth {
     token.set(modrinthToken)
     projectId.set(modrinthProjectId)
     versionNumber.set(provider { "${project.version}+neoforge" })
-    versionName.set(provider { "$mod_name ${project.version} (NeoForge) [${releaseDist.get()}]" })
+    versionName.set(provider { "$mod_name ${project.version} (NeoForge 1.21.1) [${releaseDist.get()}]" })
     versionType.set(releaseType)
     changelog.set(publishChangelog)
     uploadFile.set(tasks.named("jar"))
@@ -312,7 +340,7 @@ tasks.named("modrinth") {
 
 tasks.register<TaskPublishCurseForge>("publishCurseForge") {
     group = "publishing"
-    description = "Publish NeoForge artifact to CurseForge."
+    description = "Publish NeoForge 1.21.1 artifact to CurseForge."
     apiToken = curseforgeToken.orNull
 
     val resolvedProjectId = curseforgeProjectId.orNull
@@ -331,13 +359,12 @@ tasks.register<TaskPublishCurseForge>("publishCurseForge") {
     }
 
     onlyIf {
-        !curseforgeToken.orNull.isNullOrBlank() &&
-            !curseforgeProjectId.orNull.isNullOrBlank()
+        !curseforgeToken.orNull.isNullOrBlank() && !curseforgeProjectId.orNull.isNullOrBlank()
     }
 }
 
 tasks.register("publishToPlatformServices") {
     group = "publishing"
-    description = "Publish NeoForge artifact to Modrinth and CurseForge."
+    description = "Publish NeoForge 1.21.1 artifact to Modrinth and CurseForge."
     dependsOn("modrinth", "publishCurseForge")
 }

@@ -6,25 +6,23 @@ on:
       - 'common/**'
       - 'build.gradle.kts'
       - 'settings.gradle.kts'
-      - 'buildSrc/**'
       - 'gradle.properties'
       - 'gradle/**'
       - 'scripts/build-target.ps1'
       - 'scripts/discover-targets.ps1'
       - '.github/workflows/verify-common.yml'
-      - 'targets/**/ci.properties'
+      - 'targets/**'
   pull_request:
     paths:
       - 'common/**'
       - 'build.gradle.kts'
       - 'settings.gradle.kts'
-      - 'buildSrc/**'
       - 'gradle.properties'
       - 'gradle/**'
       - 'scripts/build-target.ps1'
       - 'scripts/discover-targets.ps1'
       - '.github/workflows/verify-common.yml'
-      - 'targets/**/ci.properties'
+      - 'targets/**'
   workflow_dispatch:
 
 permissions:
