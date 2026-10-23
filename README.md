@@ -18,6 +18,12 @@ tree, and one independent Gradle project per loader/version pair.
   rendering, item, screen, block-entity and mixin files are confirmed version
   differences, so they live here and the matching common paths are excluded in
   `prepareCommonSources`.
+- `targets/forge-1.20.1/`: the Forge 1.20.1 implementation, built with the
+  ModDevGradle `legacyforge` plugin. It ships its own NBT-backed `ItemDataPort`,
+  legacy post-processing shaders and Curios/TACZ compat.
+- `targets/fabric-1.20.1/`: the Fabric 1.20.1 implementation. It reuses the
+  whole 1.20.1 game-side implementation from the Forge target and adds the
+  Fabric loader layer, Trinkets compat and Fabric networking.
 
 Each target attaches `../../common` as a composite build (IDE module) and
 compiles the shared sources into its own source set with the
@@ -54,6 +60,8 @@ cd targets\neoforge-26.1
 | `fabric-26.1` | JDK 25 |
 | `neoforge-26.1` | JDK 25 |
 | `neoforge-1.21.1` | JDK 21 (JDK 25 also works for Gradle; the toolchain resolves 21) |
+| `forge-1.20.1` | JDK 17 (Gradle 8.14.4 wrapper; toolchain 17) |
+| `fabric-1.20.1` | JDK 21 or 25 for Gradle (Loom 1.15 requires JVM ≥ 21); toolchain 17 |
 
 The shared tree also builds and tests on its own:
 
@@ -61,9 +69,9 @@ The shared tree also builds and tests on its own:
 .\gradlew.bat -p common build
 ```
 
-The root project exposes `buildCommon`, `buildFabric261`, `buildNeoForge1211`
-and `buildNeoForge261` as convenience wrappers, but never combines targets into
-one artifact.
+The root project exposes `buildCommon`, `buildFabric1201`, `buildFabric261`,
+`buildForge1201`, `buildNeoForge1211` and `buildNeoForge261` as convenience
+wrappers, but never combines targets into one artifact.
 
 ## Version differences
 

@@ -22,7 +22,7 @@ public final class LightmapColorBridge {
                 double value = ambient + s.skyLightColor().get(c) * sb
                         + (s.blockLightTint().get(c) * (1 - tintMix) + tintMix) * bb;
                 value *= 1 - s.bossOverlayWorldDarkening() * (c == 0 ? 0.3 : 0.4);
-                next[offset + c] = Math.clamp(value - s.darknessEffectScale(), 0, 1);
+                next[offset + c] = clamp(value - s.darknessEffectScale(), 0, 1);
                 max = Math.max(max, next[offset + c]);
             }
             double gammaScale = max > 0 ? (1 - Math.pow(1 - max, 4)) / max : 1;
@@ -82,7 +82,7 @@ public final class LightmapColorBridge {
 
     /** Bilinear filtering at texel centers, matching sample_lightmap.glsl. */
     static double sample(double[] data, double block, double sky, int channel) {
-        block = Math.clamp(block, 0, 15); sky = Math.clamp(sky, 0, 15);
+        block = clamp(block, 0, 15); sky = clamp(sky, 0, 15);
         int b = (int) block, k = (int) sky;
         int b1 = Math.min(b + 1, 15), k1 = Math.min(k + 1, 15);
         double u = block - b, v = sky - k;
@@ -96,6 +96,14 @@ public final class LightmapColorBridge {
         if (lit <= 0 || lit <= background) return 255;
         double target = background + (lit - background) * (1 - alpha + alpha * channel);
         // Round upward so quantization cannot take the result below background.
-        return Math.clamp((int) Math.ceil(255 * target / lit), 0, 255);
+        return clamp((int) Math.ceil(255 * target / lit), 0, 255);
+    }
+
+    private static double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 }

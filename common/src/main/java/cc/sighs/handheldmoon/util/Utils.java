@@ -2,7 +2,7 @@ package cc.sighs.handheldmoon.util;
 
 import cc.sighs.handheldmoon.compat.FlashlightCompatHooks;
 import cc.sighs.handheldmoon.config.LampDeviceConfig;
-import cc.sighs.handheldmoon.registry.ModDataComponent;
+import cc.sighs.handheldmoon.item.ItemData;
 import cc.sighs.handheldmoon.registry.ModItems;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -60,6 +60,6 @@ public final class Utils {
         if (!stack.is(ModItems.MOONLIGHT_LAMP.get())) {
             return null;
         }
-        return stack.getOrDefault(ModDataComponent.LAMP_CONFIG.get(), LampDeviceConfig.fromGlobalConfig());
+        return ItemData.lampConfig(stack);
     }
 }

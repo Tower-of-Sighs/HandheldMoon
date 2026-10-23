@@ -1,6 +1,6 @@
 package cc.sighs.handheldmoon.util;
 
-import cc.sighs.handheldmoon.registry.ModDataComponent;
+import cc.sighs.handheldmoon.item.ItemData;
 import net.minecraft.world.item.ItemStack;
 
 public final class ItemState {
@@ -8,10 +8,10 @@ public final class ItemState {
     }
 
     public static int powered(ItemStack stack) {
-        return stack.getOrDefault(ModDataComponent.POWERED.get(), 0);
+        return ItemData.powered(stack);
     }
 
     public static void togglePowered(ItemStack stack) {
-        stack.set(ModDataComponent.POWERED.get(), powered(stack) ^ 1);
+        ItemData.setPowered(stack, powered(stack) ^ 1);
     }
 }

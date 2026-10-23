@@ -2,7 +2,7 @@ package cc.sighs.handheldmoon.client.screen;
 
 import cc.sighs.handheldmoon.api.config.ConfigTarget;
 import cc.sighs.handheldmoon.config.LampDeviceConfig;
-import cc.sighs.handheldmoon.registry.ModDataComponent;
+import cc.sighs.handheldmoon.item.ItemData;
 import cc.sighs.handheldmoon.registry.ModItems;
 import cc.sighs.handheldmoon.util.ClientUtils;
 import net.minecraft.client.Minecraft;
@@ -27,7 +27,7 @@ public final class DeviceConfigTargets {
             @Override
             public LampDeviceConfig get() {
                 ItemStack current = mc.player.getItemInHand(hand);
-                return current.getOrDefault(ModDataComponent.LAMP_CONFIG.get(), LampDeviceConfig.fromGlobalConfig());
+                return ItemData.lampConfig(current);
             }
 
             @Override
@@ -36,7 +36,7 @@ public final class DeviceConfigTargets {
                 if (!current.is(ModItems.MOONLIGHT_LAMP.get())) {
                     return;
                 }
-                current.set(ModDataComponent.LAMP_CONFIG.get(), config);
+                ItemData.setLampConfig(current, config);
                 ClientUtils.syncHeldMoonlightLampConfig(hand, config);
             }
         };

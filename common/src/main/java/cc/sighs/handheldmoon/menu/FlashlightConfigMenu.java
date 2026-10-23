@@ -3,7 +3,7 @@ package cc.sighs.handheldmoon.menu;
 import cc.sighs.handheldmoon.api.content.MoonlightLampBlockEntityAccess;
 import cc.sighs.handheldmoon.config.LampDeviceConfig;
 import cc.sighs.handheldmoon.item.ColorLensData;
-import cc.sighs.handheldmoon.registry.ModDataComponent;
+import cc.sighs.handheldmoon.item.ItemData;
 import cc.sighs.handheldmoon.registry.ModItems;
 import cc.sighs.handheldmoon.registry.ModMenus;
 import cc.sighs.handheldmoon.util.ClientUtils;
@@ -115,8 +115,7 @@ public final class FlashlightConfigMenu extends AbstractContainerMenu {
         if (hand != null) {
             ItemStack stack = player.getItemInHand(hand);
             if (stack.is(ModItems.MOONLIGHT_LAMP.get())) {
-                return stack.getOrDefault(
-                        ModDataComponent.LAMP_CONFIG.get(), LampDeviceConfig.fromGlobalConfig());
+                return ItemData.lampConfig(stack);
             }
         }
         return LampDeviceConfig.fromGlobalConfig();
@@ -144,7 +143,7 @@ public final class FlashlightConfigMenu extends AbstractContainerMenu {
         if (!stack.is(ModItems.MOONLIGHT_LAMP.get())) {
             return;
         }
-        stack.set(ModDataComponent.LAMP_CONFIG.get(), config);
+        ItemData.setLampConfig(stack, config);
         if (sync && player.level().isClientSide()) {
             ClientUtils.syncHeldMoonlightLampConfig(hand, config);
         } else if (player instanceof ServerPlayer serverPlayer) {

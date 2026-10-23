@@ -60,7 +60,11 @@ public class FullMoonBlockEntity extends BlockEntity implements cc.sighs.handhel
     @Override
     public void setLevel(Level level) {
         super.setLevel(level);
-
+        // Intentionally empty: LevelChunk registers a block entity by calling
+        // setLevel() BEFORE it is inserted into the chunk map. Any level lookup
+        // here can create a second block entity and re-enter setLevel() (the
+        // bound entity resolves its anchor to build the default light profile).
+        // serverTick() binds the entity on the first server tick instead.
     }
 
     @Override

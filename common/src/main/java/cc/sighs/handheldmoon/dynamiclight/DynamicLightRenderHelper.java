@@ -256,7 +256,7 @@ public final class DynamicLightRenderHelper {
             return -1;
         }
         double contribution = (dynamic - Math.max(vanillaBlockLight, 0.0)) / dynamic;
-        float strength = (float) Math.clamp(contribution * alpha, 0.0, 1.0);
+        float strength = (float) Math.max(0.0, Math.min(1.0, contribution * alpha));
         int r = (int) (255 - (255 - ((lightColor >> 16) & 0xFF)) * strength);
         int g = (int) (255 - (255 - ((lightColor >> 8) & 0xFF)) * strength);
         int b = (int) (255 - (255 - (lightColor & 0xFF)) * strength);

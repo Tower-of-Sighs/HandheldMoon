@@ -1,5 +1,7 @@
 val targetBuilds = mapOf(
+    "fabric-1.20.1" to "buildFabric1201",
     "fabric-26.1" to "buildFabric261",
+    "forge-1.20.1" to "buildForge1201",
     "neoforge-1.21.1" to "buildNeoForge1211",
     "neoforge-26.1" to "buildNeoForge261",
 )

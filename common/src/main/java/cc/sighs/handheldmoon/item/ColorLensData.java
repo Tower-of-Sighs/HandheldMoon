@@ -1,6 +1,5 @@
 package cc.sighs.handheldmoon.item;
 
-import cc.sighs.handheldmoon.registry.ModDataComponent;
 import cc.sighs.handheldmoon.registry.ModItems;
 import net.minecraft.world.item.ItemStack;
 
@@ -17,13 +16,13 @@ public final class ColorLensData {
 
     /** Returns the stored lens color as 0xRRGGBB. */
     public static int getColor(ItemStack stack) {
-        return stack.getOrDefault(ModDataComponent.LENS_COLOR.get(), DEFAULT_COLOR) & 0xFFFFFF;
+        return ItemData.lensColor(stack) & 0xFFFFFF;
     }
 
     /** Returns a lens stack carrying {@code color}. */
     public static ItemStack create(int color) {
         ItemStack stack = new ItemStack(ModItems.COLOR_LENS.get());
-        stack.set(ModDataComponent.LENS_COLOR.get(), color & 0xFFFFFF);
+        ItemData.setLensColor(stack, color & 0xFFFFFF);
         return stack;
     }
 }

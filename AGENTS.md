@@ -28,6 +28,7 @@ targets/<loader>-<mc-version>/  一个独立的加载器 + Minecraft 版本工�
 | `RegistryService` | 注册项声明（`ModBlocks`、`ModItems` 等） | `DeferredRegister` / `Registry.register` |
 | `ClientPlatformService` | `AbstractClientPlatformService`（tick、界面、按键码、发包构造） | 发包传输、按键/菜单界面注册 |
 | `IAccessoryCompat` | `AccessoryCompat` 门面 | Curios / Trinkets 集成 |
+| `ItemDataPort` | `ItemData` 门面（物品功率、镜头颜色、设备配置） | 26.1 target 用数据组件，1.20.1 target 用物品 NBT |
 
 `META-INF/services/<spi>` 文件必须留在实现该 SPI 的 target 中。不要在 common 里新增 `if (loader == ...)` 分支。
 
@@ -38,13 +39,13 @@ targets/<loader>-<mc-version>/  一个独立的加载器 + Minecraft 版本工�
 | 共享 Java 代码 | `common/src/main/java/` | 放所有没有确证版本差异的代码，可引用 Minecraft 与 loader 类型；确证有差异的文件在该 target 的 `prepareCommonSources` 中 `exclude`。 |
 | 共享资源 | `common/src/main/resources/` | 会自动合并到所有 target 的最终 jar。 |
 | 目标专属资源 | `targets/<name>/src/main/resources/` | 仅放该版本/loader 专属资源，例如 Curios/Trinkets 数据、26.1 与 1.21.1 的模型和配方。 |
-| Loader metadata | target 的 `src/main/resources/` | `fabric.mod.json` / `META-INF/neoforge.mods.toml` 保留在 target。 |
+| Loader metadata | target 的 `src/main/resources/` | `fabric.mod.json` / `META-INF/neoforge.mods.toml` / `META-INF/mods.toml` 保留在 target。 |
 | Mixin 配置 | target 的 `src/main/resources/` | 一个 target 一个共享配置（`handheldmoon.mixins.json`）+ 加载器专属配置；common 不放 mixin json。 |
-| Access widening | `common/accesstransformer.cfg` + target 的 `handheldmoon.classtweaker` | common 的 AT 只用于编译；26.1 target 各自持有生产用 classtweaker，1.21.1 持有自己的 `META-INF/accesstransformer.cfg`。 |
+| Access widening | `common/accesstransformer.cfg` + target 的 `handheldmoon.classtweaker` | common 的 AT 只用于编译；26.1 target 各自持有生产用 classtweaker，1.21.1 持有自己的 `META-INF/accesstransformer.cfg`。Fabric 1.20.1 用 `handheldmoon.classtweaker`（`named` 命名空间）。 |
 | 版本/loader 参数 | `targets/<name>/gradle.properties` | 不放在仓库根 `gradle.properties`。 |
 | 共享模组信息 | 根 `gradle.properties` | 仅 `mod_*`、`version`、`group`、`java_version` 与 Gradle 运行参数。 |
 | 发布配置 | 各 target 的 `build.gradle.kts` | Modrinth / CurseForge 任务，token 只从环境变量读取。 |
-| 本地 jar 依赖 | 无 | 当前全部依赖通过 Maven 坐标解析；需要本地 jar 时先在 AGENTS 中登记再添加约定。 |
+| 本地 jar 依赖 | `targets/<name>/libs-maven/`（已 gitignore 的本地 Maven 镜像）；Fabric 1.20.1 另有 `libs/`（Loom 文件依赖） | 只放已下载 jar 的离线镜像或开发期测试工具（AutoJS MCP 端点与其内嵌 Rhino），坐标与线上一致、按目录存在性守卫，绝不进发布 jar；其余依赖必须走 Maven 坐标。Forge 1.20.1 的 AutoJS 开发期用 official 映射后的 jar 放进 `runs/client/mods`。 |
 
 共享资源与 target 资源若有同路径文件，必须明确选择唯一归属；不要依赖覆盖顺序。加载器 metadata、Mixin 配置、access widener/transformer 和版本专属语言/模型/配方文件一律归 target。
 
@@ -58,7 +59,7 @@ targets/<loader>-<mc-version>/  一个独立的加载器 + Minecraft 版本工�
 
 ### 构建命令
 
-每个 target 是独立 Gradle 根工程，应在它自己的目录中构建。26.1 target 需要 JDK 25，1.21.1 target 的 toolchain 需要 JDK 21（Gradle 本身可用 21 或 25）：
+每个 target 是独立 Gradle 根工程，应在它自己的目录中构建。26.1 target 需要 JDK 25，1.21.1 target 的 toolchain 需要 JDK 21（Gradle 本身可用 21 或 25）。两个 1.20.1 target 的 toolchain 是 JDK 17：`forge-1.20.1` 用 8.14.4 wrapper + moddev legacyforge，JDK 17 即可运行 Gradle；Fabric Loom 1.15 要求运行 Gradle 的 JVM ≥ 21，因此 `fabric-1.20.1` 用 JDK 21/25 启动 Gradle、由 toolchain 解析 17。
 
 ```powershell
 cd targets\neoforge-26.1
@@ -71,7 +72,9 @@ cd targets\neoforge-26.1
 .\gradlew.bat -p common build
 ```
 
-根项目的 `buildCommon`、`buildFabric261`、`buildNeoForge1211`、`buildNeoForge261` 只是转发到对应目录的便捷任务。
+根项目的 `buildCommon`、`buildFabric1201`、`buildFabric261`、`buildForge1201`、`buildNeoForge1211`、`buildNeoForge261` 只是转发到对应目录的便捷任务。
+
+`forge-1.20.1` 用 `net.neoforged.moddev.legacyforge`（ModDevGradle 的 Forge 1.20.1 插件，Gradle 8.14.4 wrapper）。它自己注册 `reobfJar`、为 run 注入 `mixin.config` 与 `mixin.env.remapRefMap`，因此不需要 ForgeGradle / MixinGradle。注意 legacyforge 的 dev 运行期不会反混淆 mod 依赖：Curios/TACZ 只作 `compileOnly`（API 编译用），AutoJS 用 official 映射后的 jar 放进 `runs/client/mods`。
 
 ### 发布
 
