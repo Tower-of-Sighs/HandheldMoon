@@ -17,6 +17,9 @@ Minecraft version.
 For entity light entityData synchronization and persistence details, see
 the [common development guide](common/DEVELOPMENT.md).
 
+For the beam-edge lighting fix and the Fabric/Forge 1.20.1 and Fabric 1.21.1
+branch patches, see the [backport notes](backports/light-edge/README.md).
+
 ## Build
 
 Build each target from its own directory. NeoForge 1.21.1 uses JDK 21; the

@@ -10,6 +10,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class LightmapColorMixin {
     @Inject(method = "render", at = @At("HEAD"))
     private void handheldmoon$captureLightmap(LightmapRenderState state, CallbackInfo ci) {
-        LightmapColorBridge.update(state);
+        if (!state.needsUpdate) return;
+        LightmapColorBridge.update(new LightmapColorBridge.Parameters(
+                state.blockFactor, state.skyFactor, state.ambientColor, state.nightVisionColor,
+                state.nightVisionEffectIntensity, state.skyLightColor, state.blockLightTint,
+                state.bossOverlayWorldDarkening, state.darknessEffectScale, state.brightness));
     }
 }

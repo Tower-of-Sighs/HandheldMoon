@@ -1,0 +1,129 @@
+diff --git a/src/main/java/com/sighs/handheldmoon/dynamiclight/BeamEdgeLighting.java b/src/main/java/com/sighs/handheldmoon/dynamiclight/BeamEdgeLighting.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/com/sighs/handheldmoon/dynamiclight/BeamEdgeLighting.java
+@@ -0,0 +1,53 @@
++package com.sighs.handheldmoon.dynamiclight;
++
++/** Beam-edge sampling shared by the Minecraft and loader adapters. Java 17 compatible. */
++public final class BeamEdgeLighting {
++    private static final double DONOR_LEVEL = 3.0;
++    private static final double SUPPORT_LEVEL = 3.5;
++    private static final double EDGE_TAPER = 0.9;
++
++    private BeamEdgeLighting() { }
++
++    @FunctionalInterface
++    public interface LightSampler {
++        /** Returns raw dynamic light, before edge filtering. */
++        double sample(int x, int y, int z);
++    }
++
++    public static int apply(int x, int y, int z, int packedLight, LightSampler light) {
++        int vanillaCoord = packedLight & 0xFFFF;
++        double dynamic = light.sample(x, y, z);
++        if (dynamic <= vanillaCoord / 16.0) {
++            // A nonzero sample prevents smooth lighting from replacing darkness
++            // with a bright diagonal donor at the beam rim.
++            if (vanillaCoord == 0 && hasDonorNeighbour(x, y, z, light)) {
++                return (packedLight & 0xFFFF0000) | 16;
++            }
++            return packedLight;
++        }
++
++        int supported = 0;
++        if (light.sample(x + 1, y, z) >= SUPPORT_LEVEL) supported++;
++        if (light.sample(x - 1, y, z) >= SUPPORT_LEVEL) supported++;
++        if (light.sample(x, y, z + 1) >= SUPPORT_LEVEL) supported++;
++        if (light.sample(x, y, z - 1) >= SUPPORT_LEVEL) supported++;
++        int dynamicCoord = (int) (Math.min(dynamic, 15.0) * 16.0);
++        dynamicCoord = (int) (dynamicCoord * (1.0 - EDGE_TAPER * (1.0 - supported / 4.0)));
++        // Taper only the dynamic contribution: a nearby torch must never dim.
++        return (packedLight & 0xFFFF0000) | Math.max(vanillaCoord, dynamicCoord);
++    }
++
++    private static boolean hasDonorNeighbour(int x, int y, int z, LightSampler light) {
++        for (int dy = -1; dy <= 1; dy++) {
++            for (int dz = -1; dz <= 1; dz++) {
++                for (int dx = -1; dx <= 1; dx++) {
++                    if ((dx != 0 || dy != 0 || dz != 0)
++                            && light.sample(x + dx, y + dy, z + dz) >= DONOR_LEVEL) {
++                        return true;
++                    }
++                }
++            }
++        }
++        return false;
++    }
++}
+diff --git a/src/main/java/com/sighs/handheldmoon/mixin/BeamEdgeLightingMixin.java b/src/main/java/com/sighs/handheldmoon/mixin/BeamEdgeLightingMixin.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/com/sighs/handheldmoon/mixin/BeamEdgeLightingMixin.java
+@@ -0,0 +1,53 @@
++package com.sighs.handheldmoon.mixin;
++
++import com.sighs.handheldmoon.dynamiclight.BeamEdgeLighting;
++import dev.lambdaurora.lambdynlights.engine.DynamicLightingEngine;
++import net.minecraft.core.BlockPos;
++import org.spongepowered.asm.mixin.Mixin;
++import org.spongepowered.asm.mixin.Unique;
++import org.spongepowered.asm.mixin.injection.At;
++import org.spongepowered.asm.mixin.injection.Inject;
++import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
++
++/** Filters the common light query used by both vanilla and Sodium/Embeddium. */
++@Mixin(value = DynamicLightingEngine.class, remap = false)
++public abstract class BeamEdgeLightingMixin {
++    // Mesh workers query concurrently. Neighbour reads must bypass this filter
++    // so that the taper is applied once and never feeds back into itself.
++    @Unique
++    private final ThreadLocal<Boolean> handheldmoon$rawSample = ThreadLocal.withInitial(() -> false);
++
++    @Inject(method = "getDynamicLightLevel", at = @At("RETURN"), cancellable = true)
++    private void handheldmoon$smoothBeamEdge(BlockPos pos, CallbackInfoReturnable<Double> cir) {
++        if (handheldmoon$rawSample.get()
++                || ((DynamicLightingEngine) (Object) this).getLastEntryCount() == 0) return;
++        double center = cir.getReturnValueD();
++        int px = pos.getX(), py = pos.getY(), pz = pos.getZ();
++        if (!handheldmoon$hasSourcesNear(px, py, pz)) return;
++        handheldmoon$rawSample.set(true);
++        try {
++            DynamicLightingEngine engine = (DynamicLightingEngine) (Object) this;
++            int packed = BeamEdgeLighting.apply(px, py, pz, 0, (x, y, z) ->
++                    x == px && y == py && z == pz ? center
++                            : engine.getDynamicLightLevel(new BlockPos(x, y, z)));
++            cir.setReturnValue((packed & 0xFFFF) / 16.0);
++        } finally {
++            handheldmoon$rawSample.set(false);
++        }
++    }
++
++    @Unique
++    private boolean handheldmoon$hasSourcesNear(int x, int y, int z) {
++        DynamicLightingEngine engine = (DynamicLightingEngine) (Object) this;
++        // LDL searches the adjacent 8-block cells. Include the one-block halo
++        // and tolerate hash collisions: false positives only cost a scan.
++        for (int cy = ((y - 1) >> 3) - 1; cy <= ((y + 1) >> 3) + 1; cy++) {
++            for (int cz = ((z - 1) >> 3) - 1; cz <= ((z + 1) >> 3) + 1; cz++) {
++                for (int cx = ((x - 1) >> 3) - 1; cx <= ((x + 1) >> 3) + 1; cx++) {
++                    if (engine.hasEntriesAt(cx, cy, cz)) return true;
++                }
++            }
++        }
++        return false;
++    }
++}
+diff --git a/src/main/resources/handheldmoon.mixins.json b/src/main/resources/handheldmoon.mixins.json
+--- a/src/main/resources/handheldmoon.mixins.json
++++ b/src/main/resources/handheldmoon.mixins.json
+@@ -11,7 +11,8 @@
+   "client": [
+     "client.EntityRendererMixin",
+     "client.KeyboardHandlerMixin",
+-    "client.MouseHandlerMixin"
++    "client.MouseHandlerMixin",
++    "BeamEdgeLightingMixin"
+   ],
+   "injectors": {
+     "defaultRequire": 1

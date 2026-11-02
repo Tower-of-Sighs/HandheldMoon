@@ -1,6 +1,6 @@
 package cc.sighs.handheldmoon.dynamiclight;
 
-import net.minecraft.client.renderer.state.LightmapRenderState;
+import org.joml.Vector3fc;
 
 /** CPU mirror of vanilla 26.1 lightmap.fsh, published immutably for mesh workers. */
 public final class LightmapColorBridge {
@@ -8,8 +8,14 @@ public final class LightmapColorBridge {
     private static volatile boolean changed;
     private LightmapColorBridge() { }
 
-    public static void update(LightmapRenderState s) {
-        if (!s.needsUpdate) return;
+    /** Values captured by the 26.1 lightmap adapter; no version-specific types. */
+    public record Parameters(
+            float blockFactor, float skyFactor, Vector3fc ambientColor, Vector3fc nightVisionColor,
+            float nightVisionEffectIntensity, Vector3fc skyLightColor, Vector3fc blockLightTint,
+            float bossOverlayWorldDarkening, float darknessEffectScale, float brightness
+    ) { }
+
+    public static void update(Parameters s) {
         double[] next = new double[16 * 16 * 3];
         for (int sky = 0; sky < 16; sky++) for (int block = 0; block < 16; block++) {
             double b = block / 15.0, k = sky / 15.0;
