@@ -1,0 +1,10 @@
+{
+  "icon": "handheldmoon:slot/empty_shoulder_slot",
+  "amount": 1,
+  "order": 172,
+  "replace": false,
+  "drop_rule": "default",
+  "validator_predicates": ["trinkets:tag"],
+  "quick_move_predicates": ["trinkets:tag"],
+  "tooltip_predicates": ["trinkets:tag"]
+}

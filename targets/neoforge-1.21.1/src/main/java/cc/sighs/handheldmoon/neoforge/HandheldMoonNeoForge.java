@@ -12,6 +12,8 @@ public final class HandheldMoonNeoForge {
     public HandheldMoonNeoForge(IEventBus modEventBus, ModContainer modContainer, Dist dist) {
         HandheldMoon.init(modEventBus);
         if (dist == Dist.CLIENT) {
+            modEventBus.addListener(HandheldMoonNeoForgeClientEvents::onRegisterMenuScreens);
+            modEventBus.addListener(HandheldMoonNeoForgeClientEvents::onRegisterItemColors);
             modEventBus.addListener((FMLClientSetupEvent event) ->
                     event.enqueueWork(() -> HandheldMoonNeoForgeClientEvents.onClientSetup(event)));
         }

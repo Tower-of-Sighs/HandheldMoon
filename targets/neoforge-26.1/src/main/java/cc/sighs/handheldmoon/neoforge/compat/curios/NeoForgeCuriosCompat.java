@@ -1,7 +1,7 @@
 package cc.sighs.handheldmoon.neoforge.compat.curios;
 
 import cc.sighs.handheldmoon.compat.accessory.IAccessoryCompat;
-import cc.sighs.handheldmoon.neoforge.item.MoonlightLampItem;
+import cc.sighs.handheldmoon.item.MoonlightLampItem;
 import cc.sighs.handheldmoon.registry.ModItems;
 import cc.sighs.handheldmoon.util.Utils;
 import net.minecraft.world.entity.player.Player;

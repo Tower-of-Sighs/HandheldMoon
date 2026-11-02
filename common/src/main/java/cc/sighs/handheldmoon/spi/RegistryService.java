@@ -23,6 +23,8 @@ public interface RegistryService {
 
     RegistrySupplier<? extends Item> registerColorLensItem(String id);
 
+    RegistrySupplier<? extends Item> registerMoonlightWandItem(String id);
+
     /** Registers a menu type with the loader's menu registry. */
     RegistrySupplier<MenuType<?>> registerMenu(String id, Supplier<MenuType<?>> factory);
 
@@ -41,7 +43,8 @@ public interface RegistryService {
             String id,
             RegistrySupplier<? extends Item> lamp,
             RegistrySupplier<? extends Item> fullMoon,
-            RegistrySupplier<? extends Item> colorLens);
+            RegistrySupplier<? extends Item> colorLens,
+            RegistrySupplier<? extends Item> wand);
 
     BlockEntity createBlockEntity(String id, BlockPos pos, BlockState state);
 }

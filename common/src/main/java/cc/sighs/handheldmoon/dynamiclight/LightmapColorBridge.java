@@ -1,39 +1,32 @@
 package cc.sighs.handheldmoon.dynamiclight;
 
-import org.joml.Vector3fc;
-
 /** CPU mirror of vanilla 26.1 lightmap.fsh, published immutably for mesh workers. */
 public final class LightmapColorBridge {
     private static volatile double[] table;
     private static volatile boolean changed;
     private LightmapColorBridge() { }
 
-    /** Values captured by the 26.1 lightmap adapter; no version-specific types. */
-    public record Parameters(
-            float blockFactor, float skyFactor, Vector3fc ambientColor, Vector3fc nightVisionColor,
-            float nightVisionEffectIntensity, Vector3fc skyLightColor, Vector3fc blockLightTint,
-            float bossOverlayWorldDarkening, float darknessEffectScale, float brightness
-    ) { }
-
-    public static void update(Parameters s) {
+    public static void update(LightmapInputs s) {
+        if (!s.needsUpdate()) return;
         double[] next = new double[16 * 16 * 3];
         for (int sky = 0; sky < 16; sky++) for (int block = 0; block < 16; block++) {
             double b = block / 15.0, k = sky / 15.0;
-            double bb = b / (4 - 3 * b) * s.blockFactor;
-            double sb = k / (4 - 3 * k) * s.skyFactor;
+            double bb = b / (4 - 3 * b) * s.blockFactor();
+            double sb = k / (4 - 3 * k) * s.skyFactor();
             double tintMix = 0.9 * (2 * b - 1) * (2 * b - 1);
             int offset = (sky * 16 + block) * 3;
             double max = 0;
             for (int c = 0; c < 3; c++) {
-                double ambient = Math.max(s.ambientColor.get(c), s.nightVisionColor.get(c) * s.nightVisionEffectIntensity);
-                double value = ambient + s.skyLightColor.get(c) * sb
-                        + (s.blockLightTint.get(c) * (1 - tintMix) + tintMix) * bb;
-                value *= 1 - s.bossOverlayWorldDarkening * (c == 0 ? 0.3 : 0.4);
-                next[offset + c] = Math.clamp(value - s.darknessEffectScale, 0, 1);
+                double ambient = Math.max(s.ambientColor().get(c),
+                        s.nightVisionColor().get(c) * s.nightVisionEffectIntensity());
+                double value = ambient + s.skyLightColor().get(c) * sb
+                        + (s.blockLightTint().get(c) * (1 - tintMix) + tintMix) * bb;
+                value *= 1 - s.bossOverlayWorldDarkening() * (c == 0 ? 0.3 : 0.4);
+                next[offset + c] = clamp(value - s.darknessEffectScale(), 0, 1);
                 max = Math.max(max, next[offset + c]);
             }
             double gammaScale = max > 0 ? (1 - Math.pow(1 - max, 4)) / max : 1;
-            for (int c = 0; c < 3; c++) next[offset + c] *= 1 - s.brightness + s.brightness * gammaScale;
+            for (int c = 0; c < 3; c++) next[offset + c] *= 1 - s.brightness() + s.brightness() * gammaScale;
         }
         double[] previous = table;
         double delta = 0;
@@ -46,6 +39,31 @@ public final class LightmapColorBridge {
         if (!changed) return false;
         changed = false;
         return true;
+    }
+
+    /**
+     * Publishes a table captured from a legacy lightmap texture. The array is
+     * indexed {@code (sky * 16 + block) * 3 + channel} with values in 0..1.
+     */
+    public static void publish(double[] next) {
+        table = next;
+        changed = true;
+    }
+
+    /** Publishes only when the lightmap changed enough to matter. */
+    public static void publishIfChanged(double[] next) {
+        double[] previous = table;
+        if (previous != null) {
+            double delta = 0;
+            for (int i = 0; i < next.length; i++) {
+                delta = Math.max(delta, Math.abs(next[i] - previous[i]));
+            }
+            if (delta < 0.01) {
+                return;
+            }
+        }
+        table = next;
+        changed = true;
     }
 
     public static int coefficient(double dynamic, double vanilla, double sky, int color) {
@@ -64,7 +82,7 @@ public final class LightmapColorBridge {
 
     /** Bilinear filtering at texel centers, matching sample_lightmap.glsl. */
     static double sample(double[] data, double block, double sky, int channel) {
-        block = Math.clamp(block, 0, 15); sky = Math.clamp(sky, 0, 15);
+        block = clamp(block, 0, 15); sky = clamp(sky, 0, 15);
         int b = (int) block, k = (int) sky;
         int b1 = Math.min(b + 1, 15), k1 = Math.min(k + 1, 15);
         double u = block - b, v = sky - k;
@@ -78,6 +96,14 @@ public final class LightmapColorBridge {
         if (lit <= 0 || lit <= background) return 255;
         double target = background + (lit - background) * (1 - alpha + alpha * channel);
         // Round upward so quantization cannot take the result below background.
-        return Math.clamp((int) Math.ceil(255 * target / lit), 0, 255);
+        return clamp((int) Math.ceil(255 * target / lit), 0, 255);
+    }
+
+    private static double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 }

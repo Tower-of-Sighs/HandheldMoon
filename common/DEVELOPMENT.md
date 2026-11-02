@@ -1,6 +1,6 @@
 # 实体 entityData 光源参数说明
 
-实体光源的同步数据定义在各 target 的 FullMoonEntity 中，common 只负责读取和解释。
+实体光源的同步数据定义在 `common/.../entity/FullMoonEntity` 中；`targets/neoforge-1.21.1` 使用自己的同名实现（1.21.1 API 差异，已在 `prepareCommonSources` 中排除共享版本）。
 服务器写入 entityData，Minecraft 自动同步给客户端；客户端只读，不应反向修改。
 
 ## 实体级字段

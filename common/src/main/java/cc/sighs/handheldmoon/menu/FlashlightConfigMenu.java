@@ -2,8 +2,8 @@ package cc.sighs.handheldmoon.menu;
 
 import cc.sighs.handheldmoon.api.content.MoonlightLampBlockEntityAccess;
 import cc.sighs.handheldmoon.config.LampDeviceConfig;
-import cc.sighs.handheldmoon.item.ColorLensItem;
-import cc.sighs.handheldmoon.registry.ModDataComponent;
+import cc.sighs.handheldmoon.item.ColorLensData;
+import cc.sighs.handheldmoon.item.ItemData;
 import cc.sighs.handheldmoon.registry.ModItems;
 import cc.sighs.handheldmoon.registry.ModMenus;
 import cc.sighs.handheldmoon.util.ClientUtils;
@@ -59,7 +59,15 @@ public final class FlashlightConfigMenu extends AbstractContainerMenu {
                 return 1;
             }
         });
-        addStandardInventorySlots(inventory, INVENTORY_X, INVENTORY_Y);
+        for (int row = 0; row < 3; row++) {
+            for (int column = 0; column < 9; column++) {
+                addSlot(new Slot(inventory, column + (row + 1) * 9,
+                        INVENTORY_X + column * 18, INVENTORY_Y + row * 18));
+            }
+        }
+        for (int column = 0; column < 9; column++) {
+            addSlot(new Slot(inventory, column, INVENTORY_X + column * 18, INVENTORY_Y + 58));
+        }
     }
 
     /** Remembers the block whose page the client is about to request. */
@@ -107,8 +115,7 @@ public final class FlashlightConfigMenu extends AbstractContainerMenu {
         if (hand != null) {
             ItemStack stack = player.getItemInHand(hand);
             if (stack.is(ModItems.MOONLIGHT_LAMP.get())) {
-                return stack.getOrDefault(
-                        ModDataComponent.LAMP_CONFIG.get(), LampDeviceConfig.fromGlobalConfig());
+                return ItemData.lampConfig(stack);
             }
         }
         return LampDeviceConfig.fromGlobalConfig();
@@ -136,7 +143,7 @@ public final class FlashlightConfigMenu extends AbstractContainerMenu {
         if (!stack.is(ModItems.MOONLIGHT_LAMP.get())) {
             return;
         }
-        stack.set(ModDataComponent.LAMP_CONFIG.get(), config);
+        ItemData.setLampConfig(stack, config);
         if (sync && player.level().isClientSide()) {
             ClientUtils.syncHeldMoonlightLampConfig(hand, config);
         } else if (player instanceof ServerPlayer serverPlayer) {
@@ -188,7 +195,7 @@ public final class FlashlightConfigMenu extends AbstractContainerMenu {
             this.menu = menu;
             LampDeviceConfig config = menu.readConfig();
             if (config.hasLens()) {
-                super.setItem(0, ColorLensItem.create(config.lensColor()));
+                super.setItem(0, ColorLensData.create(config.lensColor()));
             }
             this.loading = false;
         }
@@ -210,7 +217,7 @@ public final class FlashlightConfigMenu extends AbstractContainerMenu {
             }
             ItemStack lens = getItem(0);
             int color = lens.is(ModItems.COLOR_LENS.get())
-                    ? ColorLensItem.getColor(lens)
+                    ? ColorLensData.getColor(lens)
                     : LampDeviceConfig.NO_LENS_COLOR;
             LampDeviceConfig config = menu.readConfig();
             LampDeviceConfig updated = config.withLensColor(color);

@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "cc.sighs.handheldmoon.mixin.embeddium",
+  "compatibilityLevel": "JAVA_17",
+  "plugin": "cc.sighs.handheldmoon.fabric.mixin.HandheldMoonFabricMixinPlugin",
+  "mixins": [],
+  "client": [
+    "SodiumBlockRendererMixin"
+  ],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,36 +1,84 @@
 # HandheldMoon
 
-HandheldMoon keeps each loader and Minecraft version in a separate,
-independently buildable Gradle project.
+HandheldMoon uses the `common + targets/<loader>-<minecraft-version>` layout of
+[SighsTemple](https://github.com/Tower-of-Sighs/SighsTemple): one shared source
+tree, and one independent Gradle project per loader/version pair.
 
 ## Layout
 
-- `common/`: source and resources shared by compatible targets.
-- `targets/fabric-26.1/`: Fabric-only entrypoints, metadata, dependencies, and wrapper.
-- `targets/neoforge-1.21.1/`: NeoForge 1.21.1 version adapters, metadata, dependencies, and wrapper.
-- `targets/neoforge-26.1/`: NeoForge-only entrypoints, metadata, dependencies, and wrapper.
-- `buildSrc/`: the existing shared Gradle convention plugins.
+- `common/`: every source and resource that has **no confirmed loader/version
+  difference**. It may reference Minecraft and loader types; it is not a
+  platform-independent Java library. The core version is NeoForge 26.1, so the
+  standalone build compiles against that classpath.
+- `targets/fabric-26.1/`: Fabric entrypoints, platform SPI implementation,
+  Trinkets compat, input mixins, metadata and resources.
+- `targets/neoforge-26.1/`: NeoForge 26.1 entrypoints, platform SPI
+  implementation, Curios compat, mixin config, metadata and resources.
+- `targets/neoforge-1.21.1/`: the NeoForge 1.21.1 implementation. Its legacy
+  rendering, item, screen, block-entity and mixin files are confirmed version
+  differences, so they live here and the matching common paths are excluded in
+  `prepareCommonSources`.
+- `targets/forge-1.20.1/`: the Forge 1.20.1 implementation, built with the
+  ModDevGradle `legacyforge` plugin. It ships its own NBT-backed `ItemDataPort`,
+  legacy post-processing shaders and Curios/TACZ compat.
+- `targets/fabric-1.20.1/`: the Fabric 1.20.1 implementation. It reuses the
+  whole 1.20.1 game-side implementation from the Forge target and adds the
+  Fabric loader layer, Trinkets compat and Fabric networking.
 
-Each target references `../../common`; no target includes another loader or
-Minecraft version.
+Each target attaches `../../common` as a composite build (IDE module) and
+compiles the shared sources into its own source set with the
+`prepareCommonSources` `Sync` task. Targets never depend on
+`project(':common')`; a single published jar always targets exactly one loader
+and one Minecraft version.
 
-For entity light entityData synchronization and persistence details, see
-the [common development guide](common/DEVELOPMENT.md).
+## SPI
+
+Loader boundaries are exposed through `common/.../spi` and loaded with
+`ServiceLoader`:
+
+| SPI | Shared side | Target side |
+| --- | --- | --- |
+| `PlatformService` | `PlatformServices`, `HandheldMoon.init` | loader entrypoint, config directory, registry + networking implementation |
+| `RegistryService` | registry declarations (`ModBlocks`, `ModItems`, ...) | `DeferredRegister` / `Registry.register` registration |
+| `ClientPlatformService` | `AbstractClientPlatformService` (tick, screens, key codes, packet building) | packet transport, key-binding and menu-screen registration |
+| `IAccessoryCompat` | `AccessoryCompat` facade | Curios / Trinkets integration |
+
+`META-INF/services/<spi>` files stay in the target that implements them.
 
 For the beam-edge lighting fix and the Fabric/Forge 1.20.1 and Fabric 1.21.1
 branch patches, see the [backport notes](backports/light-edge/README.md).
 
 ## Build
 
-Build each target from its own directory. NeoForge 1.21.1 uses JDK 21; the
-Minecraft 26.1 targets use JDK 25.
+Each target is its own Gradle root project. Run the build from the target
+directory:
 
 ```powershell
-.\scripts\build-target.ps1 -Target fabric-26.1
-.\scripts\build-target.ps1 -Target neoforge-1.21.1
-.\scripts\build-target.ps1 -Target neoforge-26.1
+cd targets\neoforge-26.1
+.\gradlew.bat clean build
 ```
 
-The root project exposes `buildFabric261`, `buildNeoForge1211`,
-`buildNeoForge261`, and `buildCommon` as convenience tasks, but does not
-combine targets into one artifact.
+| Target | Gradle JVM |
+| --- | --- |
+| `fabric-26.1` | JDK 25 |
+| `neoforge-26.1` | JDK 25 |
+| `neoforge-1.21.1` | JDK 21 (JDK 25 also works for Gradle; the toolchain resolves 21) |
+| `forge-1.20.1` | JDK 17 (Gradle 8.14.4 wrapper; toolchain 17) |
+| `fabric-1.20.1` | JDK 21 or 25 for Gradle (Loom 1.15 requires JVM ≥ 21); toolchain 17 |
+
+The shared tree also builds and tests on its own:
+
+```powershell
+.\gradlew.bat -p common build
+```
+
+The root project exposes `buildCommon`, `buildFabric1201`, `buildFabric261`,
+`buildForge1201`, `buildNeoForge1211` and `buildNeoForge261` as convenience
+wrappers, but never combines targets into one artifact.
+
+## Version differences
+
+- [Confirmed version differences](docs/version-differences/README.md)
+
+For entity light `entityData` synchronization and persistence details, see the
+[common development guide](common/DEVELOPMENT.md).

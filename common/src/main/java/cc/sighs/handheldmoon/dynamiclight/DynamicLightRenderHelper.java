@@ -6,13 +6,13 @@ import net.minecraft.world.level.LightLayer;
 
 /** Packed-light bridge used by renderer mixins. */
 public final class DynamicLightRenderHelper {
-    private DynamicLightRenderHelper() { }
-
-    /** Keeps the relocated world-light interface in each version adapter. */
+    /** Version-independent subset of a light getter used by the tint helpers. */
     @FunctionalInterface
-    public interface LightLevelReader {
+    public interface LightSampler {
         int getBrightness(LightLayer layer, BlockPos pos);
     }
+
+    private DynamicLightRenderHelper() { }
 
     public static int apply(BlockPos pos, int packedLight) {
         if (!DynamicLightManager.hasSourcesNear(pos)) return packedLight;
@@ -25,7 +25,7 @@ public final class DynamicLightRenderHelper {
      * light color. The coefficient lerps from white (no change) to the light
      * color as brightness increases.
      */
-    public static int tintCoefficient(LightLevelReader level, BlockPos pos) {
+    public static int tintCoefficient(LightSampler level, BlockPos pos) {
         return LightmapColorBridge.coefficient(DynamicLightManager.getLightLevel(pos),
                 level.getBrightness(LightLayer.BLOCK, pos), level.getBrightness(LightLayer.SKY, pos),
                 DynamicLightManager.getLightColor(pos));
@@ -54,7 +54,7 @@ public final class DynamicLightRenderHelper {
      * This is a color filter, not a replacement for the renderer's AO weights.
      */
     public static int tintCoefficientForVertex(
-            LightLevelReader level, BlockPos lightPos, Direction face,
+            LightSampler level, BlockPos lightPos, Direction face,
             float x, float y, float z
     ) {
         Direction.Axis axis = face.getAxis();
@@ -71,7 +71,7 @@ public final class DynamicLightRenderHelper {
 
     /** Use the renderer's final brightness; neighbors supply hue only. */
     public static int tintCoefficientForVertex(
-            LightLevelReader level, BlockPos pos, Direction face,
+            LightSampler level, BlockPos pos, Direction face,
             float x, float y, float z, int renderedLight
     ) {
         Direction.Axis axis = face.getAxis();
@@ -105,7 +105,7 @@ public final class DynamicLightRenderHelper {
     }
 
     private static TintSample sampleFaceTint(
-            LightLevelReader level, BlockPos pos, Direction.Axis axis, int u, int v
+            LightSampler level, BlockPos pos, Direction.Axis axis, int u, int v
     ) {
         BlockPos sample = switch (axis) {
             case X -> pos.offset(0, v, u);
@@ -154,7 +154,7 @@ public final class DynamicLightRenderHelper {
             return -1;
         }
         double contribution = (dynamic - Math.max(vanillaBlockLight, 0.0)) / dynamic;
-        float strength = (float) Math.clamp(contribution * alpha, 0.0, 1.0);
+        float strength = (float) Math.max(0.0, Math.min(1.0, contribution * alpha));
         int r = (int) (255 - (255 - ((lightColor >> 16) & 0xFF)) * strength);
         int g = (int) (255 - (255 - ((lightColor >> 8) & 0xFF)) * strength);
         int b = (int) (255 - (255 - (lightColor & 0xFF)) * strength);

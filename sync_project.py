@@ -972,21 +972,20 @@ def find_vanilla_sources_jar() -> Path | None:
 
 
 def generate_classtweaker(mod_id: str) -> None:
-    ensure_meta_inf()
-    resources_root = MODULE_PATHS["common"] / "src" / "main" / "resources"
-    at_path = resources_root / "META-INF" / "accesstransformer.cfg"
+    at_path = MODULE_PATHS["common"] / "accesstransformer.cfg"
     if not at_path.exists():
-        at_path = resources_root / "MEAT-INF" / "accesstransformer.cfg"
-    if not at_path.exists():
-        raise FileNotFoundError("Cannot find accesstransformer.cfg under common/src/main/resources/META-INF.")
+        raise FileNotFoundError("Cannot find common/accesstransformer.cfg.")
 
     sources_jar = find_vanilla_sources_jar()
     resolver = VanillaSourceResolver(sources_jar) if sources_jar else None
 
-    output_path = resources_root / f"{mod_id}.classtweaker"
+    output_paths = [
+        MODULE_PATHS["neoforge"] / "src" / "main" / "resources" / f"{mod_id}.classtweaker",
+        MODULE_PATHS["fabric"] / "src" / "main" / "resources" / f"{mod_id}.classtweaker",
+    ]
     generated: list[str] = [
         "accessWidener v2 official",
-        "# Generated from common/src/main/resources/META-INF/accesstransformer.cfg",
+        "# Generated from common/accesstransformer.cfg",
         "# Only Minecraft vanilla (net.minecraft.*) access widening is auto-converted.",
         "# For non-vanilla entries or unsupported directives, handle manually.",
     ]
@@ -1015,8 +1014,11 @@ def generate_classtweaker(mod_id: str) -> None:
         generated.append("# Skipped source lines")
         generated.extend(skipped)
 
-    write_text(output_path, "\n".join(generated).rstrip() + "\n")
-    print(f"[classtweaker] generated: {output_path}")
+    NEWLINE = chr(10)
+    content = NEWLINE.join(generated).rstrip() + NEWLINE
+    for output_path in output_paths:
+        write_text(output_path, content)
+        print(f"[classtweaker] generated: {output_path}")
 
 
 def sync_from_properties() -> None:

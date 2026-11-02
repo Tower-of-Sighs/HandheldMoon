@@ -32,3 +32,6 @@ run
 runs
 out
 *.iml
+
+# Local Maven mirror of already-downloaded mod jars (see AGENTS.md)
+targets/*/libs-maven

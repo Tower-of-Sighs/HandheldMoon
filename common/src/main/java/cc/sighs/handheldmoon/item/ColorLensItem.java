@@ -2,13 +2,18 @@ package cc.sighs.handheldmoon.item;
 
 import cc.sighs.handheldmoon.registry.ModDataComponent;
 import cc.sighs.handheldmoon.util.RegistryPropertiesCompat;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
+
+import java.util.function.Consumer;
 
 /** A color filter that can be installed into a moonlight lamp flashlight. */
 public class ColorLensItem extends Item {
     /** The lens color used by freshly crafted lenses. */
-    public static final int DEFAULT_COLOR = 0x00FFFF;
+    public static final int DEFAULT_COLOR = ColorLensData.DEFAULT_COLOR;
 
     public ColorLensItem() {
         super(RegistryPropertiesCompat.withId(new Properties().stacksTo(1)
@@ -22,15 +27,21 @@ public class ColorLensItem extends Item {
         return stack;
     }
 
+    @Override
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display,
+                                Consumer<Component> builder, TooltipFlag flag) {
+        ItemTooltips.addLines(builder,
+                "tooltip.handheldmoon.color_lens.1",
+                "tooltip.handheldmoon.color_lens.2");
+    }
+
     /** Returns the stored lens color as 0xRRGGBB. */
     public static int getColor(ItemStack stack) {
-        return stack.getOrDefault(ModDataComponent.LENS_COLOR.get(), DEFAULT_COLOR) & 0xFFFFFF;
+        return ColorLensData.getColor(stack);
     }
 
     /** Returns a lens stack carrying {@code color}. */
     public static ItemStack create(int color) {
-        ItemStack stack = new ItemStack(cc.sighs.handheldmoon.registry.ModItems.COLOR_LENS.get());
-        stack.set(ModDataComponent.LENS_COLOR.get(), color & 0xFFFFFF);
-        return stack;
+        return ColorLensData.create(color);
     }
 }

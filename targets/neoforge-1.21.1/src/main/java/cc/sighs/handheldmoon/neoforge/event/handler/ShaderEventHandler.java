@@ -16,7 +16,9 @@ public final class ShaderEventHandler {
     private static long lastTickTime = System.currentTimeMillis();
 
     public static void onClientTick() {
-        if (Config.LIGHT_INTENSITY.get() < 0.1) {
+        float filterIntensity = Minecraft.getInstance().player == null ? 1.0f
+                : (float) Utils.heldLampConfigOrDefault(Minecraft.getInstance().player).filterLightIntensity();
+        if (filterIntensity < 0.1) {
             EffectManager.clean("flashlight");
             return;
         }
@@ -70,7 +72,7 @@ public final class ShaderEventHandler {
                 if (effect.getName().equals("handheldmoon:flashlight")) {
                     effect.safeGetUniform("Offset").set(currentOffsetX, -currentOffsetY);
                     effect.safeGetUniform("RadiusRatio").set(finalRadius / Math.min(mc.getWindow().getWidth(), mc.getWindow().getHeight()));
-                    effect.safeGetUniform("IntensityAmount").set(Config.LIGHT_INTENSITY.get().floatValue());
+                    effect.safeGetUniform("IntensityAmount").set(filterIntensity);
                 }
             });
         } else {

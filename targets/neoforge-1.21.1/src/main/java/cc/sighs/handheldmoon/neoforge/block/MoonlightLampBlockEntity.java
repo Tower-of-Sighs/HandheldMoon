@@ -24,6 +24,7 @@ public class MoonlightLampBlockEntity extends BlockEntity implements cc.sighs.ha
     private float yRot = 0;
     private boolean powered = true;
     private UUID uuid;
+    private net.minecraft.world.item.ItemStack sourceStack = net.minecraft.world.item.ItemStack.EMPTY;
     private LampDeviceConfig lampConfig = LampDeviceConfig.fromGlobalConfig();
     private boolean lampConfigCustomized;
 
@@ -33,23 +34,6 @@ public class MoonlightLampBlockEntity extends BlockEntity implements cc.sighs.ha
 
     public void clientTick() {
         // The entity-backed light is discovered by the common client runtime.
-    }
-
-    @Override
-    public void setLevel(Level level) {
-        super.setLevel(level);
-        if (level == null || level.isClientSide) return;
-
-        FullMoonEntity entity = findNearbyBoundEntity();
-        if (entity == null) {
-            entity = new FullMoonEntity(level);
-            entity.bindToLamp(getBlockPos());
-            entity.setLampState(getXRot(), getYRot(), getPowered() ? 15 : 0);
-            level.addFreshEntity(entity);
-        }
-
-        setUuid(entity.getUUID());
-        setChanged();
     }
 
     public void serverTick() {
@@ -141,6 +125,17 @@ public class MoonlightLampBlockEntity extends BlockEntity implements cc.sighs.ha
     }
 
     @Override
+    public net.minecraft.world.item.ItemStack getSourceStack() {
+        return sourceStack;
+    }
+
+    @Override
+    public void setSourceStack(net.minecraft.world.item.ItemStack stack) {
+        this.sourceStack = stack.copy();
+        setChanged();
+    }
+
+    @Override
     public void setRemoved() {
         FullMoonEntity entity = getBoundEntity();
         super.setRemoved();
@@ -158,6 +153,9 @@ public class MoonlightLampBlockEntity extends BlockEntity implements cc.sighs.ha
         DeviceConfigCodecs.LAMP.encodeStart(NbtOps.INSTANCE, lampConfig)
                 .result()
                 .ifPresent(value -> tag.put("lampConfig", value));
+        if (!sourceStack.isEmpty()) {
+            tag.put("sourceStack", sourceStack.save(provider));
+        }
         if (uuid != null) {
             tag.putUUID("uuid", uuid);
         }
@@ -174,6 +172,10 @@ public class MoonlightLampBlockEntity extends BlockEntity implements cc.sighs.ha
             DeviceConfigCodecs.LAMP.parse(NbtOps.INSTANCE, tag.get("lampConfig"))
                     .result()
                     .ifPresent(value -> lampConfig = value);
+        }
+        if (tag.contains("sourceStack")) {
+            sourceStack = net.minecraft.world.item.ItemStack.parseOptional(
+                    provider, tag.getCompound("sourceStack"));
         }
         if (tag.hasUUID("uuid")) {
             uuid = tag.getUUID("uuid");

@@ -29,6 +29,11 @@ public interface FullMoonDynamicLightSource extends EntityLightProfileAccess {
 
     FullMoonDeviceConfig getFullMoonConfig();
 
+    /** Identifier of the item or system that created this light source. */
+    default String getSourceId() {
+        return "";
+    }
+
     boolean isLightRemoved();
 
     boolean usesEntityBackedLight();

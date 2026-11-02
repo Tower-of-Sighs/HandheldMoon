@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "handheldmoon:color_lens"
+    },
+    {
+      "item": "minecraft:yellow_stained_glass"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "item": "handheldmoon:color_lens",
+    "nbt": "{handheldmoon:lens_color:16776960}"
+  }
+}
