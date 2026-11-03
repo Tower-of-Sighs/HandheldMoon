@@ -212,8 +212,8 @@ public final class DynamicLightManager {
 
     /**
      * Cheap guard for neighbour scans: whether any dynamic source is registered
-     * for the section that contains the given block. Cells in source-free
-     * sections can never sit on a beam rim.
+     * for a section touching the one-block sampling halo. A donor can sit on
+     * the other side of a section boundary even when this cell has no source.
      */
     public static boolean hasSourcesNear(BlockPos pos) {
         return hasSourcesNear(pos.getX(), pos.getY(), pos.getZ());
@@ -221,11 +221,20 @@ public final class DynamicLightManager {
 
     public static boolean hasSourcesNear(int blockX, int blockY, int blockZ) {
         SectionIndex index = sectionIndex;
-        return index.sources.get(sectionKey(
-                SectionPos.blockToSectionCoord(blockX),
-                SectionPos.blockToSectionCoord(blockY),
-                SectionPos.blockToSectionCoord(blockZ)
-        )) != null;
+        int minX = SectionPos.blockToSectionCoord(blockX - 1);
+        int minY = SectionPos.blockToSectionCoord(blockY - 1);
+        int minZ = SectionPos.blockToSectionCoord(blockZ - 1);
+        int maxX = SectionPos.blockToSectionCoord(blockX + 1);
+        int maxY = SectionPos.blockToSectionCoord(blockY + 1);
+        int maxZ = SectionPos.blockToSectionCoord(blockZ + 1);
+        for (int y = minY; y <= maxY; y++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                for (int x = minX; x <= maxX; x++) {
+                    if (index.sources.get(sectionKey(x, y, z)) != null) return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static LightQuery query(int blockX, int blockY, int blockZ) {

@@ -12,114 +12,12 @@ public final class DynamicLightRenderHelper {
         int getBrightness(LightLayer layer, BlockPos pos);
     }
 
-    private static final int SKY_MASK = 0xFFF00000;
-    private static final int BLOCK_MASK = 0x000FFFFF;
-    /** Block light coordinate of level 1. */
-    private static final int SKIRT_COORD = 16;
-    /** Level at which a cell can act as a smooth-lighting donor. */
-    private static final double DONOR_LEVEL = 3.0;
-    /**
-     * Strength of the beam-edge taper. Vanilla smooth lighting averages the four
-     * cells around every vertex, so a lit cell that only touches unlit cells hands
-     * a quarter of its level to the bordering vertices. Near a cone apex the
-     * footprint is narrower than one cell, so a single cell can carry the full
-     * level while almost no area is lit; that is what reads as the bright spike.
-     *
-     * <p>Dimming is graded by the cell's lateral support instead of a yes/no
-     * boundary test, because a binary test also dims the whole thin part of the
-     * beam near the apex and makes the light look weak. A cell whose four
-     * horizontal neighbours are properly lit keeps its level.</p>
-     */
-    private static final double EDGE_TAPER = 0.9;
-    /**
-     * Neighbour level that still counts as support. A neighbour below this is
-     * treated as outside the beam, so a bright cell next to the faint ramp fringe
-     * counts as an edge cell as well.
-     */
-    private static final double SUPPORT_LEVEL = 3.5;
-
-    private DynamicLightRenderHelper() {
-    }
+    private DynamicLightRenderHelper() { }
 
     public static int apply(BlockPos pos, int packedLight) {
-        double dynamic = DynamicLightManager.getLightLevel(pos);
-        int vanillaBlock = (packedLight & 0xFFFF) >> 4;
-        if (dynamic <= vanillaBlock) {
-            return zeroFillSkirt(pos, packedLight, vanillaBlock);
-        }
-        int dynamicPacked = (int) (Math.min(dynamic, 15.0) * 16.0);
-        double support = lateralSupport(pos);
-        if (support < 1.0) {
-            dynamicPacked = (int) (dynamicPacked * (1.0 - EDGE_TAPER * (1.0 - support)));
-        }
-        return (packedLight & SKY_MASK) | (dynamicPacked & BLOCK_MASK);
-    }
-
-    /**
-     * Fraction of the four horizontal neighbours that count as beam support.
-     * {@code 1} only when all four are properly lit, so the beam body keeps its
-     * full level while the rim - and anything touching the faint fringe - dims.
-     */
-    private static double lateralSupport(BlockPos pos) {
-        if (!DynamicLightManager.hasSourcesNear(pos)) {
-            return 1.0;
-        }
-        int x = pos.getX();
-        int y = pos.getY();
-        int z = pos.getZ();
-        int lit = 0;
-        if (DynamicLightManager.getLightLevel(x + 1, y, z) >= SUPPORT_LEVEL) {
-            lit++;
-        }
-        if (DynamicLightManager.getLightLevel(x - 1, y, z) >= SUPPORT_LEVEL) {
-            lit++;
-        }
-        if (DynamicLightManager.getLightLevel(x, y, z + 1) >= SUPPORT_LEVEL) {
-            lit++;
-        }
-        if (DynamicLightManager.getLightLevel(x, y, z - 1) >= SUPPORT_LEVEL) {
-            lit++;
-        }
-        return lit / 4.0;
-    }
-
-    /**
-     * Keeps vanilla's smooth-lighting zero-fill rule inert along a beam rim.
-     *
-     * <p>{@code LightCoordsUtil.smoothBlend} replaces a sample whose integer block
-     * level is 0 with the diagonal sample's level whenever that sample is above 2.
-     * The analytic cone puts such pairs along its whole rim, and the resulting
-     * four-cell average stops being an honest average. Returning block level 1 for
-     * the first cell outside the rim keeps every such sample non-zero, so the rule
-     * cannot fire.</p>
-     */
-    private static int zeroFillSkirt(BlockPos pos, int packedLight, int vanillaBlock) {
-        if (vanillaBlock > 0) {
-            return packedLight;
-        }
-        if (!DynamicLightManager.hasSourcesNear(pos) || !hasDonorNeighbour(pos)) {
-            return packedLight;
-        }
-        return (packedLight & SKY_MASK) | SKIRT_COORD;
-    }
-
-    private static boolean hasDonorNeighbour(BlockPos pos) {
-        int x = pos.getX();
-        int y = pos.getY();
-        int z = pos.getZ();
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dz = -1; dz <= 1; dz++) {
-                for (int dx = -1; dx <= 1; dx++) {
-                    if (dx == 0 && dy == 0 && dz == 0) {
-                        continue;
-                    }
-                    if (DynamicLightManager.getLightLevel(x + dx, y + dy, z + dz) >= DONOR_LEVEL) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
+        if (!DynamicLightManager.hasSourcesNear(pos)) return packedLight;
+        return BeamEdgeLighting.apply(pos.getX(), pos.getY(), pos.getZ(), packedLight,
+                DynamicLightManager::getLightLevel);
     }
 
     /**

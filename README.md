@@ -45,6 +45,9 @@ Loader boundaries are exposed through `common/.../spi` and loaded with
 
 `META-INF/services/<spi>` files stay in the target that implements them.
 
+For the beam-edge lighting fix and the Fabric/Forge 1.20.1 and Fabric 1.21.1
+branch patches, see the [backport notes](backports/light-edge/README.md).
+
 ## Build
 
 Each target is its own Gradle root project. Run the build from the target
