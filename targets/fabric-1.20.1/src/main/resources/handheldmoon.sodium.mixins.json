@@ -6,7 +6,10 @@
   "plugin": "cc.sighs.handheldmoon.fabric.mixin.HandheldMoonFabricMixinPlugin",
   "mixins": [],
   "client": [
-    "SodiumBlockRendererMixin"
+    "SodiumBlockRendererMixin",
+    "SodiumLightDataAccessMixin",
+    "SodiumLightPipelineMixin",
+    "SodiumQuadLightDataMixin"
   ],
   "server": [],
   "injectors": {

@@ -28,7 +28,10 @@ public abstract class DynamicLightBrightnessGetterMixin {
             BlockPos pos,
             CallbackInfoReturnable<Integer> cir
     ) {
-        if (!state.isSolidRender(level, pos)) {
+        // The flat renderer passes the rendered block's state together with
+        // the adjacent face sample's position. Test the actual sample cell:
+        // using the supplied stone state would reject the air outside every face.
+        if (!level.getBlockState(pos).isSolidRender(level, pos)) {
             cir.setReturnValue(DynamicLightRenderHelper.apply(pos, cir.getReturnValueI()));
         }
     }

@@ -13,8 +13,9 @@
     "dynamiclight.DynamicLightEntityRendererMixin",
     "dynamiclight.EntityModelTintMixin",
     "dynamiclight.LightmapColorMixin",
-    "dynamiclight.SodiumDynamicLightBlockRendererMixin",
-    "dynamiclight.SodiumSectionReadinessMixin"
+    "dynamiclight.SodiumSectionReadinessMixin",
+    "dynamiclight.SodiumLightDataAccessMixin",
+    "dynamiclight.SodiumLightPipelineMixin"
   ],
   "server": [],
   "injectors": {

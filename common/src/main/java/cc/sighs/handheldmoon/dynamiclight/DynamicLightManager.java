@@ -41,6 +41,7 @@ public final class DynamicLightManager {
     private static final AtomicLong INDEX_BUILD_GENERATION = new AtomicLong();
     private static final Object INDEX_BUILD_LOCK = new Object();
     private static final ThreadLocal<QueryCache> QUERY_CACHES = ThreadLocal.withInitial(QueryCache::new);
+    private static final ThreadLocal<QueryCache> SODIUM_QUERY_CACHES = ThreadLocal.withInitial(QueryCache::new);
     /**
      * Uses the already-existing section bucket as the identity key. Creating a
      * record key for every block-light query showed up as the largest
@@ -238,6 +239,7 @@ public final class DynamicLightManager {
     }
 
     private static LightQuery query(int blockX, int blockY, int blockZ) {
+        boolean blockSample = SodiumLightSampling.isBlockSample();
         SectionIndex index = sectionIndex;
         long sectionKey = sectionKey(
                 SectionPos.blockToSectionCoord(blockX),
@@ -251,7 +253,7 @@ public final class DynamicLightManager {
         IndexedSource[] candidates = bucket.sources;
 
         long blockKey = BlockPos.asLong(blockX, blockY, blockZ);
-        QueryCache cache = QUERY_CACHES.get();
+        QueryCache cache = (blockSample ? SODIUM_QUERY_CACHES : QUERY_CACHES).get();
         long revision = bucket.revision;
         float cached = cache.get(revision, blockKey);
         if (!Float.isNaN(cached)) {
@@ -260,7 +262,7 @@ public final class DynamicLightManager {
 
         double light = 0.0;
         int color = 0xFFFFFFFF;
-        BatchLightValues batchValues = getBatchLightValues(
+        BatchLightValues batchValues = blockSample ? null : getBatchLightValues(
                 sectionKey, bucket, revision, blockX, blockY, blockZ
         );
         if (batchValues != null) {
@@ -268,6 +270,10 @@ public final class DynamicLightManager {
             color = batchValues.color(blockX, blockY, blockZ);
         }
         for (IndexedSource source : candidates) {
+            BatchSource captured = source.batchSource;
+            if (blockSample && source.vertexLighting && captured != null && captured.snapshot.cone()) {
+                continue;
+            }
             if (batchValues != null && source.batchSource != null) {
                 continue;
             }
@@ -292,6 +298,35 @@ public final class DynamicLightManager {
             cache.put(revision, blockKey, (float) light, color);
         }
         return new LightQuery(light, color);
+    }
+
+    /** Captured, analytic flashlight state only; normal voxel queries remain unchanged. */
+    public static VertexLight sampleVertexLight(double x, double y, double z) {
+        SectionBucket bucket = sectionIndex.sources.get(sectionKey(
+                SectionPos.blockToSectionCoord((int) Math.floor(x)),
+                SectionPos.blockToSectionCoord((int) Math.floor(y)),
+                SectionPos.blockToSectionCoord((int) Math.floor(z))));
+        if (bucket == null) return VertexLight.NONE;
+        double light = 0;
+        int color = -1;
+        for (IndexedSource source : bucket.sources) {
+            BatchSource captured = source.batchSource;
+            if (!source.vertexLighting || captured == null || !captured.snapshot.cone()) continue;
+            Bounds bounds = captured.bounds;
+            if (x < bounds.minX() || x > bounds.maxX() + 1.0
+                    || y < bounds.minY() || y > bounds.maxY() + 1.0
+                    || z < bounds.minZ() || z > bounds.maxZ() + 1.0) continue;
+            double value = captured.snapshot.lightAtVertex(x, y, z);
+            if (value > light) {
+                light = value;
+                color = captured.snapshot.color();
+            }
+        }
+        return light > 0 ? new VertexLight(Math.min(light, 15), color) : VertexLight.NONE;
+    }
+
+    public record VertexLight(double light, int color) {
+        public static final VertexLight NONE = new VertexLight(0, -1);
     }
 
     /** Result of a dynamic light query: brightness plus the brightest source color. */
@@ -957,6 +992,7 @@ public final class DynamicLightManager {
 
     private static final class IndexedSource {
         private final DynamicLightBehavior behavior;
+        private final boolean vertexLighting;
         private volatile Bounds bounds;
         private volatile BatchSource batchSource;
 
@@ -966,6 +1002,7 @@ public final class DynamicLightManager {
                 DynamicLightBehavior.BatchLightSnapshot batchSnapshot
         ) {
             this.behavior = behavior;
+            this.vertexLighting = behavior.usesVertexLighting();
             this.bounds = bounds;
             this.batchSource = batchSnapshot == null ? null : new BatchSource(batchSnapshot, bounds);
         }

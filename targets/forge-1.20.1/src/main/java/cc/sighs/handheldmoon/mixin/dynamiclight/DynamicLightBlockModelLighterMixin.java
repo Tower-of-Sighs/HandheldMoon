@@ -1,6 +1,7 @@
 package cc.sighs.handheldmoon.mixin.dynamiclight;
 
 import cc.sighs.handheldmoon.dynamiclight.DynamicLightRenderHelper;
+import cc.sighs.handheldmoon.dynamiclight.DynamicLightManager;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.color.block.BlockColors;
@@ -35,6 +36,30 @@ public abstract class DynamicLightBlockModelLighterMixin {
             int light0, int light1, int light2, int light3, int overlay,
             CallbackInfo callback
     ) {
+        if (!DynamicLightManager.hasSourcesNear(pos)) return;
+        var face = quad.getDirection();
+        BlockPos lightPos = state.isCollisionShapeFullBlock(level, pos) ? pos.relative(face) : pos;
+        int[] vertices = quad.getVertices();
+        int stride = vertices.length / 4;
+        int[] lights = {light0, light1, light2, light3};
+        int[] tintedVertices = null;
+        for (int i = 0; i < 4; i++) {
+            int offset = i * stride;
+            int coefficient = DynamicLightRenderHelper.tintCoefficientForVertex(
+                    level::getBrightness, lightPos, face,
+                    Float.intBitsToFloat(vertices[offset]),
+                    Float.intBitsToFloat(vertices[offset + 1]),
+                    Float.intBitsToFloat(vertices[offset + 2]), lights[i]);
+            if (coefficient == -1) continue;
+            if (tintedVertices == null) tintedVertices = vertices.clone();
+            // Baked vertex colors are ABGR; the light coefficient is ARGB.
+            int abgr = (coefficient & 0xFF00FF00)
+                    | (coefficient & 0xFF) << 16 | (coefficient >>> 16 & 0xFF);
+            tintedVertices[offset + 3] = DynamicLightRenderHelper.multiplyArgb(vertices[offset + 3], abgr);
+        }
+        if (tintedVertices == null) return;
+        BakedQuad tintedQuad = new BakedQuad(tintedVertices, quad.getTintIndex(), face,
+                quad.getSprite(), quad.isShade(), quad.hasAmbientOcclusion());
         float red = 1.0f;
         float green = 1.0f;
         float blue = 1.0f;
@@ -45,18 +70,11 @@ public abstract class DynamicLightBlockModelLighterMixin {
             blue = (tint & 0xFF) / 255.0f;
         }
 
-        int coefficient = DynamicLightRenderHelper.tintCoefficient(level::getBrightness, pos);
-        if (coefficient != -1) {
-            red *= (coefficient >> 16 & 0xFF) / 255.0f;
-            green *= (coefficient >> 8 & 0xFF) / 255.0f;
-            blue *= (coefficient & 0xFF) / 255.0f;
-        }
-
         consumer.putBulkData(
-                pose, quad,
+                pose, tintedQuad,
                 new float[]{shade0, shade1, shade2, shade3},
                 red, green, blue,
-                new int[]{light0, light1, light2, light3},
+                lights,
                 overlay, true
         );
         callback.cancel();

@@ -48,6 +48,9 @@ Loader boundaries are exposed through `common/.../spi` and loaded with
 For the beam-edge lighting fix and the Fabric/Forge 1.20.1 and Fabric 1.21.1
 branch patches, see the [backport notes](backports/light-edge/README.md).
 
+For Sodium / Embeddium flashlight vertex sampling and its version adapters,
+see the [Sodium lighting notes](docs/sodium-flashlight-lighting.md).
+
 ## Build
 
 Each target is its own Gradle root project. Run the build from the target
@@ -75,6 +78,19 @@ The shared tree also builds and tests on its own:
 The root project exposes `buildCommon`, `buildFabric1201`, `buildFabric261`,
 `buildForge1201`, `buildNeoForge1211` and `buildNeoForge261` as convenience
 wrappers, but never combines targets into one artifact.
+
+For Forge 1.20.1 renderer comparisons, run these tasks from
+`targets/forge-1.20.1/`:
+
+| Task | Game directory | Renderer |
+| --- | --- | --- |
+| `gradlew runClient` | `runs/client` | Loads development mods installed in `runs/client/mods`, including the locally prepared Embeddium development jar when present. |
+| `gradlew runVanilla` | `runs/vanilla` | Uses the vanilla block renderer when no renderer mods are installed in this separate directory. HandheldMoon remains loaded. |
+
+The two directories keep their saves, options, configs and mods separate.
+Embeddium is a compile-only dependency and is not automatically installed by
+Gradle; the development-mapped test jar is local and is never packaged in a
+HandheldMoon release.
 
 ## Version differences
 

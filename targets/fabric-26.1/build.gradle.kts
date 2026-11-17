@@ -101,6 +101,10 @@ tasks.named<ProcessResources>("processResources") {
 }
 
 repositories {
+    exclusiveContent {
+        forRepository { maven { name = "MixinExtrasCentral"; url = uri("https://repo.maven.apache.org/maven2") } }
+        filter { includeModule("io.github.llamalad7", "mixinextras-common") }
+    }
     mavenCentral()
     maven {
         name = "Curse Maven"
@@ -115,6 +119,7 @@ repositories {
 }
 
 dependencies {
+    compileOnly("io.github.llamalad7:mixinextras-common:0.4.1")
     minecraft("com.mojang:minecraft:$minecraft_version")
     implementation("net.fabricmc:fabric-loader:$fabric_loader_version")
     implementation("net.fabricmc.fabric-api:fabric-api:$fabric_version")

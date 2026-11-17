@@ -99,6 +99,26 @@ public abstract class AbstractFlashlightItemConfigScreen extends AbstractContain
     }
 
     @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        // AbstractContainerScreen routes dragging to inventory slots, bypassing
+        // Screen's focused-widget dispatch even when a slider handled the click.
+        if (button == 0 && isDragging() && getFocused() instanceof ValueSlider slider) {
+            return slider.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (button == 0 && isDragging() && getFocused() instanceof ValueSlider slider) {
+            setDragging(false);
+            slider.mouseReleased(mouseX, mouseY, button);
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
     public void onClose() {
         flushConfig();
         super.onClose();
@@ -174,7 +194,6 @@ public abstract class AbstractFlashlightItemConfigScreen extends AbstractContain
         @Override
         protected void applyValue() {
             setter.accept(actualValue());
-            updateMessage();
         }
     }
 }

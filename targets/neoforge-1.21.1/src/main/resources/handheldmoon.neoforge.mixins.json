@@ -10,7 +10,6 @@
     "dynamiclight.LightTextureColorMixin",
     "dynamiclight.ModelBlockRendererTintMixin",
     "dynamiclight.SodiumBlockRenderContextAccessMixin",
-    "dynamiclight.SodiumDynamicLightBlockRendererMixin",
     "dynamiclight.LivingEntityRendererTintMixin",
     "dynamiclight.ModelPartCubeTintMixin"
   ],

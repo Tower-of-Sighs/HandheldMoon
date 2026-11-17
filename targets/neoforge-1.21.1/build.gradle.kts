@@ -99,6 +99,7 @@ tasks.register<Sync>("prepareCommonSources") {
             "cc/sighs/handheldmoon/mixin/dynamiclight/EntityModelTintMixin.java",
             "cc/sighs/handheldmoon/mixin/dynamiclight/LightmapColorMixin.java",
             "cc/sighs/handheldmoon/mixin/dynamiclight/SodiumDynamicLightBlockRendererMixin.java",
+            "cc/sighs/handheldmoon/mixin/dynamiclight/SodiumLightPipelineMixin.java",
             "cc/sighs/handheldmoon/mixin/dynamiclight/SodiumSectionReadinessMixin.java",
             // 26.1 key bindings and shader-pipeline bridge.
             "cc/sighs/handheldmoon/registry/ModKeyBindings.java",
@@ -159,6 +160,10 @@ tasks.named<ProcessResources>("processResources") {
 }
 
 repositories {
+    exclusiveContent {
+        forRepository { maven { name = "MixinExtrasCentral"; url = uri("https://repo.maven.apache.org/maven2") } }
+        filter { includeModule("io.github.llamalad7", "mixinextras-common") }
+    }
     mavenCentral()
     maven {
         name = "Curse Maven"
@@ -220,7 +225,7 @@ dependencies {
     implementation("curse.maven:create-328085:7963363")
     implementation("curse.maven:architectury-api-419699:5786327")
 
-    compileOnly("io.github.llamalad7:mixinextras-common:0.3.5")
+    compileOnly("io.github.llamalad7:mixinextras-common:0.4.1")
 
     testImplementation(platform("org.junit:junit-bom:5.11.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")

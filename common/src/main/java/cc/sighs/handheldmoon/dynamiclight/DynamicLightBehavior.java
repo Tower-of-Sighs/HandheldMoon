@@ -39,6 +39,11 @@ public interface DynamicLightBehavior {
         return null;
     }
 
+    /** Opts an analytic source into Sodium's separate vertex-lighting pass. */
+    default boolean usesVertexLighting() {
+        return false;
+    }
+
     /** Immutable, Minecraft-independent state used by section batch workers. */
     record BatchLightSnapshot(
             boolean cone,
@@ -94,6 +99,13 @@ public interface DynamicLightBehavior {
                     originX, originY, originZ, luminance,
                     blockX, blockY, blockZ, range, attenuationCurve
             );
+        }
+
+        /** Samples the analytic cone at the actual surface, without voxel quantization. */
+        public double lightAtVertex(double x, double y, double z) {
+            return cone ? SharedLightMath.coneLightAt(
+                    originX, originY, originZ, directionX, directionY, directionZ,
+                    luminance, x, y, z, range, cosInner, cosOuter, attenuationCurve) : 0.0;
         }
     }
 

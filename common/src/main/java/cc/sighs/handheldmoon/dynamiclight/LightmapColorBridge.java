@@ -80,6 +80,25 @@ public final class LightmapColorBridge {
         return result;
     }
 
+    /** Adds flashlight energy over the already tinted ambient result. */
+    public static int coefficientOverTint(double dynamic, double baseline, double sky, int color, int baseTint) {
+        double[] current = table;
+        if (current == null || dynamic <= baseline) return baseTint;
+        double alpha = ((color >>> 24) & 255) / 255.0;
+        int result = 0xFF000000;
+        for (int c = 0; c < 3; c++) {
+            int shift = 16 - c * 8;
+            double background = sample(current, baseline, sky, c);
+            double lit = sample(current, dynamic, sky, c);
+            double base = ((baseTint >>> shift) & 255) / 255.0;
+            double channel = ((color >>> shift) & 255) / 255.0;
+            double target = background * base + Math.max(0, lit - background) * (1 - alpha + alpha * channel);
+            int coefficient = lit > 0 ? clamp((int) Math.ceil(255 * target / lit), 0, 255) : 255;
+            result |= coefficient << shift;
+        }
+        return result;
+    }
+
     /** Bilinear filtering at texel centers, matching sample_lightmap.glsl. */
     static double sample(double[] data, double block, double sky, int channel) {
         block = clamp(block, 0, 15); sky = clamp(sky, 0, 15);

@@ -98,6 +98,8 @@ tasks.register<Sync>("prepareCommonSources") {
             "cc/sighs/handheldmoon/mixin/dynamiclight/EntityModelTintMixin.java",
             "cc/sighs/handheldmoon/mixin/dynamiclight/LightmapColorMixin.java",
             "cc/sighs/handheldmoon/mixin/dynamiclight/SodiumDynamicLightBlockRendererMixin.java",
+            "cc/sighs/handheldmoon/mixin/dynamiclight/SodiumLightDataAccessMixin.java",
+            "cc/sighs/handheldmoon/mixin/dynamiclight/SodiumLightPipelineMixin.java",
             "cc/sighs/handheldmoon/mixin/dynamiclight/SodiumSectionReadinessMixin.java",
             "cc/sighs/handheldmoon/network/ServerFullMoonConfigSyncPacket.java",
             "cc/sighs/handheldmoon/network/ServerHeldFullMoonConfigSyncPacket.java",
@@ -167,6 +169,10 @@ tasks.named<ProcessResources>("processResources") {
 }
 
 repositories {
+    exclusiveContent {
+        forRepository { maven { name = "MixinExtrasCentral"; url = uri("https://repo.maven.apache.org/maven2") } }
+        filter { includeModule("io.github.llamalad7", "mixinextras-common") }
+    }
     mavenCentral()
     // Optional local mirror of already-downloaded mod jars (offline/slow-network
     // builds); it uses the same coordinates as the remote repositories and is
@@ -210,6 +216,7 @@ repositories.configureEach {
 }
 
 dependencies {
+    compileOnly("io.github.llamalad7:mixinextras-common:0.4.1")
     // Forge 1.20.1 mod dependencies; legacyforge remaps them to the dev
     // workspace's official mappings.
     compileOnly("maven.modrinth:curios:$curios_version")
@@ -241,6 +248,13 @@ legacyForge {
         create("client") {
             client()
             gameDirectory.set(file("runs/client"))
+            systemProperty("forge.enabledGameTestNamespaces", mod_id)
+        }
+        // Keep the vanilla renderer comparison isolated from client/mods,
+        // where the development-mapped Embeddium test jar may be installed.
+        create("vanilla") {
+            client()
+            gameDirectory.set(file("runs/vanilla"))
             systemProperty("forge.enabledGameTestNamespaces", mod_id)
         }
         create("server") {

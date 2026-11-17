@@ -4,6 +4,11 @@ uniform sampler2D DiffuseSampler;
 uniform float IntensityAmount;
 uniform vec2 Offset;
 uniform float RadiusRatio;
+// x: focal length / viewport height; y,z: world cone inner/outer cosines.
+// x == 0 retains the standalone screen filter and third-person footprint.
+uniform vec3 ConeProfile;
+// Same ARGB-derived color and tint strength used by the real flashlight light.
+uniform vec4 BeamTint;
 
 in vec2 texCoord;
 
@@ -24,7 +29,7 @@ void main() {
 
     // 边缘过渡
     float radius = min(texSize.x, texSize.y) * RadiusRatio;
-    if (distSquared >= radius * radius) {
+    if (ConeProfile.x <= 0.0 && distSquared >= radius * radius) {
         fragColor = vec4(finalColor, 1.0);
         return;
     }
@@ -33,7 +38,14 @@ void main() {
     float edge = radius / 3;
 
     // 平滑过渡
-    float factor = smoothstep(radius, radius - edge, dist);
+    float factor;
+    if (ConeProfile.x > 0.0) {
+        float tangent = dist / (texSize.y * ConeProfile.x);
+        float cosine = inversesqrt(1.0 + tangent * tangent);
+        factor = clamp((cosine - ConeProfile.z) / (ConeProfile.y - ConeProfile.z), 0.0, 1.0);
+    } else {
+        factor = 1.0 - smoothstep(radius - edge, radius, dist);
+    }
 
     if (factor > 0.0) {
         float brightness = dot(finalColor.rgb, vec3(0.299, 0.587, 0.114));
@@ -42,8 +54,12 @@ void main() {
                 * (brightness - brightnessSquared * 2.0 + 2.0);
         float gammaBoost = (1.0 - brightnessResponse) * factor * IntensityAmount * 2;
         float gammaAdjust = 1.0 + gammaBoost;
-        finalColor = pow(finalColor, vec3(1.0 / gammaAdjust));
-        finalColor = clamp(finalColor, 0.0, 1.0);
+        vec3 correctedColor = clamp(pow(finalColor, vec3(1.0 / gammaAdjust)), 0.0, 1.0);
+        // Tint only the added energy: neutral post-processing otherwise leaves
+        // a white fringe over the colored world light. Preserve ambient light.
+        vec3 addedLight = max(correctedColor - finalColor, vec3(0.0));
+        vec3 tint = mix(vec3(1.0), BeamTint.rgb, clamp(BeamTint.a, 0.0, 1.0));
+        finalColor = clamp(finalColor + addedLight * tint, 0.0, 1.0);
     }
 
     fragColor = vec4(finalColor, 1.0);

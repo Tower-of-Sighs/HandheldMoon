@@ -20,8 +20,6 @@ public class PlayerFlashlightLineLightBehavior implements DynamicLightBehavior {
     private final Player player;
     private RayLightBehavior delegate;
     private LampDeviceConfig config;
-    private static final double INNER = 0.5;
-    private static final double OUTER = 0.7;
 
     public PlayerFlashlightLineLightBehavior(Player player) {
         this.player = player;
@@ -39,7 +37,8 @@ public class PlayerFlashlightLineLightBehavior implements DynamicLightBehavior {
         return new RayLightBehavior(
                 DynamicLightBuilder.cone()
                         .range(DynamicLightDefaults.FLASHLIGHT_RANGE)
-                        .angle(INNER, OUTER)
+                        .angle(DynamicLightDefaults.FLASHLIGHT_INNER_HALF_ANGLE,
+                                DynamicLightDefaults.FLASHLIGHT_OUTER_HALF_ANGLE)
                         .luminance(config.realLightIntensity())
                         .occlusion(false)
                         .buildConfig(),
@@ -92,6 +91,11 @@ public class PlayerFlashlightLineLightBehavior implements DynamicLightBehavior {
     @Override
     public BatchLightSnapshot getBatchLightSnapshot() {
         return delegate.getBatchLightSnapshot();
+    }
+
+    @Override
+    public boolean usesVertexLighting() {
+        return true;
     }
 
 }
