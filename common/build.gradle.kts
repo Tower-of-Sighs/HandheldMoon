@@ -42,6 +42,10 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 repositories {
+    exclusiveContent {
+        forRepository { maven { name = "MixinExtrasCentral"; url = uri("https://repo.maven.apache.org/maven2") } }
+        filter { includeModule("io.github.llamalad7", "mixinextras-common") }
+    }
     mavenCentral()
     maven {
         name = "Curse Maven"
@@ -71,6 +75,7 @@ val sodiumCompileJar = files(layout.buildDirectory.file("sodium-compile/$sodiumN
     .builtBy(extractSodiumCompileJar)
 
 dependencies {
+    compileOnly("io.github.llamalad7:mixinextras-common:0.4.1")
     // Optional mod APIs that shared compat code and mixins compile against.
     compileOnly("curse.maven:irisshaders-455508:$iris_id")
     compileOnly("curse.maven:sodium-394468:$sodium_id")

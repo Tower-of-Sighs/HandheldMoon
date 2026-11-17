@@ -5,7 +5,9 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [],
   "client": [
-    "dynamiclight.DynamicLightEntityRendererMixin"
+    "dynamiclight.DynamicLightEntityRendererMixin",
+    "dynamiclight.SodiumLightDataAccessMixin",
+    "dynamiclight.SodiumLightPipelineMixin"
   ],
   "server": [],
   "injectors": {

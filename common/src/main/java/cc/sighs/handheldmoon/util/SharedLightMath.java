@@ -118,9 +118,18 @@ public final class SharedLightMath {
             double cosInner, double cosOuter, double cosOuterSq,
             AttenuationCurve curve
     ) {
-        double centerX = blockX + 0.5;
-        double centerY = blockY + 0.5;
-        double centerZ = blockZ + 0.5;
+        return coneLightAt(originX, originY, originZ, directionX, directionY, directionZ,
+                luminance, blockX + 0.5, blockY + 0.5, blockZ + 0.5,
+                range, cosInner, cosOuter, curve);
+    }
+
+    /** Continuous surface sample used after Sodium has finished its ambient-light pass. */
+    public static double coneLightAt(
+            double originX, double originY, double originZ,
+            double directionX, double directionY, double directionZ,
+            double luminance, double centerX, double centerY, double centerZ,
+            double range, double cosInner, double cosOuter, AttenuationCurve curve
+    ) {
         double vectorX = centerX - originX;
         double vectorY = centerY - originY;
         double vectorZ = centerZ - originZ;
@@ -151,8 +160,8 @@ public final class SharedLightMath {
      * angles. On the ground the ramp is
      * {@code distance * (tan outer - tan inner)} blocks wide, i.e. proportional
      * to distance, so near the apex it is thinner than one block. The resulting
-     * hard step is handled downstream by {@code DynamicLightRenderHelper}, which
-     * dims the outermost cells before the renderer averages them.
+     * Sodium samples this function at each surface vertex; the fallback block
+     * renderer uses {@code DynamicLightRenderHelper} to soften voxel edges.
      */
     public static double coneAttenuation(
             double dotNormal, double distance, double cosInner, double cosOuter

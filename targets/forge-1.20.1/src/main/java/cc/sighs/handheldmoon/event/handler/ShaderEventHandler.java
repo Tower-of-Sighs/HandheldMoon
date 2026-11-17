@@ -2,6 +2,8 @@ package cc.sighs.handheldmoon.event.handler;
 
 import cc.sighs.handheldmoon.registry.Config;
 import cc.sighs.handheldmoon.util.Utils;
+import cc.sighs.handheldmoon.dynamiclight.DynamicLightDefaults;
+import cc.sighs.handheldmoon.mixin.client.GameRendererAccessor;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.EffectInstance;
@@ -29,8 +31,8 @@ public final class ShaderEventHandler {
     public static void onClientTick() {
         Minecraft mc = Minecraft.getInstance();
         Player player = mc.player;
-        float filterIntensity = player == null ? 1.0f
-                : (float) Utils.heldLampConfigOrDefault(player).filterLightIntensity();
+        var lampConfig = player == null ? null : Utils.heldLampConfigOrDefault(player);
+        float filterIntensity = lampConfig == null ? 1.0f : (float) lampConfig.filterLightIntensity();
         if (filterIntensity < 0.1) {
             EffectManager.clean(EFFECT_NAME);
             return;
@@ -78,14 +80,36 @@ public final class ShaderEventHandler {
             if (mc.options.getCameraType() != CameraType.FIRST_PERSON) radius /= 2;
             float radiusRatio = radius / Math.min(mc.getWindow().getWidth(), mc.getWindow().getHeight());
 
+            // A fixed screen radius faded inside the full-strength world cone.
+            // Project the same angles using the effective FOV (including zoom).
+            boolean alignWithRealLight = mc.options.getCameraType() == CameraType.FIRST_PERSON
+                    && lampConfig.realLightIntensity() > 0;
+            int beamColor = Config.flashlightColorArgb(lampConfig);
+            float focalLengthRatio = 0.0f;
+            if (alignWithRealLight) {
+                double fov = ((GameRendererAccessor) mc.gameRenderer).handheldmoon$getFov(
+                        mc.gameRenderer.getMainCamera(), 1.0f, true);
+                focalLengthRatio = (float) (0.5 / Math.tan(Math.toRadians(fov) * 0.5));
+            }
+
             for (PostPass pass : EffectManager.getEffect(EFFECT_NAME)) {
                 EffectInstance effect = pass.getEffect();
                 if (!isFlashlightProgram(effect.getName())) {
                     continue;
                 }
-                effect.safeGetUniform("Offset").set(currentOffsetX, -currentOffsetY);
+                // The real cone follows the player's direction without screen-space lag.
+                effect.safeGetUniform("Offset").set(alignWithRealLight ? 0.0f : currentOffsetX,
+                        alignWithRealLight ? 0.0f : -currentOffsetY);
                 effect.safeGetUniform("RadiusRatio").set(radiusRatio);
                 effect.safeGetUniform("IntensityAmount").set(filterIntensity);
+                effect.safeGetUniform("BeamTint").set(
+                        ((beamColor >>> 16) & 255) / 255.0f,
+                        ((beamColor >>> 8) & 255) / 255.0f,
+                        (beamColor & 255) / 255.0f,
+                        ((beamColor >>> 24) & 255) / 255.0f);
+                effect.safeGetUniform("ConeProfile").set(focalLengthRatio,
+                        (float) Math.cos(DynamicLightDefaults.FLASHLIGHT_INNER_HALF_ANGLE),
+                        (float) Math.cos(DynamicLightDefaults.FLASHLIGHT_OUTER_HALF_ANGLE));
             }
         } else {
             disableFlashlight();

@@ -107,6 +107,10 @@ tasks.named<ProcessResources>("processResources") {
 }
 
 repositories {
+    exclusiveContent {
+        forRepository { maven { name = "MixinExtrasCentral"; url = uri("https://repo.maven.apache.org/maven2") } }
+        filter { includeModule("io.github.llamalad7", "mixinextras-common") }
+    }
     mavenCentral()
     maven {
         name = "Shedaniel"
@@ -136,6 +140,7 @@ val sodiumCompileJar = files(layout.buildDirectory.file("sodium-compile/$sodiumN
     .builtBy(extractSodiumCompileJar)
 
 dependencies {
+    compileOnly("io.github.llamalad7:mixinextras-common:0.4.1")
     implementation("top.theillusivec4.curios:curios-neoforge:$curios_version")
     implementation("curse.maven:irisshaders-455508:$iris_id")
     implementation("curse.maven:sodium-394468:$sodium_id")

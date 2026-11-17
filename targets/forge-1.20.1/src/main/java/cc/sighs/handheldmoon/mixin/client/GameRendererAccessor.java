@@ -2,8 +2,10 @@ package cc.sighs.handheldmoon.mixin.client;
 
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.PostChain;
+import net.minecraft.client.Camera;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
+import org.spongepowered.asm.mixin.gen.Invoker;
 
 /**
  * 1.20.1 has no {@code CrossFrameResourcePool} to hand to a chain, so the
@@ -13,4 +15,7 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface GameRendererAccessor {
     @Accessor("postEffect")
     PostChain handheldmoon$getPostEffect();
+
+    @Invoker("getFov")
+    double handheldmoon$getFov(Camera camera, float partialTick, boolean useSetting);
 }

@@ -64,6 +64,9 @@ public final class HandheldMoonForgeClientGameEvents {
 
     @SubscribeEvent
     public static void onRenderLevel(RenderLevelStageEvent event) {
+        // The post chain belongs after the complete world render, not the
+        // particles-only branch used for visible cones and highlights.
+        EffectManager.onRenderLevelStage(event);
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) {
             return;
         }
@@ -77,6 +80,5 @@ public final class HandheldMoonForgeClientGameEvents {
                 poseStack, event.getCamera().getPosition(), poseStack.last().pose(), partialTick);
         LightSourceHighlightRenderer.render(
                 poseStack, event.getCamera().getPosition(), poseStack.last().pose(), partialTick);
-        EffectManager.onRenderLevelStage(event);
     }
 }

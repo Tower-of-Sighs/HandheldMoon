@@ -96,6 +96,8 @@ tasks.register<Sync>("prepareCommonSources") {
             "cc/sighs/handheldmoon/mixin/dynamiclight/EntityModelTintMixin.java",
             "cc/sighs/handheldmoon/mixin/dynamiclight/LightmapColorMixin.java",
             "cc/sighs/handheldmoon/mixin/dynamiclight/SodiumDynamicLightBlockRendererMixin.java",
+            "cc/sighs/handheldmoon/mixin/dynamiclight/SodiumLightDataAccessMixin.java",
+            "cc/sighs/handheldmoon/mixin/dynamiclight/SodiumLightPipelineMixin.java",
             "cc/sighs/handheldmoon/mixin/dynamiclight/SodiumSectionReadinessMixin.java",
             "cc/sighs/handheldmoon/network/ServerFullMoonConfigSyncPacket.java",
             "cc/sighs/handheldmoon/network/ServerHeldFullMoonConfigSyncPacket.java",
@@ -166,6 +168,10 @@ tasks.named<ProcessResources>("processResources") {
 }
 
 repositories {
+    exclusiveContent {
+        forRepository { maven { name = "MixinExtrasCentral"; url = uri("https://repo.maven.apache.org/maven2") } }
+        filter { includeModule("io.github.llamalad7", "mixinextras-common") }
+    }
     mavenCentral()
     maven {
         name = "Curse Maven"
@@ -200,6 +206,7 @@ val extractCardinalComponentsBase = tasks.register<Copy>("extractCardinalCompone
 }
 
 dependencies {
+    compileOnly("io.github.llamalad7:mixinextras-common:0.4.1")
     minecraft("com.mojang:minecraft:$minecraft_version")
     add("mappings", loom.officialMojangMappings())
     modImplementation("net.fabricmc:fabric-loader:$fabric_loader_version")
